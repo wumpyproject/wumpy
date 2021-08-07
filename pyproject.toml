@@ -1,0 +1,49 @@
+[project]
+name = "Wumpy"
+version = "0.0.1"
+description = "Imagine an efficient and extensible Discord API wrapper"
+readme = "README.md"
+
+license = {file = "LICENSE"}
+authors = [{name = "Bluenix", email = "bluenixdev@gmail.com"}]
+
+keywords = [
+    "cython", "discord", "discord-api",
+    "wumpus", "wumpy", 
+]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Cython",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Internet",
+    "Topic :: Internet :: WWW/HTTP",  # There is no ASGI sub-classifier
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+requires-python = ">=3.7"
+
+[project.optional-dependencies]
+dev = [
+    "flake8",
+    "isort"
+]
+
+[project.urls]
+repository = "https://github.com/Bluenix2/wumpy"
+
+
+[build-system]
+requires = ["setuptools", "wheel", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[tool.isort]
+multi_line_output=5
