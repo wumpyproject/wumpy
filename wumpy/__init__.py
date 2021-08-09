@@ -1,3 +1,4 @@
+from wumpy.errors import *
 # We want to reveal these under the wumpy namespace
 from wumpy.models import Object, Snowflake
 

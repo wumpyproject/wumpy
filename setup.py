@@ -11,6 +11,12 @@ if 'SKIP_CYTHON' not in os.environ:
     else:
         # Cython was installed, so we can attempt to cythonize and compile the code.
         ext_modules = cythonize([
+                # HTTP subdirectory
+                'wumpy/http/locks.py',
+                'wumpy/http/ratelimiter.py',
+                'wumpy/http/requester.py',
+
+                # Models subdirectory
                 'wumpy/models/base.py',
             ],
             language_level=3
@@ -23,5 +29,6 @@ setup(
     description='Imagine an efficient and extensible Discord API wrapper',
     packages=['wumpy'],
     ext_modules=ext_modules,
-    extras_require={'all': ['Cython']},
+    install_requires=['aiohttp', 'typing_extensions'],
+    extras_require={'all': ['Cython', 'orjson']},
 )
