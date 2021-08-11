@@ -8,3 +8,8 @@ class HTTPClient(Requester):
 
     def __init__(self, token: str, *args, **kwargs):
         super().__init__(*args, **kwargs, headers={"Authorization": f"Bot {token}"})
+
+    # Asset endpoint
+
+    async def read_asset(self, url: str, *, size: int) -> bytes:
+        return await self._bypass_request('GET', url, size=size)

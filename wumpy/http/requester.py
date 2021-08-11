@@ -51,7 +51,7 @@ class Requester:
 
     __session: aiohttp.ClientSession
 
-    __slots__ = ('headers', 'ratelimiter', '__session')
+    __slots__ = ('headers', 'ratelimiter', '_session')
 
     def __init__(self, ratelimiter=DictRateLimiter, *, headers: Dict[str, str] = {}) -> None:
         # Headers global to the requester
@@ -62,7 +62,7 @@ class Requester:
         }
 
         self.ratelimiter = ratelimiter()
-        self.__session = aiohttp.ClientSession(headers=self.headers, json_serialize=dump)
+        self._session = aiohttp.ClientSession(headers=self.headers, json_serialize=dump)
 
     async def _handle_ratelimit(self, data: Dict[str, Any]) -> None:
         """Handle an unexpected 429 response."""
@@ -90,7 +90,7 @@ class Requester:
         None is returned if the request got a bad response which was handled
         and the function should be called again to retry.
         """
-        async with self.__session.request(route.method, route.url, headers=headers, **params) as res:
+        async with self._session.request(route.method, route.url, headers=headers, **params) as res:
             text = await res.text(encoding='utf-8')
             if res.headers.get('Content-Type') == 'application/json':
                 # Parse the response
@@ -166,3 +166,31 @@ class Requester:
                 return res
 
         raise HTTPException(f'All attempts at {route} failed')
+
+    async def _bypass_request(
+        self,
+        method: str,
+        url: str,
+        body: Dict[str, Any] = None,
+        **query: Union[str, int]
+    ) -> bytes:
+        """Bypass retrying, ratelimit handling and json serialization.
+
+        The point of this function is to make a "raw" request somewhere.
+        Commonly to a CDN endpoint, that does not have ratelimits and needs to
+        read the bytes.
+        """
+        async with self._session.request(method, url, json=body, params=query) as res:
+            if res.status == 200:
+                return await res.read()
+
+            data = json.loads(await res.text())
+
+            if res.status == 403:
+                raise Forbidden(res, data)
+            elif res.status == 404:
+                raise NotFound(res, data)
+            elif res.status == 503:
+                raise ServerException(res, data)
+            else:
+                raise RequestException(res, data)
