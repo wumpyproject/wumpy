@@ -1,11 +1,8 @@
 from typing import Any, Callable, Optional, Union
 
-import cython
-
 __all__ = ('Intents',)
 
 
-@cython.cclass
 class BaseFlags:
     """The base for all bitfield wrappers.
 
@@ -13,11 +10,11 @@ class BaseFlags:
     the underlying 32-bit integer.
     """
 
-    value = cython.declare(cython.int, visibility='readonly')
+    value: int
 
-    # __slots__ = ('value',)
+    __slots__ = ('value',)
 
-    def __init__(self, value: cython.int) -> None:
+    def __init__(self, value: int) -> None:
         self.value = value
 
     def __eq__(self, other: Any) -> bool:
@@ -69,7 +66,6 @@ class BaseFlags:
         return self.__class__(~self.value)
 
 
-@cython.cclass
 class BitMask:
     """Representing one bit of a bitfield, using discriptors.
 
@@ -77,11 +73,11 @@ class BitMask:
     of the BitField class this is attached to.
     """
 
-    mask: cython.int
+    mask: int
 
     __slots__ = ('mask',)
 
-    def __init__(self, mask: cython.int) -> None:
+    def __init__(self, mask: int) -> None:
         self.mask = mask
 
     def __get__(self, instance: BaseFlags, _: Optional[type]) -> Union[bool, int]:
@@ -90,11 +86,13 @@ class BitMask:
 
         return (instance.value & self.mask) == self.mask
 
-    def __set__(self, instance: BaseFlags, value: cython.bint) -> None:
+    def __set__(self, instance: BaseFlags, value: bool) -> None:
         if value is True:
             instance.value |= self.mask
-        else:
+        elif value is False:
             instance.value &= ~self.mask
+        else:
+            raise TypeError(f'Expected type bool but got {type(value)}.')
 
 
 def flag(func: Callable[[Any], int]) -> BitMask:
@@ -105,7 +103,6 @@ def flag(func: Callable[[Any], int]) -> BitMask:
     return BitMask(func(None))
 
 
-@cython.cclass
 class Intents(BaseFlags):
     """Discord's gateway flags for managing what events will be received."""
 

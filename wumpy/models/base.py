@@ -1,15 +1,12 @@
 from datetime import datetime, timezone
 from typing import Any, Type, TypeVar
 
-import cython
-
 __all__ = ('Object', 'Snowflake')
 
 
-DISCORD_EPOCH: cython.ulonglong = 1420070400000
+DISCORD_EPOCH = 1420070400000
 
 
-@cython.cclass
 class Object:
     """The root for all Wumpy objects, a Discord object with an ID.
 
@@ -17,9 +14,9 @@ class Object:
     to be stateful.
     """
 
-    id = cython.declare(cython.ulonglong, visibility='readonly')
+    id: int
 
-    # __slots__ = ('id',)
+    __slots__ = ('id',)
 
     def __init__(self, id: int) -> None:
         # If we'd include state as optionally None, that would make it
@@ -47,7 +44,7 @@ class Object:
 
     @property
     def created_at(self) -> datetime:
-        timestamp: cython.ulonglong = (self.id >> 22) + DISCORD_EPOCH
+        timestamp = (self.id >> 22) + DISCORD_EPOCH
         return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
 
 
@@ -55,7 +52,6 @@ class Object:
 SELF = TypeVar('SELF', bound='Snowflake')
 
 
-@cython.cclass
 class Snowflake(Object):
     """Standalone Discord snowflake.
 

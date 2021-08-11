@@ -5,7 +5,6 @@ from typing import Dict, Optional, Union
 from urllib.parse import quote as urlquote
 from weakref import WeakValueDictionary
 
-import cython
 from typing_extensions import Protocol
 
 from ..models.base import Snowflake
@@ -14,7 +13,6 @@ from .locks import Lock, RateLimit
 __all__ = ('Route', 'RateLimiter', 'DictRateLimiter')
 
 
-@cython.cclass
 class Route:
     """A route that a request should be made to.
 
@@ -110,7 +108,6 @@ class RateLimiter(Protocol):
         ...
 
 
-@cython.cclass
 class DictRateLimiter:
     """The simplest and default implementation of the RateLimiter protocol."""
 

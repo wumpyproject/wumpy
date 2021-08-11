@@ -5,7 +5,6 @@ from typing import Any, Dict, Union
 from urllib.parse import quote as urlquote
 
 import aiohttp
-import cython
 
 from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
@@ -39,7 +38,6 @@ def build_user_agent() -> str:
     return agent
 
 
-@cython.cclass
 class Requester:
     """A class to make requests against Discord's API, respecting ratelimits.
 

@@ -2,7 +2,6 @@ import asyncio
 from collections import deque
 from typing import Any
 
-import cython
 from typing_extensions import Deque, Protocol
 
 __all__ = ('Lock', 'RateLimit')
@@ -48,17 +47,16 @@ class Lock(Protocol):
         ...
 
 
-@cython.cclass
 class RateLimit:
     """An API rate limit lock and default implementation of the Lock protocol."""
 
-    deferred: cython.bint
-    locked = cython.declare(cython.bint, visibility='readonly')
+    deferred: bool
+    locked: bool
 
     event: asyncio.Event
     _waiters: Deque[asyncio.Future[None]]
 
-    # __slots__ = ('deferred', 'locked', 'event', '_waiters')
+    __slots__ = ('deferred', 'locked', 'event', '_waiters')
 
     def __init__(self, event: asyncio.Event) -> None:
         self.deferred = False
@@ -75,8 +73,7 @@ class RateLimit:
         if not self.deferred:
             self.release()
 
-    @cython.cfunc
-    def _next(self) -> cython.void:
+    def _next(self) -> None:
         """Wake up a waiting future."""
         while self._waiters:
             future = self._waiters.popleft()
