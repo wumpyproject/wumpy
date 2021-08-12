@@ -1,5 +1,5 @@
-from ..rest.client import RESTClient
 from .cache import Cache
+from .rest import RESTClient
 
 __all__ = ('ApplicationState',)
 

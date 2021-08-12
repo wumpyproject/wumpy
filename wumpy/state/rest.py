@@ -1,4 +1,4 @@
-from .requester import Requester, Route
+from ..rest.requester import Requester, Route
 
 __all__ = ('RESTClient',)
 
