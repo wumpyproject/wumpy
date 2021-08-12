@@ -1,9 +1,9 @@
 from .requester import Requester, Route
 
-__all__ = ('HTTPClient',)
+__all__ = ('RESTClient',)
 
 
-class HTTPClient(Requester):
+class RESTClient(Requester):
     """Requester subclass wrapping endpoints used for Discord applications."""
 
     def __init__(self, token: str, *args, **kwargs):
