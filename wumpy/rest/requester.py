@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from datetime import datetime, timezone
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 from urllib.parse import quote as urlquote
 
 import aiohttp
@@ -84,7 +84,7 @@ class Requester:
         ratelimit: Lock,
         attempt: int,
         **params: Any
-    ) -> Union[str, Dict[str, Any], None]:
+    ) -> Optional[Any]:
         """Attempt to actually make the request.
 
         None is returned if the request got a bad response which was handled
@@ -137,8 +137,15 @@ class Requester:
             else:
                 raise RequestException(res, data)
 
-    async def request(self, route: Route, **kwargs) -> Union[str, Dict[str, Any]]:
-        """Make a request to the Discord API, respecting rate limits."""
+    async def request(self, route: Route, **kwargs: Any) -> Any:
+        """Make a request to the Discord API, respecting rate limits.
+
+        Returning a deserialized JSON object if Content-Type is
+        `application/json`, otherwise a string. Commonly it is known by the
+        caller itself what the response will be, in which case it will be
+        a burden to narrow down the type unneccesarily. For that reason this
+        function is annotated as returning `Any`.
+        """
 
         # Create the headers for the request
         headers: dict[str, str] = {}
