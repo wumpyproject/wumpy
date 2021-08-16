@@ -37,10 +37,24 @@ class Object:
         return float(self.id)
 
     def __eq__(self, other: Any) -> bool:
-        return isinstance(other, self.__class__) and self.id == other.id
+        if isinstance(other, int):
+            value = other
+        elif isinstance(other, self.__class__):
+            value = other.id
+        else:
+            return False
+
+        return self.id == value
 
     def __ne__(self, other: Any) -> bool:
-        return not isinstance(other, self.__class__) or self.id != other.id
+        if isinstance(other, int):
+            value = other
+        elif isinstance(other, self.__class__):
+            value = other.id
+        else:
+            return True
+
+        return self.id != value
 
     @property
     def created_at(self) -> datetime:
