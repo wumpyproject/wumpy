@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 __all__ = (
     'AllowedMentions', 'ApplicationFlags', 'Intents',
@@ -153,6 +153,32 @@ class AllowedMentions:
         replied_user = self._merge(self.replied_user, other.replied_user)
 
         return self.__class__(roles=roles, users=users, everyone=everyone, replied_user=replied_user)
+
+    @property
+    def _data(self) -> Dict[str, Any]:
+        """The dictionary representation of this allowed mentions.
+
+        This is used when sending the object over the Discord API.
+        """
+        data: Dict[str, Any] = {'parse': []}
+
+        if isinstance(self.roles, list):
+            data['roles'] = self.roles
+        elif self.roles:
+            data['parse'].append('roles')
+
+        if isinstance(self.users, list):
+            data['users'] = self.users
+        elif self.users:
+            data['parse'].append('users')
+
+        if self.everyone:
+            data['parse'].append('everyone')
+
+        if self.replied_user:
+            data['replied_user'] = self.replied_user
+
+        return data
 
 
 class ApplicationFlags(BaseFlags):
