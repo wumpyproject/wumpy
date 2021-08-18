@@ -150,7 +150,9 @@ class Requester:
         # Create the headers for the request
         headers: dict[str, str] = {}
 
-        if 'reason' in kwargs:
+        # The second part of the if-statement is to check if the value is
+        # truthy, otherwise we'll send an X-Audit-Log-Reason of None
+        if 'reason' in kwargs and kwargs['reason']:
             headers['X-Audit-Log-Reason'] = urlquote(kwargs.pop('reason'), safe='/ ')
 
         for attempt in range(5):
