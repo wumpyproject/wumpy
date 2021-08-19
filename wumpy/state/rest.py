@@ -33,6 +33,20 @@ class RESTClient(WebhookRequester):
         return await self._bypass_request('GET', url, size=size)
 
 
+    # Invite endpoints
+
+    async def fetch_invite(self, code: str) -> Dict[str, Any]:
+        """Fetch invite information by its code."""
+        return await self.request(Route('GET', '/invites/{invite_code}', invite_code=str(code)))
+
+    async def delete_invite(self, code: str, *, reason: Optional[str] = None) -> Dict[str, Any]:
+        """Delete an invite by its code, this requires certain permissions."""
+        return await self.request(
+            Route(
+                'DELETE', '/invites/{invite_code}', invite_code=str(code)
+            ), reason=reason
+        )
+
     # User endpoints
 
     async def fetch_my_user(self) -> Dict[str, Any]:
