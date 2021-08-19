@@ -106,7 +106,7 @@ class WebhookRequester(Requester):
                 'POST', '/webhooks/{webhook_id}/{webhook_token}}',
                 webhook_id=int(webhook), webhook_token=token
             ),
-            data=data
+            data=data, params=params
         )
 
     async def fetch_webhook_message(self, webhook: int, token: str, message: int) -> Dict[str, Any]:
