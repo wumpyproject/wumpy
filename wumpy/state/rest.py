@@ -33,6 +33,86 @@ class RESTClient(WebhookRequester):
         return await self._bypass_request('GET', url, size=size)
 
 
+    # Emoji endpoints
+
+    async def fetch_emojis(self, guild: int) -> List[Any]:
+        """Fetch all emojis in a guild by its ID."""
+        return await self.request(Route('GET', '/guilds/{guild_id}', guild_id=guild))
+
+    async def fetch_emoji(self, guild: int, emoji: int) -> Dict[str, Any]:
+        """Fetch a specific emoji from a guild by its ID."""
+        return await self.request(Route(
+            'GET', '/guilds/{guild_id}/emojis/{emoji_id}',
+            guild_id=int(guild), emoji_id=int(emoji)
+        ))
+
+    async def create_emoji(
+        self,
+        guild: int,
+        *,
+        name: str,
+        image: str,
+        roles: Optional[int] = None,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create an emoji in a guild."""
+        data = {
+            'name': name,
+            'image': image,
+            'roles': roles
+        }
+        return await self.request(
+            Route('POST', '/guilds/{guild_id}/emojis', guild_id=int(guild)),
+            data=data, reason=reason
+        )
+
+    async def edit_emoji(
+        self,
+        guild: int,
+        emoji: int,
+        *,
+        name: Optional[str] = None,
+        roles: Optional[List[int]] = [],
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Edit fields of an emoji by its ID.
+
+        An empty list is used as a sentinel value for it missing.
+        """
+        if not name and roles == []:
+            raise TypeError("one of 'name' or 'roles' is required")
+
+        options: Dict[str, Any] = {}
+        if name:
+            options['name'] = name
+
+        if roles != []:
+            options['roles'] = roles
+
+        return await self.request(
+            Route(
+                'PATCH', '/guilds/{guild_id}/emojis/{emoji_id}',
+                guild_id=int(guild), emoji_id=int(emoji)
+            ),
+            json=options, reason=reason
+        )
+
+    async def delete_emoji(
+        self,
+        guild: int,
+        emoji: int,
+        *,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Delete an emoji from a guild."""
+        return await self.request(
+            Route(
+                'DELETE', '/guilds/{guild_id}/emojis/{emoji_id}',
+                guild_id=int(guild), emoji_id=int(emoji)
+            ),
+            reason=reason
+        )
+
     # Invite endpoints
 
     async def fetch_invite(self, code: str) -> Dict[str, Any]:
