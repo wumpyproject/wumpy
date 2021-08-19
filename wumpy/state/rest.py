@@ -47,6 +47,167 @@ class RESTClient(WebhookRequester):
             ), reason=reason
         )
 
+    # Stage Instance endpoints
+
+    async def create_stage_instance(
+        self,
+        channel: int,
+        topic: str,
+        privacy_level: Optional[int] = None,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a new stage instance associated with a stage channel."""
+        options: Dict[str, Any] = {
+            'channel_id': int(channel),
+            'topic': topic
+        }
+
+        if privacy_level:
+            options['privacy_level'] = privacy_level
+
+        return await self.request(
+            Route('POST', '/stage-instances'),
+            json=options, reason=reason
+        )
+
+    async def fetch_stage_instance(self, channel: int) -> Dict[str, Any]:
+        """Fetch the stage instance associated with the stage channel, if it exists."""
+        return await self.request(Route(
+            'GET', '/stage-instances/{channel_id}', channel_id=int(channel)
+        ))
+
+    async def edit_stage_instance(
+        self,
+        channel: int,
+        *,
+        topic: Optional[str] = None,
+        privacy_level: Optional[int] = None,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Edit fields of an existing stage instance."""
+        if not topic and privacy_level is None:
+            raise TypeError("at least one of 'topic' or 'privacy_level' is required")
+
+        options: Dict[str, Any] = {}
+
+        if topic:
+            options['topic'] = topic
+
+        if privacy_level is not None:
+            options['privacy_level'] = privacy_level
+
+        return await self.request(
+            Route('PATCH', '/stage-instances/{channel_id}', channel_id=int(channel)),
+            json=options, reason=reason
+        )
+
+    async def delete_stage_instance(
+        self,
+        channel: int,
+        *,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Delete a stage instance by its ID."""
+        return await self.request(
+            Route('DELETE', '/stage-instances/{channel_id}', channel_id=int(channel)),
+            reason=reason
+        )
+
+    # Sticker endpoints
+
+    async def fetch_sticker(self, sticker: int) -> Dict[str, Any]:
+        """Fetch a sticker by its ID."""
+        return await self.request(Route('GET', '/stickers/{sticker_id}', sticker_id=int(sticker)))
+
+    async def fetch_nitro_sticker_packs(self) -> Dict[str, Any]:
+        """Fetch a list of all sticker packs currently available to Nitro subscribers."""
+        return await self.request(Route('GET', '/sticker-packs'))
+
+    async def fetch_guild_stickers(self, guild: int) -> List[Any]:
+        """Fetch all stickers for a guild by its ID."""
+        return await self.request(Route('GET', '/guilds/{guild_id}/stickers', guild_id=int(guild)))
+
+    async def fetch_guild_sticker(self, guild: int, sticker: int) -> Dict[str, Any]:
+        """Fetch a sticker from a guild given its ID."""
+        return await self.request(Route(
+            'GET', '/guilds/{guild_id}/stickers/{sticker_id}',
+            guild_id=int(guild), sticker_id=int(sticker)
+        ))
+
+    async def create_sticker(
+        self,
+        guild: int,
+        *,
+        name: str,
+        description: str,
+        tags: str,
+        file: File,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a new sticker for a guild."""
+        data = {
+            'name': name,
+            'description': description,
+            'tags': tags,
+            'file': file
+        }
+        return await self.request(
+            Route('POST', '/guilds/{guild_id}/stickers', guild_id=int(guild)),
+            data=data, reason=reason
+        )
+
+    async def edit_guild_sticker(
+        self,
+        guild: int,
+        sticker: int,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = '',
+        tags: Optional[str] = None,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Edit a guild sticker by its ID.
+
+        An empty string is used as a sentinel value, as passing None will cause
+        the description to be removed.
+        """
+        if not name and description == '' and not tags:
+            raise TypeError("at least one of 'name', 'description' or 'tags is required")
+
+        options: Dict[str, Any] = {}
+        if name:
+            options['name'] = name
+
+        if description != '':
+            options['description'] = description
+
+        if tags:
+            options['tags'] = tags
+
+        return await self.request(
+            Route(
+                'PATCH', '/guilds/{guild_id}/stickers/{sticker_id}',
+                guild_id=int(guild), sticker_id=int(sticker)
+            ),
+            json=options, reason=reason
+        )
+
+    async def delete_guild_sticker(
+        self,
+        guild: int,
+        sticker: int,
+        *,
+        reason: Optional[str] = None
+    ) -> None:
+        """Delete a guild sticker by its ID."""
+        return await self.request(
+            Route(
+                'DELETE', '/guilds/{guild_id}/stickers/{sticker_id}',
+                guild_id=int(guild), sticker_id=int(sticker)
+            ),
+            reason=reason
+        )
+
     # User endpoints
 
     async def fetch_my_user(self) -> Dict[str, Any]:
