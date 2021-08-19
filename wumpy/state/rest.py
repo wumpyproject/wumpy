@@ -20,10 +20,27 @@ class RESTClient(WebhookRequester):
         super().__init__(*args, **kwargs, headers={"Authorization": f"Bot {token}"})
 
         self._state = state
+
+    # Audit Log endpoints
+
+    async def fetch_audit_logs(self, guild: int) -> Dict[str, Any]:
+        """Fetch the audit log entries for this guild."""
+        return await self.request(Route('GET', '/guilds/{guild_id}/audit-logs', guild_id=guild))
+
     # Asset endpoint
 
     async def read_asset(self, url: str, *, size: int) -> bytes:
         return await self._bypass_request('GET', url, size=size)
+
+
+    # Voice endpoints
+
+    async def fetch_voice_regions(self) -> List[Dict[str, Any]]:
+        """Fetch all available voice regions.
+
+        This can be useful for when creating voice channels or guilds.
+        """
+        return await self.request(Route('GET', '/voice/regions'))
 
     # Webhook endpoints (without usage of webhook token)
 
