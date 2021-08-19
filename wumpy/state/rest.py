@@ -33,6 +33,67 @@ class RESTClient(WebhookRequester):
         return await self._bypass_request('GET', url, size=size)
 
 
+    # User endpoints
+
+    async def fetch_my_user(self) -> Dict[str, Any]:
+        """Fetch the bot user account.
+
+        This is not a shortcut to `fetch_user()`, it has a different ratelimit
+        and returns a bit more information.
+        """
+        return await self.request(Route('GET', '/users/@me'))
+
+    async def fetch_user(self, user: int) -> Dict[str, Any]:
+        """Fetch a user by its ID.
+
+        You do not need to share a guild with the user to fetch their
+        (limited) information.
+        """
+        return await self.request(Route('GET', '/users/{user_id}', user_id=int(user)))
+
+    async def edit_my_user(
+        self,
+        *,
+        username: Optional[str] = None,
+        avatar: Optional[str] = '',
+    ) -> Dict[str, Any]:
+        """Edit the bot user account.
+
+        `avatar` is an optional string, passing None will set the user's avatar
+        to its default avatar. An empty string is used as a sentinel value to
+        know when an avatar was not passed.
+        """
+        if not username or avatar == '':
+            raise TypeError("at least one of 'username' or 'avatar' is required")
+
+        params: Dict[str, Any] = {}
+        if username:
+            params['username'] = username
+
+        if avatar != '':
+            params['avatar'] = avatar
+
+        return await self.request(Route('PATCH', '/users/@me'), json=params)
+
+    async def fetch_my_guilds(self) -> List[Dict[str, Any]]:
+        """Fetch all guilds that the bot user is in."""
+        return await self.request(Route('GET', '/users/@me/guilds'))
+
+    async def leave_guild(self, guild: int) -> None:
+        """Make the bot user leave the specified guild."""
+        await self.request(Route('DELETE', '/users/@me/guilds/{guild_id}', guild_id=int(guild)))
+
+    async def create_dm(self, recipient: int) -> Dict[str, Any]:
+        """Create a DM with the recipient.
+
+        This method is safe to call several times to get the DM channel when
+        needed. In fact, in other wrappers this is called everytime you send
+        a message to a user.
+        """
+        return await self.request(Route(
+            'POST', '/users/@me/channels'), json={'recipient_id': int(recipient)}
+        )
+
     # Voice endpoints
 
     async def fetch_voice_regions(self) -> List[Dict[str, Any]]:
