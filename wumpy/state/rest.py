@@ -113,6 +113,84 @@ class RESTClient(WebhookRequester):
             reason=reason
         )
 
+    # Guild Template endpoints
+
+    async def fetch_guild_template(self, code: str) -> Dict[str, Any]:
+        """Fetch a guild template by its code."""
+        return await self.request(Route(
+            'GET', '/guilds/templates/{template_code}', template_code=str(code)
+        ))
+
+    async def create_guild_from_template(
+        self,
+        template: str,
+        *,
+        name: str,
+        icon: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a new guild based on a template."""
+        return await self.request(
+            Route('POST', '/guilds/templates/{template_code}', template_code=str(template)),
+            json={'name': name, 'icon': icon}
+        )
+
+    async def fetch_guild_templates(self, guild: int) -> List[Any]:
+        """Fetch a list of all guild templates created from a guild."""
+        return await self.request(Route('GET', '/guilds/{guild_id}/templates', guild_id=int(guild)))
+
+    async def create_guild_template(
+        self,
+        guild: int,
+        *,
+        name: str,
+        description: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a template from a guild."""
+        return await self.request(
+            Route('POST', '/guilds/{guild_id}/templates', guild_id=int(guild)),
+            json={'name': name, 'description': description}
+        )
+
+    async def sync_guild_template(self, guild: int, template: str) -> Dict[str, Any]:
+        """Sync the template with the guild's current state."""
+        return await self.request(Route(
+            'PUT', '/guilds/{guild_id}/templates/{template_code}',
+            guild_id=int(guild), template_code=str(template)
+        ))
+
+    async def edit_guild_template(
+        self,
+        guild: int,
+        template: str,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = ''
+    ) -> Dict[str, Any]:
+        """Edit the guild template's metadata."""
+        if not name and description == '':
+            raise TypeError("at least one of 'name' or 'description' is required")
+
+        options: Dict[str, Any] = {}
+        if name:
+            options['name'] = name
+
+        if description != '':
+            options['description'] = description
+
+        return await self.request(
+            Route(
+                'PATCH', '/guilds/{guild_id}/templates/{template_code}',
+                guild_id=int(guild), template_code=str(template)
+            ), json=options
+        )
+
+    async def delete_guild_template(self, guild: int, template: str) -> Dict[str, Any]:
+        """Delete the guild template by its code."""
+        return await self.request(Route(
+            'DELETE', '/guilds/{guild_id}/templates/{template_code}',
+            guild_id=int(guild), template_code=str(template)
+        ))
+
     # Invite endpoints
 
     async def fetch_invite(self, code: str) -> Dict[str, Any]:
