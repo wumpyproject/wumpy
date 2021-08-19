@@ -137,7 +137,7 @@ class Requester:
             else:
                 raise RequestException(res, data)
 
-    async def request(self, route: Route, **kwargs: Any) -> Any:
+    async def request(self, route: Route, *, reason: Optional[str] = None, **kwargs: Any) -> Any:
         """Make a request to the Discord API, respecting rate limits.
 
         Returning a deserialized JSON object if Content-Type is
@@ -152,8 +152,8 @@ class Requester:
 
         # The second part of the if-statement is to check if the value is
         # truthy, otherwise we'll send an X-Audit-Log-Reason of None
-        if 'reason' in kwargs and kwargs['reason']:
-            headers['X-Audit-Log-Reason'] = urlquote(kwargs.pop('reason'), safe='/ ')
+        if reason:
+            headers['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
         for attempt in range(5):
             async with self.ratelimiter.get(route) as rl:
