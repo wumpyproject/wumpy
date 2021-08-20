@@ -1139,7 +1139,7 @@ class RESTClient(WebhookRequester):
             json=roles, reason=reason
         )
 
-    async def edit_guild_role(
+    async def edit_role(
         self,
         guild: int,
         role: int,
@@ -1558,7 +1558,7 @@ class RESTClient(WebhookRequester):
             data=data, reason=reason
         )
 
-    async def edit_guild_sticker(
+    async def edit_sticker(
         self,
         guild: int,
         sticker: int,
@@ -1586,7 +1586,7 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def delete_guild_sticker(
+    async def delete_sticker(
         self,
         guild: int,
         sticker: int,
