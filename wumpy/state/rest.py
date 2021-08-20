@@ -233,8 +233,6 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        wait: bool = False,
-        thread: int = MISSING,
         content: str = MISSING,
         username: str = MISSING,
         avatar_url: str = MISSING,
