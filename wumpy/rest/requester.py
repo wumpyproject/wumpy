@@ -74,7 +74,7 @@ class Requester:
 
     ratelimiter: RateLimiter
 
-    __session: aiohttp.ClientSession
+    _session: aiohttp.ClientSession
 
     __slots__ = ('headers', 'ratelimiter', '_session')
 
