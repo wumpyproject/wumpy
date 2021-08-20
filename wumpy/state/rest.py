@@ -1,8 +1,12 @@
-from typing import Literal, TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union, overload
+from typing import (
+    TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, Union,
+    overload
+)
 from urllib.parse import quote as urlquote
 
 from ..models import AllowedMentions, PermissionOverwrite
 from ..rest import File, Route, WebhookRequester
+from ..utils import MISSING
 
 if TYPE_CHECKING:
     from .state import ApplicationState
@@ -45,12 +49,12 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        name: Optional[str] = None,
-        position: Optional[int] = ...,
-        nsfw: Optional[bool] = None,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = [],
-        parent: Optional[int] = None,
-        reason: Optional[str] = None
+        name: str = MISSING,
+        position: Optional[int] = MISSING,
+        nsfw: bool = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        parent: Optional[int] = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit a Store channel by its ID."""
         ...
@@ -60,15 +64,15 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        name: Optional[str] = None,
-        position: Optional[int] = ...,
-        bitrate: Optional[int] = None,
-        user_limit: Optional[int] = None,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = [],
-        parent: Optional[int] = None,
-        rtc_region: Optional[str] = None,
-        video_quality: Optional[int] = None,
-        reason: Optional[str] = None
+        name: str = MISSING,
+        position: int = MISSING,
+        bitrate: Optional[int] = MISSING,
+        user_limit: Optional[int] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        parent: Optional[int] = MISSING,
+        rtc_region: Optional[str] = MISSING,
+        video_quality: Optional[int] = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit a Voice channel by its ID."""
         ...
@@ -78,15 +82,15 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        name: Optional[str] = None,
-        type: Optional[int] = None,
-        position: Optional[int] = ...,
-        topic: Optional[str] = None,
-        nsfw: Optional[bool] = None,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = [],
-        parent: Optional[int] = None,
-        default_auto_archive: Optional[int] = None,
-        reason: Optional[str] = None
+        name: str = MISSING,
+        type: int = MISSING,
+        position: Optional[int] = MISSING,
+        topic: Optional[str] = MISSING,
+        nsfw: Optional[bool] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        parent: Optional[int] = MISSING,
+        default_auto_archive: Optional[int] = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit a News channel by its ID."""
         ...
@@ -96,16 +100,16 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        name: Optional[str] = None,
-        type: Optional[int] = None,
-        position: Optional[int] = ...,
-        topic: Optional[str] = None,
-        nsfw: Optional[bool] = None,
-        rate_limit: Optional[int] = None,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = [],
-        parent: Optional[int] = None,
-        default_auto_archive: Optional[int] = None,
-        reason: Optional[str] = None
+        name: str = MISSING,
+        type: int = MISSING,
+        position: Optional[int] = MISSING,
+        topic: Optional[str] = MISSING,
+        nsfw: Optional[bool] = MISSING,
+        rate_limit: Optional[int] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        parent: Optional[int] = MISSING,
+        default_auto_archive: Optional[int] = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit a Text channel by its ID."""
         ...
@@ -114,62 +118,62 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        name: Optional[str] = None,
-        type: Optional[int] = None,
-        position: Optional[int] = -1,
-        topic: Optional[str] = None,
-        nsfw: Optional[bool] = None,
-        rate_limit: Optional[int] = None,
-        bitrate: Optional[int] = None,
-        user_limit: Optional[int] = None,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = [],
-        parent: Optional[int] = None,
-        rtc_region: Optional[str] = None,
-        video_quality: Optional[int] = None,
-        default_auto_archive: Optional[int] = None,
-        reason: Optional[str] = None,
+        name: str = MISSING,
+        type: int = MISSING,
+        position: Optional[int] = MISSING,
+        topic: Optional[str] = MISSING,
+        nsfw: Optional[bool] = MISSING,
+        rate_limit: Optional[int] = MISSING,
+        bitrate: Optional[int] = MISSING,
+        user_limit: Optional[int] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        parent: Optional[int] = MISSING,
+        rtc_region: Optional[str] = MISSING,
+        video_quality: Optional[int] = MISSING,
+        default_auto_archive: Optional[int] = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         # The amount of complexity necessary to ensure the user has passed a good
         # combination of options is too much for the library to bother at this moment
 
         options: Dict[str, Any] = {}
-        if name:
+        if name is not MISSING:
             options['name'] = name
 
-        if type:
+        if type is not MISSING:
             options['type'] = type
 
-        if position != -1:
+        if position is not MISSING:
             options['position'] = position
 
-        if topic:
+        if topic is not MISSING:
             options['topic'] = topic
 
-        if nsfw is not None:
+        if nsfw is not MISSING:
             options['nsfw'] = nsfw
 
-        if rate_limit is not None:
+        if rate_limit is not MISSING:
             options['rate_limit_per_user'] = rate_limit
 
-        if bitrate:
+        if bitrate is not MISSING:
             options['bitrate'] = bitrate
 
-        if user_limit is not None:
+        if user_limit is not MISSING:
             options['user_limit'] = user_limit
 
-        if permission_overwrites is None or len(permission_overwrites) > 0:
+        if permission_overwrites is not MISSING:
             options['permission_overwrites'] = permission_overwrites
 
-        if parent:
+        if parent is not MISSING:
             options['parent_id'] = parent
 
-        if rtc_region:
+        if rtc_region is not MISSING:
             options['rtc_region'] = rtc_region
 
-        if video_quality:
+        if video_quality is not MISSING:
             options['video_quality_mode'] = video_quality
 
-        if default_auto_archive:
+        if default_auto_archive is not MISSING:
             options['default_auto_archive_duration'] = default_auto_archive
 
         return await self.request(
@@ -177,7 +181,7 @@ class RESTClient(WebhookRequester):
             json=options, reason=reason
         )
 
-    async def delete_channel(self, channel: int, *, reason: Optional[str] = None):
+    async def delete_channel(self, channel: int, *, reason: str = MISSING):
         """Delete a channel by its ID."""
         return await self.request(
             Route('DELETE', '/channels/{channel_id}', channel_id=int(channel)),
@@ -189,7 +193,7 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        before: Optional[int] = None,
+        before: int = MISSING,
         limit: int = 50
     ) -> List[Any]:
         ...
@@ -199,7 +203,7 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        after: Optional[int] = None,
+        after: int = MISSING,
         limit: int = 50
     ) -> List[Any]:
         ...
@@ -209,7 +213,7 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        around: Optional[int] = None,
+        around: int = MISSING,
         limit: int = 50
     ) -> List[Any]:
         ...
@@ -218,29 +222,26 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        before: Optional[int] = None,
-        after: Optional[int] = None,
-        around: Optional[int] = None,
-        limit: Optional[int] = None
+        before: int = MISSING,
+        after: int = MISSING,
+        around: int = MISSING,
+        limit: int = 50
     ) -> List[Any]:
         """Fetch the messages for a channel by its ID."""
         if bool(before) + bool(after) + bool(around) > 1:
             raise TypeError("'before', 'after' and 'around' are mutually exclusive")
-        elif limit and 0 > limit > 100:
+        elif 0 > limit > 100:
             raise TypeError("'limit' must be a number between 1 and 100")
 
-        options: Dict[str, Any] = {}
-        if before:
+        options: Dict[str, Any] = {'limit': limit}
+        if before is not MISSING:
             options['before'] = before
 
-        if after:
+        if after is not MISSING:
             options['after'] = after
 
-        if around:
+        if around is not MISSING:
             options['around'] = around
-
-        if limit:
-            options['limit'] = limit
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/messages', channel_id=int(channel)),
@@ -259,51 +260,55 @@ class RESTClient(WebhookRequester):
         channel: int,
         *,
         wait: bool = False,
-        thread: Optional[int] = None,
-        content: Optional[str] = None,
-        username: Optional[str] = None,
-        avatar_url: Optional[str] = None,
-        tts: Optional[bool] = None,
-        embeds: Optional[Sequence[Dict[str, Any]]] = None,
-        allowed_mentions: Optional[AllowedMentions] = None,
-        file: Optional[File] = None,
+        thread: int = MISSING,
+        content: str = MISSING,
+        username: str = MISSING,
+        avatar_url: str = MISSING,
+        tts: bool = MISSING,
+        embeds: Sequence[Dict[str, Any]] = MISSING,
+        allowed_mentions: AllowedMentions = MISSING,
+        file: File = MISSING,
+        stickers: Sequence[int] = MISSING
     ) -> Dict[str, Any]:
         """Send a message into a channel."""
 
-        if not content and not embeds and not file:
-            raise TypeError("one of 'content', 'embeds' or 'file' is required")
+        if not any((content, embeds, file, stickers)):
+            raise TypeError("one of 'content', 'embeds', 'file', 'stickers' is required")
 
         params: Dict[str, Any] = {}
-        if wait:
+        if wait is not MISSING:
             params['wait'] = wait
 
-        if thread:
+        if thread is not MISSING:
             params['thread_id'] = int(thread)
 
         json: Dict[str, Any] = {}
-        if content:
+        if content is not MISSING:
             json['content'] = content
 
-        if username:
+        if username is not MISSING:
             json['username'] = username
 
-        if avatar_url:
+        if avatar_url is not MISSING:
             json['avatar_url'] = str(avatar_url)
 
-        if tts:
+        if tts is not MISSING:
             json['tts'] = tts
 
-        if embeds:
+        if embeds is not MISSING:
             json['embeds'] = embeds
 
-        if allowed_mentions:
+        if allowed_mentions is not MISSING:
             json['allowed_mentions'] = allowed_mentions._data
+
+        if stickers is not MISSING:
+            json['sticker_ids'] = [int(s) for s in stickers]
 
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {}
         data['payload_json'] = json
 
-        if file:
+        if file is not MISSING:
             data['file'] = file
 
         return await self.request(
@@ -333,11 +338,11 @@ class RESTClient(WebhookRequester):
         channel: int,
         message: int,
         emoji: str,
-        user: Optional[int] = None
+        user: int = MISSING
     ) -> None:
         """Delete a reaction, if no user is passed then the bot's own reaction is deleted."""
         # We int() user here so that we don't need to figure it out below
-        target: Union[str, int] = '@me' if not user else int(user)
+        target: Union[str, int] = '@me' if user is MISSING else int(user)
 
         return await self.request(Route(
             'DELETE', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/{user_id}',
@@ -352,7 +357,7 @@ class RESTClient(WebhookRequester):
             channel_id=int(channel), message_id=int(message), emoji=urlquote(str(emoji))
         ))
 
-    async def clear_reactions(self, channel: int, message: int, emoji: Optional[str] = None) -> None:
+    async def clear_reactions(self, channel: int, message: int, emoji: str = MISSING) -> None:
         """Delete all reactions on a message.
 
         If an emojis is passed, only the reactions with that emojis are deleted.
@@ -360,7 +365,7 @@ class RESTClient(WebhookRequester):
         path = '/channels/{channel_id}/messages/{message_id}/reactions'
         params: Dict[str, Any] = {'channel_id': int(channel), 'message_id': int(message)}
 
-        if emoji:
+        if emoji is not MISSING:
             path += '/{emoji}'
             params['emoji'] = str(emoji)
 
@@ -371,31 +376,31 @@ class RESTClient(WebhookRequester):
         channel: int,
         message: int,
         *,
-        content: Optional[str] = None,
-        embeds: Optional[Sequence[Dict[str, Any]]] = None,
-        file: Optional[File] = None,
-        allowed_mentions: Optional[AllowedMentions] = None,
-        attachments: Optional[Dict[str, Any]] = None
+        content: Optional[str] = MISSING,
+        embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
+        file: Optional[File] = MISSING,
+        allowed_mentions: Optional[AllowedMentions] = MISSING,
+        attachments: Optional[Dict[str, Any]] = MISSING
     ) -> Dict[str, Any]:
         """Edit a previously sent message."""
         json: Dict[str, Any] = {}
-        if content:
+        if content is not MISSING:
             json['content'] = content
 
-        if embeds:
+        if embeds is not MISSING:
             json['embeds'] = embeds
 
-        if allowed_mentions:
-            json['allowed_mentions'] = allowed_mentions._data
+        if allowed_mentions is not MISSING:
+            json['allowed_mentions'] = allowed_mentions._data if allowed_mentions else None
 
-        if attachments:
+        if attachments is not MISSING:
             json['attachments'] = attachments
 
         # This will cause aiohttp to use multipart/form-data
         data: Dict[str, Any] = {}
         data['payload_json'] = json
 
-        if file:
+        if file is not MISSING:
             data['file'] = file
 
         return await self.request(
@@ -406,7 +411,7 @@ class RESTClient(WebhookRequester):
             data=data
         )
 
-    async def delete_message(self, channel: int, message: int, *, reason: Optional[str] = None) -> None:
+    async def delete_message(self, channel: int, message: int, *, reason: str = MISSING) -> None:
         """Delete a message by its ID."""
         return await self.request(
             Route(
@@ -420,7 +425,7 @@ class RESTClient(WebhookRequester):
         channel: int,
         messages: List[int],
         *,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> None:
         """Delete multiple messages in a single request.
 
@@ -442,7 +447,7 @@ class RESTClient(WebhookRequester):
         allow: Union[str, int],
         deny: Union[str, int],
         type: Literal[0, 1],
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> None:
         """Edit channel permission overwrites for a user or role."""
         options: Dict[str, Any] = {
@@ -474,7 +479,7 @@ class RESTClient(WebhookRequester):
         max_uses: int = 0,
         temporary: bool = False,
         unique: bool = False,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         ...
 
@@ -489,7 +494,7 @@ class RESTClient(WebhookRequester):
         unique: bool = False,
         target_type: int,
         target: int,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         ...
 
@@ -501,16 +506,16 @@ class RESTClient(WebhookRequester):
         max_uses: int = 0,
         temporary: bool = False,
         unique: bool = False,
-        target_type: Optional[int] = None,
-        target: Optional[int] = None,
-        reason: Optional[str] = None
+        target_type: int = MISSING,
+        target: int = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create a new channel invite.
 
         `target` wraps both `target_user_id` and `target_application_id` depending
         on what `target_type` is set.
         """
-        if target_type and not target:
+        if target_type is not MISSING and target is MISSING:
             raise TypeError("'target' is required when 'target_type' is passed")
 
         options: Dict[str, Any] = {
@@ -524,7 +529,7 @@ class RESTClient(WebhookRequester):
             options['target_type'] = target_type
             options['target_user_id'] = target
 
-        if target_type == 2:
+        elif target_type == 2:
             options['target_type'] = target_type
             options['target_application_id'] = target
 
@@ -540,7 +545,7 @@ class RESTClient(WebhookRequester):
         channel: int,
         overwrite: int,
         *,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> None:
         """Delete a channel permission overwrite."""
         await self.request(
@@ -566,7 +571,7 @@ class RESTClient(WebhookRequester):
         """Fetch all pinned messages in a channel."""
         return await self.request(Route('GET', '/channels/{channel_id}/pins', channel_id=int(channel)))
 
-    async def pin_message(self, channel: int, message: int, *, reason: Optional[str] = None) -> None:
+    async def pin_message(self, channel: int, message: int, *, reason: str = MISSING) -> None:
         """Pin a message in a channel."""
         return await self.request(
             Route(
@@ -580,7 +585,7 @@ class RESTClient(WebhookRequester):
         channel: int,
         message: int,
         *,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Unpin a message in a channel."""
         return await self.request(
@@ -599,7 +604,7 @@ class RESTClient(WebhookRequester):
         *,
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080],
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         ...
 
@@ -612,24 +617,24 @@ class RESTClient(WebhookRequester):
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080],
         type: int,
-        invitable: Optional[bool] = None,
-        reason: Optional[str] = None
+        invitable: bool = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         ...
 
     async def start_thread(
         self,
         channel: int,
-        message: Optional[int] = None,
+        message: int = MISSING,
         *,
         name: str,
         archive_duration: int,
-        type: Optional[int] = None,
-        invitable: Optional[bool] = None,
-        reason: Optional[str] = None
+        type: int = MISSING,
+        invitable: bool = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create a new thread in a channel, with or without an existing message."""
-        if not message and type:
+        if message is not MISSING and type is MISSING:
             raise TypeError('thread type is required when starting a thread without a message')
 
         path = '/channels/{channel_id}'
@@ -640,12 +645,13 @@ class RESTClient(WebhookRequester):
             'auto_archive_duration': archive_duration
         }
 
-        if message:
+        if message is not MISSING:
             path += '/messages/{message_id}'
             params['message_id'] = int(message)
 
             options['type'] = type
-            options['invitable'] = invitable
+            if invitable is not MISSING:
+                options['invitable'] = invitable
 
         return await self.request(
             Route('POST', path + '/threads', **params),
@@ -694,15 +700,15 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        before: Optional[int] = None,
-        limit: Optional[int] = None
+        before: int = MISSING,
+        limit: int = MISSING,
     ) -> Dict[str, Any]:
         """Fetch all archived public threads."""
         query: Dict[str, Any] = {}
-        if before:
+        if before is not MISSING:
             query['before'] = before
 
-        if limit:
+        if limit is not MISSING:
             query['limit'] = limit
 
         return await self.request(
@@ -714,15 +720,15 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        before: Optional[int] = None,
-        limit: Optional[int] = None
+        before: int = MISSING,
+        limit: int = MISSING
     ) -> Dict[str, Any]:
         """Fetch all archived private threads."""
         query: Dict[str, Any] = {}
-        if before:
+        if before is not MISSING:
             query['before'] = before
 
-        if limit:
+        if limit is not MISSING:
             query['limit'] = limit
 
         return await self.request(
@@ -734,15 +740,15 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        before: Optional[int] = None,
-        limit: Optional[int] = None
+        before: int = MISSING,
+        limit: int = MISSING
     ) -> Dict[str, Any]:
         """Fetch all joined archived private threads."""
         query: Dict[str, Any] = {}
-        if before:
+        if before is not MISSING:
             query['before'] = before
 
-        if limit:
+        if limit is not MISSING:
             query['limit'] = limit
 
         return await self.request(
@@ -769,14 +775,16 @@ class RESTClient(WebhookRequester):
         *,
         name: str,
         image: str,
-        roles: Optional[int] = None,
-        reason: Optional[str] = None
+        roles: Optional[Sequence[int]] = None,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create an emoji in a guild."""
         data = {
             'name': name,
             'image': image,
-            'roles': roles
+            # We can't iterate through None, so we need to add an additional
+            # gate so that we simply pass None if it is
+            'roles': [int(r) for r in roles] if roles else None
         }
         return await self.request(
             Route('POST', '/guilds/{guild_id}/emojis', guild_id=int(guild)),
@@ -788,22 +796,19 @@ class RESTClient(WebhookRequester):
         guild: int,
         emoji: int,
         *,
-        name: Optional[str] = None,
-        roles: Optional[List[int]] = [],
-        reason: Optional[str] = None
+        name: str = MISSING,
+        roles: List[int] = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
-        """Edit fields of an emoji by its ID.
-
-        An empty list is used as a sentinel value for it missing.
-        """
+        """Edit fields of an emoji by its ID."""
         if not name and roles == []:
             raise TypeError("one of 'name' or 'roles' is required")
 
         options: Dict[str, Any] = {}
-        if name:
+        if name is not MISSING:
             options['name'] = name
 
-        if roles != []:
+        if roles is not MISSING:
             options['roles'] = roles
 
         return await self.request(
@@ -819,7 +824,7 @@ class RESTClient(WebhookRequester):
         guild: int,
         emoji: int,
         *,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Delete an emoji from a guild."""
         return await self.request(
@@ -880,18 +885,18 @@ class RESTClient(WebhookRequester):
         guild: int,
         template: str,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = ''
+        name: str = MISSING,
+        description: str = MISSING
     ) -> Dict[str, Any]:
         """Edit the guild template's metadata."""
-        if not name and description == '':
+        if name is MISSING and description is MISSING:
             raise TypeError("at least one of 'name' or 'description' is required")
 
         options: Dict[str, Any] = {}
-        if name:
+        if name is not MISSING:
             options['name'] = name
 
-        if description != '':
+        if description is not MISSING:
             options['description'] = description
 
         return await self.request(
@@ -914,7 +919,7 @@ class RESTClient(WebhookRequester):
         """Fetch invite information by its code."""
         return await self.request(Route('GET', '/invites/{invite_code}', invite_code=str(code)))
 
-    async def delete_invite(self, code: str, *, reason: Optional[str] = None) -> Dict[str, Any]:
+    async def delete_invite(self, code: str, *, reason: str = MISSING) -> Dict[str, Any]:
         """Delete an invite by its code, this requires certain permissions."""
         return await self.request(
             Route(
@@ -928,8 +933,8 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         topic: str,
-        privacy_level: Optional[int] = None,
-        reason: Optional[str] = None
+        privacy_level: int = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create a new stage instance associated with a stage channel."""
         options: Dict[str, Any] = {
@@ -937,7 +942,7 @@ class RESTClient(WebhookRequester):
             'topic': topic
         }
 
-        if privacy_level:
+        if privacy_level is not MISSING:
             options['privacy_level'] = privacy_level
 
         return await self.request(
@@ -955,20 +960,20 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        topic: Optional[str] = None,
-        privacy_level: Optional[int] = None,
-        reason: Optional[str] = None
+        topic: str = MISSING,
+        privacy_level: int = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit fields of an existing stage instance."""
-        if not topic and privacy_level is None:
+        if topic is MISSING and privacy_level is MISSING:
             raise TypeError("at least one of 'topic' or 'privacy_level' is required")
 
         options: Dict[str, Any] = {}
 
-        if topic:
+        if topic is not MISSING:
             options['topic'] = topic
 
-        if privacy_level is not None:
+        if privacy_level is not MISSING:
             options['privacy_level'] = privacy_level
 
         return await self.request(
@@ -980,7 +985,7 @@ class RESTClient(WebhookRequester):
         self,
         channel: int,
         *,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Delete a stage instance by its ID."""
         return await self.request(
@@ -1017,7 +1022,7 @@ class RESTClient(WebhookRequester):
         description: str,
         tags: str,
         file: File,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create a new sticker for a guild."""
         data = {
@@ -1036,27 +1041,23 @@ class RESTClient(WebhookRequester):
         guild: int,
         sticker: int,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = '',
-        tags: Optional[str] = None,
-        reason: Optional[str] = None
+        name: str = MISSING,
+        description: str = MISSING,
+        tags: str = MISSING,
+        reason: str = MISSING
     ) -> Dict[str, Any]:
-        """Edit a guild sticker by its ID.
-
-        An empty string is used as a sentinel value, as passing None will cause
-        the description to be removed.
-        """
-        if not name and description == '' and not tags:
+        """Edit a guild sticker by its ID."""
+        if name is MISSING and description is MISSING and tags is MISSING:
             raise TypeError("at least one of 'name', 'description' or 'tags is required")
 
         options: Dict[str, Any] = {}
-        if name:
+        if name is not MISSING:
             options['name'] = name
 
-        if description != '':
+        if description is not MISSING:
             options['description'] = description
 
-        if tags:
+        if tags is not MISSING:
             options['tags'] = tags
 
         return await self.request(
@@ -1072,7 +1073,7 @@ class RESTClient(WebhookRequester):
         guild: int,
         sticker: int,
         *,
-        reason: Optional[str] = None
+        reason: str = MISSING
     ) -> None:
         """Delete a guild sticker by its ID."""
         return await self.request(
@@ -1104,23 +1105,22 @@ class RESTClient(WebhookRequester):
     async def edit_my_user(
         self,
         *,
-        username: Optional[str] = None,
-        avatar: Optional[str] = '',
+        username: str = MISSING,
+        avatar: str = MISSING,
     ) -> Dict[str, Any]:
         """Edit the bot user account.
 
         `avatar` is an optional string, passing None will set the user's avatar
-        to its default avatar. An empty string is used as a sentinel value to
-        know when an avatar was not passed.
+        to its default avatar.
         """
-        if not username or avatar == '':
+        if username is MISSING and avatar is MISSING:
             raise TypeError("at least one of 'username' or 'avatar' is required")
 
         params: Dict[str, Any] = {}
-        if username:
+        if username is not MISSING:
             params['username'] = username
 
-        if avatar != '':
+        if avatar is not MISSING:
             params['avatar'] = avatar
 
         return await self.request(Route('PATCH', '/users/@me'), json=params)
@@ -1181,13 +1181,13 @@ class RESTClient(WebhookRequester):
             'GET', '/guilds/{guild_id}/webhooks', guild_id=int(guild)
         ))
 
-    async def fetch_webhook(self, webhook: int, token: Optional[str] = None) -> Dict[str, Any]:
+    async def fetch_webhook(self, webhook: int, token: str = MISSING) -> Dict[str, Any]:
         """Fetch a specific webhook by its id.
 
         This wraps both `/webhooks/{webhook.id}` and
         `webhooks/{webhook.id}/{webhook.token}` depending on what is passed.
         """
-        if token:
+        if token is not MISSING:
             return await super().fetch_webhook(webhook, token)
 
         return await self.request(Route(
@@ -1199,9 +1199,9 @@ class RESTClient(WebhookRequester):
         self,
         webhook: int,
         *,
-        name: Optional[str] = None,
-        avatar: Optional[str] = '',
-        channel: Optional[int] = None
+        name: str = MISSING,
+        avatar: str = MISSING,
+        channel: int = MISSING
     ) -> Dict[str, Any]:
         ...
 
@@ -1209,21 +1209,21 @@ class RESTClient(WebhookRequester):
     async def edit_webhook(
         self,
         webhook: int,
-        token: Optional[str] = None,
+        token: str,
         *,
-        name: Optional[str] = None,
-        avatar: Optional[str] = '',
+        name: str = MISSING,
+        avatar: str = MISSING,
     ) -> Dict[str, Any]:
         ...
 
     async def edit_webhook(
         self,
         webhook: int,
-        token: Optional[str] = None,
+        token: str = MISSING,
         *,
-        name: Optional[str] = None,
-        avatar: Optional[str] = '',
-        channel: Optional[int] = None
+        name: str = MISSING,
+        avatar: str = MISSING,
+        channel: int = MISSING
     ) -> Dict[str, Any]:
         """Edit a webhook's fields.
 
@@ -1231,28 +1231,28 @@ class RESTClient(WebhookRequester):
         variant will be used, this means that the user object will be missing
         from the webhook object and you cannot pass `channel`.
         """
-        if token:
+        if token is not MISSING:
             return await super().edit_webhook(webhook, token, name=name, avatar=avatar)
 
-        if not name or avatar == '' or not channel:
+        if name is MISSING and avatar is MISSING and channel is MISSING:
             raise TypeError("at least one of 'username' or 'avatar' is required")
 
         body: Dict[str, Any] = {}
-        if name:
+        if name is not MISSING:
             body['name'] = name
 
-        if avatar != '':
+        if avatar is not MISSING:
             body['avatar'] = avatar
 
-        if channel:
+        if channel is not MISSING:
             body['channel_id'] = channel
 
         return await self.request(
             Route('PATCH', 'webhooks/{webhook_id}', webhook_id=int(webhook)), json=body)
 
-    async def delete_webhook(self, webhook: int, token: Optional[str] = None) -> None:
+    async def delete_webhook(self, webhook: int, token: str = MISSING) -> None:
         """Delete a webhook by its ID."""
-        if token:
+        if token is not MISSING:
             return await super().delete_webhook(webhook, token)
 
         await self.request(Route('DELETE', 'webhooks/{webhook_id}', webhook_id=int(webhook)))
