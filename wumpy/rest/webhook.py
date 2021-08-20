@@ -1,4 +1,4 @@
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from ..models import AllowedMentions, Object
 from ..utils import MISSING
@@ -30,17 +30,15 @@ class WebhookRequester(Requester):
         if name is MISSING and avatar is MISSING:
             raise TypeError("at least one of 'username' or 'avatar' is required")
 
-        body: Dict[str, Any] = {}
-        if name is not MISSING:
-            body['name'] = name
-
-        if avatar is not MISSING:
-            body['avatar'] = avatar
+        payload: Dict[str, Any] = {
+            'name': name,
+            'avatar': avatar
+        }
 
         return await self.request(Route(
             'PATCH', '/webhooks/{webhook_id}/{webhook_token}',
             webhook_id=int(webhook), webhook_token=token
-        ), json=body)
+        ), json=payload)
 
     async def delete_webhook(self, webhook: int, token: str) -> None:
         """Delete a webhook."""
@@ -69,31 +67,21 @@ class WebhookRequester(Requester):
         if content is MISSING and embeds is MISSING and file is MISSING:
             raise TypeError("one of 'content', 'embeds' or 'file' is required")
 
-        params: Dict[str, Any] = {}
-        if wait is not MISSING:
-            params['wait'] = wait
+        params: Dict[str, Any] = {
+            'wait': wait,
+            'thread_id': int(thread) if thread else MISSING,  # We cannot int() MISSING
+        }
+        params = self._clean_dict(params)
 
-        if thread is not MISSING:
-            params['thread_id'] = int(thread)
-
-        json: Dict[str, Any] = {}
-        if content is not MISSING:
-            json['content'] = content
-
-        if username is not MISSING:
-            json['username'] = username
-
-        if avatar_url is not MISSING:
-            json['avatar_url'] = str(avatar_url)
-
-        if tts is not MISSING:
-            json['tts'] = tts
-
-        if embeds is not MISSING:
-            json['embeds'] = embeds
-
-        if allowed_mentions is not MISSING:
-            json['allowed_mentions'] = allowed_mentions._data
+        json: Dict[str, Any] = {
+            'content': content,
+            'username': username,
+            'avatar_url': str(avatar_url),
+            'tts': tts,
+            'embeds': embeds,
+            'allowed_mentions': allowed_mentions._data if allowed_mentions else MISSING
+        }
+        json = self._clean_dict(json)
 
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {}
@@ -123,25 +111,20 @@ class WebhookRequester(Requester):
         token: str,
         message: int,
         *,
-        content: str = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
-        file: File = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        attachments: Dict[str, Any] = MISSING
+        content: Optional[str] = MISSING,
+        embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
+        file: Optional[File] = MISSING,
+        allowed_mentions: Optional[AllowedMentions] = MISSING,
+        attachments: Optional[Dict[str, Any]] = MISSING
     ) -> Dict[str, Any]:
         """Edit a webhook's sent message."""
-        json: Dict[str, Any] = {}
-        if content is not MISSING:
-            json['content'] = content
-
-        if embeds is not MISSING:
-            json['embeds'] = embeds
-
-        if allowed_mentions is not MISSING:
-            json['allowed_mentions'] = allowed_mentions._data
-
-        if attachments is not MISSING:
-            json['attachments'] = attachments
+        json: Dict[str, Any] = {
+            'content': content,
+            'embeds': embeds,
+            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'attachments': attachments,
+        }
+        json = self._clean_dict(json)
 
         # This will cause aiohttp to use multipart/form-data
         data: Dict[str, Any] = {}
@@ -226,11 +209,11 @@ class Webhook(Object):
         self,
         message: int,
         *,
-        content: str = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
-        file: File = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        attachments: Dict[str, Any] = MISSING
+        content: Optional[str] = MISSING,
+        embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
+        file: Optional[File] = MISSING,
+        allowed_mentions: Optional[AllowedMentions] = MISSING,
+        attachments: Optional[Dict[str, Any]] = MISSING
     ) -> Dict[str, Any]:
         """Edit a message this webhook has sent."""
         return await self.rest.edit_webhook_message(

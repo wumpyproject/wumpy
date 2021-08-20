@@ -136,49 +136,26 @@ class RESTClient(WebhookRequester):
         # The amount of complexity necessary to ensure the user has passed a good
         # combination of options is too much for the library to bother at this moment
 
-        options: Dict[str, Any] = {}
-        if name is not MISSING:
-            options['name'] = name
-
-        if type is not MISSING:
-            options['type'] = type
-
-        if position is not MISSING:
-            options['position'] = position
-
-        if topic is not MISSING:
-            options['topic'] = topic
-
-        if nsfw is not MISSING:
-            options['nsfw'] = nsfw
-
-        if rate_limit is not MISSING:
-            options['rate_limit_per_user'] = rate_limit
-
-        if bitrate is not MISSING:
-            options['bitrate'] = bitrate
-
-        if user_limit is not MISSING:
-            options['user_limit'] = user_limit
-
-        if permission_overwrites is not MISSING:
-            options['permission_overwrites'] = permission_overwrites
-
-        if parent is not MISSING:
-            options['parent_id'] = parent
-
-        if rtc_region is not MISSING:
-            options['rtc_region'] = rtc_region
-
-        if video_quality is not MISSING:
-            options['video_quality_mode'] = video_quality
-
-        if default_auto_archive is not MISSING:
-            options['default_auto_archive_duration'] = default_auto_archive
+        # Requester.request() will clean up the MISSING pairs
+        payload: Dict[str, Any] = {
+            'name': name,
+            'type': type,
+            'position': position,
+            'topic': topic,
+            'nsfw': nsfw,
+            'rate_limit_per_user': rate_limit,
+            'bitrate': bitrate,
+            'user_limit': user_limit,
+            'permission_overwrites': permission_overwrites,
+            'parent_id': parent,
+            'rtc_region': rtc_region,
+            'video_quality_mode': video_quality,
+            'default_auto_archive_duration': default_auto_archive,
+        }
 
         return await self.request(
             Route('PATCH', '/channels/{channel_id}', channel_id=int(channel)),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def delete_channel(self, channel: int, *, reason: str = MISSING):
@@ -233,19 +210,16 @@ class RESTClient(WebhookRequester):
         elif 0 > limit > 100:
             raise TypeError("'limit' must be a number between 1 and 100")
 
-        options: Dict[str, Any] = {'limit': limit}
-        if before is not MISSING:
-            options['before'] = before
-
-        if after is not MISSING:
-            options['after'] = after
-
-        if around is not MISSING:
-            options['around'] = around
+        payload: Dict[str, Any] = {
+            'limit': limit,
+            'before': before,
+            'after': after,
+            'around': around
+        }
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/messages', channel_id=int(channel)),
-            params=options
+            params=payload
         )
 
     async def fetch_channel_message(self, channel: int, message: int) -> Dict[str, Any]:
@@ -275,34 +249,16 @@ class RESTClient(WebhookRequester):
         if not any((content, embeds, file, stickers)):
             raise TypeError("one of 'content', 'embeds', 'file', 'stickers' is required")
 
-        params: Dict[str, Any] = {}
-        if wait is not MISSING:
-            params['wait'] = wait
-
-        if thread is not MISSING:
-            params['thread_id'] = int(thread)
-
-        json: Dict[str, Any] = {}
-        if content is not MISSING:
-            json['content'] = content
-
-        if username is not MISSING:
-            json['username'] = username
-
-        if avatar_url is not MISSING:
-            json['avatar_url'] = str(avatar_url)
-
-        if tts is not MISSING:
-            json['tts'] = tts
-
-        if embeds is not MISSING:
-            json['embeds'] = embeds
-
-        if allowed_mentions is not MISSING:
-            json['allowed_mentions'] = allowed_mentions._data
-
-        if stickers is not MISSING:
-            json['sticker_ids'] = [int(s) for s in stickers]
+        json: Dict[str, Any] = {
+            'content': content,
+            'username': username,
+            'avatar_url': str(avatar_url) if avatar_url else MISSING,
+            'tts': tts,
+            'embeds': embeds,
+            'allowed_mentions': allowed_mentions._data if allowed_mentions else MISSING,
+            'sticker_ids': [int(s) for s in stickers] if stickers else MISSING,
+        }
+        json = self._clean_dict(json)
 
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {}
@@ -316,7 +272,7 @@ class RESTClient(WebhookRequester):
                 'POST', '/channels/{channel_id}/messages',
                 channel_id=int(channel)
             ),
-            data=data, params=params
+            data=data
         )
 
     async def crosspost_message(self, channel: int, message: int) -> Dict[str, Any]:
@@ -383,18 +339,13 @@ class RESTClient(WebhookRequester):
         attachments: Optional[Dict[str, Any]] = MISSING
     ) -> Dict[str, Any]:
         """Edit a previously sent message."""
-        json: Dict[str, Any] = {}
-        if content is not MISSING:
-            json['content'] = content
-
-        if embeds is not MISSING:
-            json['embeds'] = embeds
-
-        if allowed_mentions is not MISSING:
-            json['allowed_mentions'] = allowed_mentions._data if allowed_mentions else None
-
-        if attachments is not MISSING:
-            json['attachments'] = attachments
+        json: Dict[str, Any] = {
+            'content': content,
+            'embeds': embeds,
+            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'attachments': attachments
+        }
+        json = self._clean_dict(json)
 
         # This will cause aiohttp to use multipart/form-data
         data: Dict[str, Any] = {}
@@ -450,7 +401,7 @@ class RESTClient(WebhookRequester):
         reason: str = MISSING
     ) -> None:
         """Edit channel permission overwrites for a user or role."""
-        options: Dict[str, Any] = {
+        payload: Dict[str, Any] = {
             'allow': str(allow),
             'deny': str(deny),
             'type': type
@@ -460,7 +411,7 @@ class RESTClient(WebhookRequester):
                 'PUT', '/channels/{channel_id}/permissions/{overwrite_id}',
                 channel_id=int(channel), overwrite_id=int(overwrite)
             ),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def fetch_channel_invites(self, channel: int) -> List[Any]:
@@ -518,7 +469,7 @@ class RESTClient(WebhookRequester):
         if target_type is not MISSING and target is MISSING:
             raise TypeError("'target' is required when 'target_type' is passed")
 
-        options: Dict[str, Any] = {
+        payload: Dict[str, Any] = {
             'max_age': max_age,
             'max_uses': max_uses,
             'temporary': temporary,
@@ -526,18 +477,18 @@ class RESTClient(WebhookRequester):
         }
 
         if target_type == 1:
-            options['target_type'] = target_type
-            options['target_user_id'] = target
+            payload['target_type'] = target_type
+            payload['target_user_id'] = target
 
         elif target_type == 2:
-            options['target_type'] = target_type
-            options['target_application_id'] = target
+            payload['target_type'] = target_type
+            payload['target_application_id'] = target
 
         return await self.request(
             Route(
                 'POST', '/channels/{channel_id}/invites',
                 channel_id=int(channel)
-            ), reason=reason, json=options
+            ), reason=reason, json=payload
         )
 
     async def delete_channel_permission(
@@ -640,7 +591,7 @@ class RESTClient(WebhookRequester):
         path = '/channels/{channel_id}'
         params: Dict[str, Any] = {'channel_id': int(channel)}
 
-        options: Dict[str, Any] = {
+        payload: Dict[str, Any] = {
             'name': name,
             'auto_archive_duration': archive_duration
         }
@@ -649,13 +600,13 @@ class RESTClient(WebhookRequester):
             path += '/messages/{message_id}'
             params['message_id'] = int(message)
 
-            options['type'] = type
+            payload['type'] = type
             if invitable is not MISSING:
-                options['invitable'] = invitable
+                payload['invitable'] = invitable
 
         return await self.request(
             Route('POST', path + '/threads', **params),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def join_thread(self, channel: int) -> None:
@@ -704,12 +655,11 @@ class RESTClient(WebhookRequester):
         limit: int = MISSING,
     ) -> Dict[str, Any]:
         """Fetch all archived public threads."""
-        query: Dict[str, Any] = {}
-        if before is not MISSING:
-            query['before'] = before
-
-        if limit is not MISSING:
-            query['limit'] = limit
+        query: Dict[str, Any] = {
+            'before': before,
+            'limit': limit
+        }
+        query = self._clean_dict(query)
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
@@ -724,12 +674,11 @@ class RESTClient(WebhookRequester):
         limit: int = MISSING
     ) -> Dict[str, Any]:
         """Fetch all archived private threads."""
-        query: Dict[str, Any] = {}
-        if before is not MISSING:
-            query['before'] = before
-
-        if limit is not MISSING:
-            query['limit'] = limit
+        query: Dict[str, Any] = {
+            'before': before,
+            'limit': limit,
+        }
+        query = self._clean_dict(query)
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
@@ -744,12 +693,11 @@ class RESTClient(WebhookRequester):
         limit: int = MISSING
     ) -> Dict[str, Any]:
         """Fetch all joined archived private threads."""
-        query: Dict[str, Any] = {}
-        if before is not MISSING:
-            query['before'] = before
-
-        if limit is not MISSING:
-            query['limit'] = limit
+        query: Dict[str, Any] = {
+            'before': before,
+            'limit': limit,
+        }
+        query = self._clean_dict(query)
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
@@ -779,7 +727,7 @@ class RESTClient(WebhookRequester):
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create an emoji in a guild."""
-        data = {
+        payload = {
             'name': name,
             'image': image,
             # We can't iterate through None, so we need to add an additional
@@ -788,7 +736,7 @@ class RESTClient(WebhookRequester):
         }
         return await self.request(
             Route('POST', '/guilds/{guild_id}/emojis', guild_id=int(guild)),
-            data=data, reason=reason
+            json=payload, reason=reason
         )
 
     async def edit_emoji(
@@ -804,19 +752,17 @@ class RESTClient(WebhookRequester):
         if not name and roles == []:
             raise TypeError("one of 'name' or 'roles' is required")
 
-        options: Dict[str, Any] = {}
-        if name is not MISSING:
-            options['name'] = name
-
-        if roles is not MISSING:
-            options['roles'] = roles
+        payload: Dict[str, Any] = {
+            'name': name,
+            'roles': roles
+        }
 
         return await self.request(
             Route(
                 'PATCH', '/guilds/{guild_id}/emojis/{emoji_id}',
                 guild_id=int(guild), emoji_id=int(emoji)
             ),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def delete_emoji(
@@ -892,18 +838,16 @@ class RESTClient(WebhookRequester):
         if name is MISSING and description is MISSING:
             raise TypeError("at least one of 'name' or 'description' is required")
 
-        options: Dict[str, Any] = {}
-        if name is not MISSING:
-            options['name'] = name
-
-        if description is not MISSING:
-            options['description'] = description
+        payload: Dict[str, Any] = {
+            'name': name,
+            'description': description
+        }
 
         return await self.request(
             Route(
                 'PATCH', '/guilds/{guild_id}/templates/{template_code}',
                 guild_id=int(guild), template_code=str(template)
-            ), json=options
+            ), json=payload
         )
 
     async def delete_guild_template(self, guild: int, template: str) -> Dict[str, Any]:
@@ -937,17 +881,15 @@ class RESTClient(WebhookRequester):
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create a new stage instance associated with a stage channel."""
-        options: Dict[str, Any] = {
+        payload: Dict[str, Any] = {
             'channel_id': int(channel),
-            'topic': topic
+            'topic': topic,
+            'privacy_level': privacy_level,
         }
-
-        if privacy_level is not MISSING:
-            options['privacy_level'] = privacy_level
 
         return await self.request(
             Route('POST', '/stage-instances'),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def fetch_stage_instance(self, channel: int) -> Dict[str, Any]:
@@ -968,17 +910,14 @@ class RESTClient(WebhookRequester):
         if topic is MISSING and privacy_level is MISSING:
             raise TypeError("at least one of 'topic' or 'privacy_level' is required")
 
-        options: Dict[str, Any] = {}
-
-        if topic is not MISSING:
-            options['topic'] = topic
-
-        if privacy_level is not MISSING:
-            options['privacy_level'] = privacy_level
+        payload: Dict[str, Any] = {
+            'topic': topic,
+            'privacy_level': privacy_level
+        }
 
         return await self.request(
             Route('PATCH', '/stage-instances/{channel_id}', channel_id=int(channel)),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def delete_stage_instance(
@@ -1050,22 +989,18 @@ class RESTClient(WebhookRequester):
         if name is MISSING and description is MISSING and tags is MISSING:
             raise TypeError("at least one of 'name', 'description' or 'tags is required")
 
-        options: Dict[str, Any] = {}
-        if name is not MISSING:
-            options['name'] = name
-
-        if description is not MISSING:
-            options['description'] = description
-
-        if tags is not MISSING:
-            options['tags'] = tags
+        payload: Dict[str, Any] = {
+            'name': name,
+            'description': description,
+            'tags': tags,
+        }
 
         return await self.request(
             Route(
                 'PATCH', '/guilds/{guild_id}/stickers/{sticker_id}',
                 guild_id=int(guild), sticker_id=int(sticker)
             ),
-            json=options, reason=reason
+            json=payload, reason=reason
         )
 
     async def delete_guild_sticker(
@@ -1116,14 +1051,12 @@ class RESTClient(WebhookRequester):
         if username is MISSING and avatar is MISSING:
             raise TypeError("at least one of 'username' or 'avatar' is required")
 
-        params: Dict[str, Any] = {}
-        if username is not MISSING:
-            params['username'] = username
+        payload: Dict[str, Any] = {
+            'username': username,
+            'avatar': avatar,
+        }
 
-        if avatar is not MISSING:
-            params['avatar'] = avatar
-
-        return await self.request(Route('PATCH', '/users/@me'), json=params)
+        return await self.request(Route('PATCH', '/users/@me'), json=payload)
 
     async def fetch_my_guilds(self) -> List[Dict[str, Any]]:
         """Fetch all guilds that the bot user is in."""
@@ -1237,18 +1170,14 @@ class RESTClient(WebhookRequester):
         if name is MISSING and avatar is MISSING and channel is MISSING:
             raise TypeError("at least one of 'username' or 'avatar' is required")
 
-        body: Dict[str, Any] = {}
-        if name is not MISSING:
-            body['name'] = name
-
-        if avatar is not MISSING:
-            body['avatar'] = avatar
-
-        if channel is not MISSING:
-            body['channel_id'] = channel
+        payload: Dict[str, Any] = {
+            'name': name,
+            'avatar': avatar,
+            'channel_id': channel
+        }
 
         return await self.request(
-            Route('PATCH', 'webhooks/{webhook_id}', webhook_id=int(webhook)), json=body)
+            Route('PATCH', 'webhooks/{webhook_id}', webhook_id=int(webhook)), json=payload)
 
     async def delete_webhook(self, webhook: int, token: str = MISSING) -> None:
         """Delete a webhook by its ID."""

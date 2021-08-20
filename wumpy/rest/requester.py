@@ -65,6 +65,15 @@ class Requester:
         self.ratelimiter = ratelimiter()
         self._session = aiohttp.ClientSession(headers=self.headers, json_serialize=dump)
 
+    @staticmethod
+    def _clean_dict(mapping: Dict[Any, Union[MISSING, Any]]) -> Dict[Any, Any]:
+        """Clean a dictionary from MISSING values.
+
+        Returned is a new dictionary with only the keys not having a
+        MISSING value left.
+        """
+        return {k: v for k, v in mapping.items() if v is not MISSING}
+
     async def _handle_ratelimit(self, data: Dict[str, Any]) -> None:
         """Handle an unexpected 429 response."""
         retry_after: float = data['retry_after']
@@ -141,12 +150,19 @@ class Requester:
     async def request(self, route: Route, *, reason: str = MISSING, **kwargs: Any) -> Any:
         """Make a request to the Discord API, respecting rate limits.
 
-        Returning a deserialized JSON object if Content-Type is
+        If the `json` keyword-argument contains values that are MISSING,
+        they will be removed before being passed to aiohttp.
+
+        This function returns a deserialized JSON object if Content-Type is
         `application/json`, otherwise a string. Commonly it is known by the
         caller itself what the response will be, in which case it will be
         a burden to narrow down the type unneccesarily. For that reason this
         function is annotated as returning `Any`.
         """
+
+        # Clean up MISSING values
+        if 'json' in kwargs:
+            kwargs['json'] = self._clean_dict(kwargs['json'])
 
         # Create the headers for the request
         headers: dict[str, str] = {}
