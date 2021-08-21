@@ -59,6 +59,11 @@ class Object:
     def __hash__(self) -> int:
         return self.id >> 22
 
+    def __int__(self) -> int:
+        # Even though __index__ covers __int__, we need to define
+        # it so that we successfully implement SupportsInt
+        return self.id
+
     def __index__(self) -> int:
         # __index__ convers __complex__, __int__ and __float__
         # by defining this one we don't need to define the rest

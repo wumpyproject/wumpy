@@ -23,8 +23,8 @@ SOFTWARE.
 """
 
 from typing import (
-    TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, Union,
-    overload
+    TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, SupportsInt,
+    Union, overload
 )
 from urllib.parse import quote as urlquote
 
@@ -53,9 +53,9 @@ class RESTClient(WebhookRequester):
 
     # Audit Log endpoints
 
-    async def fetch_audit_logs(self, guild: int) -> Dict[str, Any]:
+    async def fetch_audit_logs(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch the audit log entries for this guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/audit-logs', guild_id=guild))
+        return await self.request(Route('GET', '/guilds/{guild_id}/audit-logs', guild_id=int(guild)))
 
     # Asset endpoint
 
@@ -64,20 +64,20 @@ class RESTClient(WebhookRequester):
 
     # Channel endpoints
 
-    async def fetch_channel(self, channel: int):
+    async def fetch_channel(self, channel: SupportsInt):
         """Fetch a channel by its ID."""
         return await self.request(Route("GET", "/channels/{channel_id}", channel_id=int(channel)))
 
     @overload
     async def edit_channel(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         name: str = MISSING,
         position: Optional[int] = MISSING,
         nsfw: bool = MISSING,
         permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
-        parent: Optional[int] = MISSING,
+        parent: Optional[SupportsInt] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit a Store channel by its ID."""
@@ -86,14 +86,14 @@ class RESTClient(WebhookRequester):
     @overload
     async def edit_channel(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         name: str = MISSING,
         position: int = MISSING,
         bitrate: Optional[int] = MISSING,
         user_limit: Optional[int] = MISSING,
         permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
-        parent: Optional[int] = MISSING,
+        parent: Optional[SupportsInt] = MISSING,
         rtc_region: Optional[str] = MISSING,
         video_quality: Optional[int] = MISSING,
         reason: str = MISSING
@@ -104,7 +104,7 @@ class RESTClient(WebhookRequester):
     @overload
     async def edit_channel(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         name: str = MISSING,
         type: int = MISSING,
@@ -112,7 +112,7 @@ class RESTClient(WebhookRequester):
         topic: Optional[str] = MISSING,
         nsfw: Optional[bool] = MISSING,
         permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
-        parent: Optional[int] = MISSING,
+        parent: Optional[SupportsInt] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
@@ -122,7 +122,7 @@ class RESTClient(WebhookRequester):
     @overload
     async def edit_channel(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         name: str = MISSING,
         type: int = MISSING,
@@ -131,7 +131,7 @@ class RESTClient(WebhookRequester):
         nsfw: Optional[bool] = MISSING,
         rate_limit: Optional[int] = MISSING,
         permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
-        parent: Optional[int] = MISSING,
+        parent: Optional[SupportsInt] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
@@ -140,7 +140,7 @@ class RESTClient(WebhookRequester):
 
     async def edit_channel(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         name: str = MISSING,
         type: int = MISSING,
@@ -151,7 +151,7 @@ class RESTClient(WebhookRequester):
         bitrate: Optional[int] = MISSING,
         user_limit: Optional[int] = MISSING,
         permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
-        parent: Optional[int] = MISSING,
+        parent: Optional[SupportsInt] = MISSING,
         rtc_region: Optional[str] = MISSING,
         video_quality: Optional[int] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
@@ -182,7 +182,7 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def delete_channel(self, channel: int, *, reason: str = MISSING):
+    async def delete_channel(self, channel: SupportsInt, *, reason: str = MISSING):
         """Delete a channel by its ID."""
         return await self.request(
             Route('DELETE', '/channels/{channel_id}', channel_id=int(channel)),
@@ -192,7 +192,7 @@ class RESTClient(WebhookRequester):
     @overload
     async def fetch_channel_messages(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         before: int = MISSING,
         limit: int = 50
@@ -202,7 +202,7 @@ class RESTClient(WebhookRequester):
     @overload
     async def fetch_channel_messages(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         after: int = MISSING,
         limit: int = 50
@@ -212,7 +212,7 @@ class RESTClient(WebhookRequester):
     @overload
     async def fetch_channel_messages(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         around: int = MISSING,
         limit: int = 50
@@ -221,7 +221,7 @@ class RESTClient(WebhookRequester):
 
     async def fetch_channel_messages(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         before: int = MISSING,
         after: int = MISSING,
@@ -246,7 +246,7 @@ class RESTClient(WebhookRequester):
             params=payload
         )
 
-    async def fetch_channel_message(self, channel: int, message: int) -> Dict[str, Any]:
+    async def fetch_channel_message(self, channel: SupportsInt, message: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific message from a channel by its ID."""
         return await self.request(Route(
             'GET', '/channels/{channel_id}/messages/{message_id}',
@@ -255,7 +255,7 @@ class RESTClient(WebhookRequester):
 
     async def send_message(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         content: str = MISSING,
         username: str = MISSING,
@@ -264,7 +264,7 @@ class RESTClient(WebhookRequester):
         embeds: Sequence[Dict[str, Any]] = MISSING,
         allowed_mentions: AllowedMentions = MISSING,
         file: File = MISSING,
-        stickers: Sequence[int] = MISSING
+        stickers: Sequence[SupportsInt] = MISSING
     ) -> Dict[str, Any]:
         """Send a message into a channel."""
 
@@ -297,14 +297,14 @@ class RESTClient(WebhookRequester):
             data=data
         )
 
-    async def crosspost_message(self, channel: int, message: int) -> Dict[str, Any]:
+    async def crosspost_message(self, channel: SupportsInt, message: SupportsInt) -> Dict[str, Any]:
         """Crosspost a message in a news channel to following channels."""
         return await self.request(Route(
             'POST', '/channels/{channel_id}/messages/{message_id}/crosspost',
             channel_id=int(channel), message_id=int(message)
         ))
 
-    async def add_reaction(self, channel: int, message: int, emoji: str) -> None:
+    async def add_reaction(self, channel: SupportsInt, message: SupportsInt, emoji: str) -> None:
         """Add a reaction to a message."""
         await self.request(Route(
             'PUT', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me',
@@ -313,10 +313,10 @@ class RESTClient(WebhookRequester):
 
     async def delete_reaction(
         self,
-        channel: int,
-        message: int,
+        channel: SupportsInt,
+        message: SupportsInt,
         emoji: str,
-        user: int = MISSING
+        user: SupportsInt = MISSING
     ) -> None:
         """Delete a reaction, if no user is passed then the bot's own reaction is deleted."""
         # We int() user here so that we don't need to figure it out below
@@ -328,14 +328,19 @@ class RESTClient(WebhookRequester):
             emoji=urlquote(str(emoji)), user_id=target
         ))
 
-    async def fetch_reactions(self, channel: int, message: int, emoji: str) -> List[Any]:
+    async def fetch_reactions(self, channel: SupportsInt, message: SupportsInt, emoji: str) -> List[Any]:
         """Fetch all users who have added the reaction to a specific message."""
         return await self.request(Route(
             'GET', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}',
             channel_id=int(channel), message_id=int(message), emoji=urlquote(str(emoji))
         ))
 
-    async def clear_reactions(self, channel: int, message: int, emoji: str = MISSING) -> None:
+    async def clear_reactions(
+        self,
+        channel: SupportsInt,
+        message: SupportsInt,
+        emoji: str = MISSING
+    ) -> None:
         """Delete all reactions on a message.
 
         If an emojis is passed, only the reactions with that emojis are deleted.
@@ -351,8 +356,8 @@ class RESTClient(WebhookRequester):
 
     async def edit_message(
         self,
-        channel: int,
-        message: int,
+        channel: SupportsInt,
+        message: SupportsInt,
         *,
         content: Optional[str] = MISSING,
         embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
@@ -384,7 +389,13 @@ class RESTClient(WebhookRequester):
             data=data
         )
 
-    async def delete_message(self, channel: int, message: int, *, reason: str = MISSING) -> None:
+    async def delete_message(
+        self,
+        channel: SupportsInt,
+        message: SupportsInt,
+        *,
+        reason: str = MISSING
+    ) -> None:
         """Delete a message by its ID."""
         return await self.request(
             Route(
@@ -395,8 +406,8 @@ class RESTClient(WebhookRequester):
 
     async def bulk_delete_messages(
         self,
-        channel: int,
-        messages: List[int],
+        channel: SupportsInt,
+        messages: List[SupportsInt],
         *,
         reason: str = MISSING
     ) -> None:
@@ -409,13 +420,13 @@ class RESTClient(WebhookRequester):
             Route(
                 'POST', '/channels/{channel_id}/messages/bulk-delete',
                 channel_id=int(channel)
-            ), json={'messages': messages}, reason=reason
+            ), json={'messages': [int(m) for m in messages]}, reason=reason
         )
 
     async def set_channel_permission(
         self,
-        channel: int,
-        overwrite: int,
+        channel: SupportsInt,
+        overwrite: SupportsInt,
         *,
         allow: Union[str, int],
         deny: Union[str, int],
@@ -436,7 +447,7 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def fetch_channel_invites(self, channel: int) -> List[Any]:
+    async def fetch_channel_invites(self, channel: SupportsInt) -> List[Any]:
         """Fetch all invites created on a channel."""
         return await self.request(Route(
             'GET', '/channels/{channel_id}/invites',
@@ -446,7 +457,7 @@ class RESTClient(WebhookRequester):
     @overload
     async def create_invite(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         max_age: int = 86400,
         max_uses: int = 0,
@@ -459,28 +470,28 @@ class RESTClient(WebhookRequester):
     @overload
     async def create_invite(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         max_age: int = 86400,
         max_uses: int = 0,
         temporary: bool = False,
         unique: bool = False,
         target_type: int,
-        target: int,
+        target: SupportsInt,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         ...
 
     async def create_invite(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         max_age: int = 86400,
         max_uses: int = 0,
         temporary: bool = False,
         unique: bool = False,
         target_type: int = MISSING,
-        target: int = MISSING,
+        target: SupportsInt = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create a new channel invite.
@@ -515,8 +526,8 @@ class RESTClient(WebhookRequester):
 
     async def delete_channel_permission(
         self,
-        channel: int,
-        overwrite: int,
+        channel: SupportsInt,
+        overwrite: SupportsInt,
         *,
         reason: str = MISSING
     ) -> None:
@@ -529,22 +540,28 @@ class RESTClient(WebhookRequester):
             reason=reason
         )
 
-    async def follow_news_channel(self, channel: int, target: int) -> Dict[str, Any]:
+    async def follow_news_channel(self, channel: SupportsInt, target: SupportsInt) -> Dict[str, Any]:
         """Follow a news channel to send messages to a target channel."""
         return await self.request(
             Route('POST', '/channels/{channel_id}/followers', channel_id=int(channel)),
             json={'webhook_channel_id': int(target)}
         )
 
-    async def trigger_typing(self, channel: int) -> None:
+    async def trigger_typing(self, channel: SupportsInt) -> None:
         """Trigger a typing indicator in a channel."""
         await self.request(Route('POST', '/channels/{channel_id}/typing', channel_id=int(channel)))
 
-    async def fetch_pins(self, channel: int) -> List[Any]:
+    async def fetch_pins(self, channel: SupportsInt) -> List[Any]:
         """Fetch all pinned messages in a channel."""
         return await self.request(Route('GET', '/channels/{channel_id}/pins', channel_id=int(channel)))
 
-    async def pin_message(self, channel: int, message: int, *, reason: str = MISSING) -> None:
+    async def pin_message(
+        self,
+        channel: SupportsInt,
+        message: SupportsInt,
+        *,
+        reason: str = MISSING
+    ) -> None:
         """Pin a message in a channel."""
         return await self.request(
             Route(
@@ -555,8 +572,8 @@ class RESTClient(WebhookRequester):
 
     async def unpin_message(
         self,
-        channel: int,
-        message: int,
+        channel: SupportsInt,
+        message: SupportsInt,
         *,
         reason: str = MISSING
     ) -> Dict[str, Any]:
@@ -572,8 +589,8 @@ class RESTClient(WebhookRequester):
     @overload
     async def start_thread(
         self,
-        channel: int,
-        message: int,
+        channel: SupportsInt,
+        message: SupportsInt,
         *,
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080],
@@ -584,8 +601,8 @@ class RESTClient(WebhookRequester):
     @overload
     async def start_thread(
         self,
-        channel: int,
-        message: int,
+        channel: SupportsInt,
+        message: SupportsInt,
         *,
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080],
@@ -597,8 +614,8 @@ class RESTClient(WebhookRequester):
 
     async def start_thread(
         self,
-        channel: int,
-        message: int = MISSING,
+        channel: SupportsInt,
+        message: SupportsInt = MISSING,
         *,
         name: str,
         archive_duration: int,
@@ -631,33 +648,33 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def join_thread(self, channel: int) -> None:
+    async def join_thread(self, channel: SupportsInt) -> None:
         """Make the bot user join a thread."""
         await self.request(
             Route('PUT', '/channels/{channel_id}/thread-members/@me', channel_id=int(channel))
         )
 
-    async def add_thread_member(self, channel: int, user: int) -> None:
+    async def add_thread_member(self, channel: SupportsInt, user: SupportsInt) -> None:
         """Add another member to a thread."""
         await self.request(Route(
             'PUT', '/channels/{channel_id}/thread-members/{user_id}',
             channel_id=int(channel), user_id=int(user)
         ))
 
-    async def leave_thread(self, channel: int) -> None:
+    async def leave_thread(self, channel: SupportsInt) -> None:
         """Make the bot user leave a thread."""
         await self.request(
             Route('DELETE', '/channels/{channel_id}/thread-members/@me', channel_id=int(channel))
         )
 
-    async def remove_thread_member(self, channel: int, user: int) -> None:
+    async def remove_thread_member(self, channel: SupportsInt, user: SupportsInt) -> None:
         """Remove another member to a thread."""
         await self.request(Route(
             'DELETE', '/channels/{channel_id}/thread-members/{user_id}',
             channel_id=int(channel), user_id=int(user)
         ))
 
-    async def fetch_thread_members(self, channel: int) -> List[Any]:
+    async def fetch_thread_members(self, channel: SupportsInt) -> List[Any]:
         """Fetch all members who have joined a thread."""
         return await self.request(
             Route('GET', '/channels/{channel_id}/thread-members', channel_id=int(channel))
@@ -665,7 +682,7 @@ class RESTClient(WebhookRequester):
 
     async def fetch_public_archived_threads(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         before: int = MISSING,
         limit: int = MISSING,
@@ -684,7 +701,7 @@ class RESTClient(WebhookRequester):
 
     async def fetch_private_archived_threads(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         before: int = MISSING,
         limit: int = MISSING
@@ -703,7 +720,7 @@ class RESTClient(WebhookRequester):
 
     async def fetch_joined_private_archived_threads(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         before: int = MISSING,
         limit: int = MISSING
@@ -722,11 +739,11 @@ class RESTClient(WebhookRequester):
 
     # Emoji endpoints
 
-    async def fetch_emojis(self, guild: int) -> List[Any]:
+    async def fetch_emojis(self, guild: SupportsInt) -> List[Any]:
         """Fetch all emojis in a guild by its ID."""
-        return await self.request(Route('GET', '/guilds/{guild_id}', guild_id=guild))
+        return await self.request(Route('GET', '/guilds/{guild_id}', guild_id=int(guild)))
 
-    async def fetch_emoji(self, guild: int, emoji: int) -> Dict[str, Any]:
+    async def fetch_emoji(self, guild: SupportsInt, emoji: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific emoji from a guild by its ID."""
         return await self.request(Route(
             'GET', '/guilds/{guild_id}/emojis/{emoji_id}',
@@ -735,11 +752,11 @@ class RESTClient(WebhookRequester):
 
     async def create_emoji(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         name: str,
         image: str,
-        roles: Optional[Sequence[int]] = None,
+        roles: Optional[Sequence[SupportsInt]] = None,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Create an emoji in a guild."""
@@ -757,11 +774,11 @@ class RESTClient(WebhookRequester):
 
     async def edit_emoji(
         self,
-        guild: int,
-        emoji: int,
+        guild: SupportsInt,
+        emoji: SupportsInt,
         *,
         name: str = MISSING,
-        roles: List[int] = MISSING,
+        roles: List[SupportsInt] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit fields of an emoji by its ID."""
@@ -770,7 +787,7 @@ class RESTClient(WebhookRequester):
 
         payload: Dict[str, Any] = {
             'name': name,
-            'roles': roles
+            'roles': [int(r) for r in roles]
         }
 
         return await self.request(
@@ -783,8 +800,8 @@ class RESTClient(WebhookRequester):
 
     async def delete_emoji(
         self,
-        guild: int,
-        emoji: int,
+        guild: SupportsInt,
+        emoji: SupportsInt,
         *,
         reason: str = MISSING
     ) -> Dict[str, Any]:
@@ -831,14 +848,14 @@ class RESTClient(WebhookRequester):
 
         return await self.request(Route('POST', '/guilds'), json=payload)
 
-    async def fetch_guild(self, guild: int, *, with_counts: bool = False) -> Dict[str, Any]:
+    async def fetch_guild(self, guild: SupportsInt, *, with_counts: bool = False) -> Dict[str, Any]:
         """Fetch a guild by its ID.
 
         If `with_counts` is set, an approximate member count will be included.
         """
         return await self.request(Route('GET', '/guilds/{guild_id}', guild_id=int(guild)))
 
-    async def fetch_guild_preview(self, guild: int) -> Dict[str, Any]:
+    async def fetch_guild_preview(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch a preview of a guild by its ID.
 
         If the bot user is not in the guild, it must be lurkable. Meaning that
@@ -848,23 +865,23 @@ class RESTClient(WebhookRequester):
 
     async def edit_guild(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         name: str = MISSING,
         verification_level: Optional[int] = MISSING,
         notification_level: Optional[int] = MISSING,
         content_filter: Optional[int] = MISSING,
-        afk_channel: Optional[int] = MISSING,
+        afk_channel: Optional[SupportsInt] = MISSING,
         afk_timeout: Optional[int] = MISSING,
         icon: Optional[str] = MISSING,
-        owner: int = MISSING,
+        owner: SupportsInt = MISSING,
         splash: Optional[str] = MISSING,
         discovery: Optional[str] = MISSING,
         banner: Optional[str] = MISSING,
-        system_channel: Optional[int] = MISSING,
+        system_channel: Optional[SupportsInt] = MISSING,
         system_channel_flags: int = MISSING,
-        rules_channel: Optional[int] = MISSING,
-        updates_channel: Optional[int] = MISSING,
+        rules_channel: Optional[SupportsInt] = MISSING,
+        updates_channel: Optional[SupportsInt] = MISSING,
         preferred_locale: Optional[str] = MISSING,
         features: Sequence[str] = MISSING,
         description: Optional[str] = MISSING,
@@ -897,17 +914,17 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def delete_guild(self, guild: int) -> None:
+    async def delete_guild(self, guild: SupportsInt) -> None:
         """Delete a guild permanently, the bot must be the owner."""
         await self.request(Route('DELETE', '/guilds/{guild_id}', guild_id=int(guild)))
 
-    async def fetch_guild_channels(self, guild: int) -> List[Any]:
+    async def fetch_guild_channels(self, guild: SupportsInt) -> List[Any]:
         """Fetch all channels in a guild, excluding threads."""
         return await self.request(Route('GET', '/guilds/{guild_id}/channels', guild_id=int(guild)))
 
     async def create_channel(
         self,
-        guild: int,
+        guild: SupportsInt,
         name: str,
         *,
         type: int = MISSING,
@@ -917,7 +934,7 @@ class RESTClient(WebhookRequester):
         rate_limit: int = MISSING,
         position: int = MISSING,
         permission_overwrites: List[PermissionOverwrite] = MISSING,
-        parent: int = MISSING,
+        parent: SupportsInt = MISSING,
         nsfw: bool = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
@@ -942,7 +959,7 @@ class RESTClient(WebhookRequester):
 
     async def edit_channel_positions(
         self,
-        guild: int,
+        guild: SupportsInt,
         channels: List[Dict[str, Any]],
         *,
         reason: str = MISSING
@@ -953,13 +970,13 @@ class RESTClient(WebhookRequester):
             json=channels, reason=reason
         )
 
-    async def fetch_active_threads(self, guild: int) -> Dict[str, Any]:
+    async def fetch_active_threads(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch all active threads in a guild, both public and private threads."""
         return await self.request(
             Route('GET', '/guilds/{guild_id}/threads/active', guild_id=int(guild))
         )
 
-    async def fetch_member(self, guild: int, user: int) -> Dict[str, Any]:
+    async def fetch_member(self, guild: SupportsInt, user: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific member object by its user ID."""
         return await self.request(Route(
             'GET', '/guilds/{guild_id}/embers/{user_id}',
@@ -968,7 +985,7 @@ class RESTClient(WebhookRequester):
 
     async def fetch_members(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         limit: int = 1,
         after: int = 0
@@ -986,7 +1003,7 @@ class RESTClient(WebhookRequester):
             params={'limit': limit, 'after': after}
         )
 
-    async def search_members(self, guild: int, query: str, *, limit: int = 1) -> List[Any]:
+    async def search_members(self, guild: SupportsInt, query: str, *, limit: int = 1) -> List[Any]:
         """Search guild members after a name or nickname similar to `query`."""
         return await self.request(
             Route('GET', '/guilds/{guild_id}/members/search', guild_id=int(guild)),
@@ -995,11 +1012,11 @@ class RESTClient(WebhookRequester):
 
     async def edit_member(
         self,
-        guild: int,
-        user: int,
+        guild: SupportsInt,
+        user: SupportsInt,
         *,
         nick: Optional[str] = MISSING,
-        roles: Optional[List[int]] = MISSING,
+        roles: Optional[Sequence[SupportsInt]] = MISSING,
         mute: Optional[bool] = MISSING,
         deafen: Optional[bool] = MISSING,
         channel: Optional[int] = MISSING,
@@ -1008,7 +1025,7 @@ class RESTClient(WebhookRequester):
         """Edit another guild member."""
         payload: Dict[str, Any] = {
             'nick': nick,
-            'roles': roles,
+            'roles': [int(r) for r in roles] if roles else roles,
             'mute': mute,
             'deaf': deafen,
             'channel_id': int(channel) if channel else channel
@@ -1024,7 +1041,7 @@ class RESTClient(WebhookRequester):
 
     async def edit_my_nick(
         self,
-        guild: int,
+        guild: SupportsInt,
         nick: Optional[str] = '',
         *,
         reason: str = MISSING
@@ -1042,9 +1059,9 @@ class RESTClient(WebhookRequester):
 
     async def add_member_role(
         self,
-        guild: int,
-        user: int,
-        role: int,
+        guild: SupportsInt,
+        user: SupportsInt,
+        role: SupportsInt,
         *,
         reason: str = MISSING
     ) -> None:
@@ -1058,9 +1075,9 @@ class RESTClient(WebhookRequester):
 
     async def remove_member_role(
         self,
-        guild: int,
-        user: int,
-        role: int,
+        guild: SupportsInt,
+        user: SupportsInt,
+        role: SupportsInt,
         *,
         reason: str = MISSING
     ) -> None:
@@ -1072,7 +1089,7 @@ class RESTClient(WebhookRequester):
             ), reason=reason
         )
 
-    async def kick_member(self, guild: int, user: int, *, reason: str = MISSING) -> None:
+    async def kick_member(self, guild: SupportsInt, user: SupportsInt, *, reason: str = MISSING) -> None:
         """Remove a member from a guild, also known as kicking a member."""
         await self.request(
             Route(
@@ -1081,11 +1098,11 @@ class RESTClient(WebhookRequester):
             ), reason=reason
         )
 
-    async def fetch_bans(self, guild: int) -> List[Any]:
+    async def fetch_bans(self, guild: SupportsInt) -> List[Any]:
         """Fetch all bans made on a guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/bans', guild_id=int(guild)))
 
-    async def fetch_ban(self, guild: int, user: int) -> Dict[str, Any]:
+    async def fetch_ban(self, guild: SupportsInt, user: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific ban made for a user."""
         return await self.request(Route(
             'GET', '/guilds/{guild_id}/bans/{user_id}',
@@ -1094,8 +1111,8 @@ class RESTClient(WebhookRequester):
 
     async def ban_member(
         self,
-        guild: int,
-        user: int,
+        guild: SupportsInt,
+        user: SupportsInt,
         *,
         delete_message_days: int = MISSING,
         reason: str = MISSING
@@ -1113,7 +1130,7 @@ class RESTClient(WebhookRequester):
             json=options, reason=reason
         )
 
-    async def pardon_user(self, guild: int, user: int, *, reason: str = MISSING) -> None:
+    async def pardon_user(self, guild: SupportsInt, user: SupportsInt, *, reason: str = MISSING) -> None:
         """Pardon a user, and remove the ban allowing them to enter the guild again."""
         await self.request(
             Route(
@@ -1122,13 +1139,13 @@ class RESTClient(WebhookRequester):
             ), reason=reason
         )
 
-    async def fetch_roles(self, guild: int) -> List[Any]:
+    async def fetch_roles(self, guild: SupportsInt) -> List[Any]:
         """Fetch all roles from a guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/roles', guild_id=int(guild)))
 
     async def create_role(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         name: str = "new role",
         permissions: Union[str, int] = MISSING,
@@ -1153,7 +1170,7 @@ class RESTClient(WebhookRequester):
 
     async def edit_role_positions(
         self,
-        guild: int,
+        guild: SupportsInt,
         roles: List[Dict[str, Any]],
         reason: str = MISSING
     ) -> List[Any]:
@@ -1165,8 +1182,8 @@ class RESTClient(WebhookRequester):
 
     async def edit_role(
         self,
-        guild: int,
-        role: int,
+        guild: SupportsInt,
+        role: SupportsInt,
         *,
         name: Optional[str] = MISSING,
         permissions: Optional[Union[int, str]] = MISSING,
@@ -1192,7 +1209,7 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def delete_role(self, guild: int, role: int, *, reason: str = MISSING) -> None:
+    async def delete_role(self, guild: SupportsInt, role: SupportsInt, *, reason: str = MISSING) -> None:
         """Delete a guild role."""
         await self.request(
             Route(
@@ -1203,10 +1220,10 @@ class RESTClient(WebhookRequester):
 
     async def fetch_guild_prune_count(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         days: int = 7,
-        roles: Optional[Sequence[int]] = None
+        roles: Optional[Sequence[SupportsInt]] = None
     ) -> Dict[str, int]:
         """Fetch the amount of members that would be pruned.
 
@@ -1223,11 +1240,11 @@ class RESTClient(WebhookRequester):
 
     async def prune_guild(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         days: int = 7,
         compute_count: bool = True,
-        roles: Optional[Sequence[int]] = None,
+        roles: Optional[Sequence[SupportsInt]] = None,
         reason: str = MISSING
     ) -> Dict[str, Optional[int]]:
         """Begin a prune operation, and kick all members who do not meet the criteria passed."""
@@ -1238,7 +1255,7 @@ class RESTClient(WebhookRequester):
             reason=reason
         )
 
-    async def fetch_voice_regions(self, guild: int = MISSING) -> List[Any]:
+    async def fetch_voice_regions(self, guild: SupportsInt = MISSING) -> List[Any]:
         """Fetch a list of voice regions.
 
         If a guild is passed, this may return VIP servers if the guild
@@ -1249,18 +1266,18 @@ class RESTClient(WebhookRequester):
 
         return await self.request(Route('GET', '/guilds/{guild_id}/regions', guild_id=int(guild)))
 
-    async def fetch_invites(self, guild: int) -> List[Any]:
+    async def fetch_invites(self, guild: SupportsInt) -> List[Any]:
         """Fetch all invites for the guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/invites', guild_id=int(guild)))
 
-    async def fetch_integrations(self, guild: int) -> List[Any]:
+    async def fetch_integrations(self, guild: SupportsInt) -> List[Any]:
         """Fetch all intergration for the guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/integrations', guild_id=int(guild)))
 
     async def delete_integration(
         self,
-        guild: int,
-        integration: int,
+        guild: SupportsInt,
+        integration: SupportsInt,
         *,
         reason: str = MISSING
     ) -> None:
@@ -1276,16 +1293,16 @@ class RESTClient(WebhookRequester):
             ), reason=reason
         )
 
-    async def fetch_widget_settings(self, guild: int) -> Dict[str, Any]:
+    async def fetch_widget_settings(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch the settings for a widget for a guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/widget', guild_id=int(guild)))
 
     async def edit_widget(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         enabled: bool = MISSING,
-        channel: Optional[int] = MISSING,
+        channel: Optional[SupportsInt] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         """Edit a guild widget."""
@@ -1299,17 +1316,17 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def fetch_widget(self, guild: int) -> Dict[str, Any]:
+    async def fetch_widget(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch a complete widget for a guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/widget.json', guild_id=int(guild)))
 
-    async def fetch_vanity_invite(self, guild: int) -> Dict[str, Any]:
+    async def fetch_vanity_invite(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch a partial invite for a guild that has that feature."""
         return await self.request(Route('GET', '/guilds/{guild_id}/vanity-url', guild_id=int(guild)))
 
     async def fetch_widget_image(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         style: Literal['shield', 'banner1', 'banner2', 'banner3', 'banner4'] = 'shield'
     ) -> bytes:
@@ -1320,13 +1337,13 @@ class RESTClient(WebhookRequester):
             style=style
         )
 
-    async def fetch_welcome_screen(self, guild: int) -> Dict[str, Any]:
+    async def fetch_welcome_screen(self, guild: SupportsInt) -> Dict[str, Any]:
         """Fetch the welcome screen for a guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/welcome-screen', guild_id=int(guild)))
 
     async def edit_welcome_screen(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         enabled: Optional[bool] = MISSING,
         welcome_channels: List[Dict[str, Any]] = MISSING,
@@ -1349,9 +1366,9 @@ class RESTClient(WebhookRequester):
 
     async def edit_my_voice_state(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
-        channel: int,
+        channel: SupportsInt,
         suppress: bool = MISSING,
         request_to_speak: int = MISSING
     ) -> Dict[str, Any]:
@@ -1370,10 +1387,10 @@ class RESTClient(WebhookRequester):
 
     async def edit_voice_state(
         self,
-        guild: int,
-        user: int,
+        guild: SupportsInt,
+        user: SupportsInt,
         *,
-        channel: int,
+        channel: SupportsInt,
         suppress: bool = MISSING
     ) -> Dict[str, Any]:
         """Edit another user's voice state."""
@@ -1409,13 +1426,13 @@ class RESTClient(WebhookRequester):
             json={'name': name, 'icon': icon}
         )
 
-    async def fetch_guild_templates(self, guild: int) -> List[Any]:
+    async def fetch_guild_templates(self, guild: SupportsInt) -> List[Any]:
         """Fetch a list of all guild templates created from a guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/templates', guild_id=int(guild)))
 
     async def create_guild_template(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         name: str,
         description: Optional[str] = None
@@ -1426,7 +1443,7 @@ class RESTClient(WebhookRequester):
             json={'name': name, 'description': description}
         )
 
-    async def sync_guild_template(self, guild: int, template: str) -> Dict[str, Any]:
+    async def sync_guild_template(self, guild: SupportsInt, template: str) -> Dict[str, Any]:
         """Sync the template with the guild's current state."""
         return await self.request(Route(
             'PUT', '/guilds/{guild_id}/templates/{template_code}',
@@ -1435,7 +1452,7 @@ class RESTClient(WebhookRequester):
 
     async def edit_guild_template(
         self,
-        guild: int,
+        guild: SupportsInt,
         template: str,
         *,
         name: str = MISSING,
@@ -1457,7 +1474,7 @@ class RESTClient(WebhookRequester):
             ), json=payload
         )
 
-    async def delete_guild_template(self, guild: int, template: str) -> Dict[str, Any]:
+    async def delete_guild_template(self, guild: SupportsInt, template: str) -> Dict[str, Any]:
         """Delete the guild template by its code."""
         return await self.request(Route(
             'DELETE', '/guilds/{guild_id}/templates/{template_code}',
@@ -1482,7 +1499,7 @@ class RESTClient(WebhookRequester):
 
     async def create_stage_instance(
         self,
-        channel: int,
+        channel: SupportsInt,
         topic: str,
         privacy_level: int = MISSING,
         reason: str = MISSING
@@ -1499,7 +1516,7 @@ class RESTClient(WebhookRequester):
             json=payload, reason=reason
         )
 
-    async def fetch_stage_instance(self, channel: int) -> Dict[str, Any]:
+    async def fetch_stage_instance(self, channel: SupportsInt) -> Dict[str, Any]:
         """Fetch the stage instance associated with the stage channel, if it exists."""
         return await self.request(Route(
             'GET', '/stage-instances/{channel_id}', channel_id=int(channel)
@@ -1507,7 +1524,7 @@ class RESTClient(WebhookRequester):
 
     async def edit_stage_instance(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         topic: str = MISSING,
         privacy_level: int = MISSING,
@@ -1529,7 +1546,7 @@ class RESTClient(WebhookRequester):
 
     async def delete_stage_instance(
         self,
-        channel: int,
+        channel: SupportsInt,
         *,
         reason: str = MISSING
     ) -> Dict[str, Any]:
@@ -1541,7 +1558,7 @@ class RESTClient(WebhookRequester):
 
     # Sticker endpoints
 
-    async def fetch_sticker(self, sticker: int) -> Dict[str, Any]:
+    async def fetch_sticker(self, sticker: SupportsInt) -> Dict[str, Any]:
         """Fetch a sticker by its ID."""
         return await self.request(Route('GET', '/stickers/{sticker_id}', sticker_id=int(sticker)))
 
@@ -1549,11 +1566,11 @@ class RESTClient(WebhookRequester):
         """Fetch a list of all sticker packs currently available to Nitro subscribers."""
         return await self.request(Route('GET', '/sticker-packs'))
 
-    async def fetch_guild_stickers(self, guild: int) -> List[Any]:
+    async def fetch_guild_stickers(self, guild: SupportsInt) -> List[Any]:
         """Fetch all stickers for a guild by its ID."""
         return await self.request(Route('GET', '/guilds/{guild_id}/stickers', guild_id=int(guild)))
 
-    async def fetch_guild_sticker(self, guild: int, sticker: int) -> Dict[str, Any]:
+    async def fetch_guild_sticker(self, guild: SupportsInt, sticker: SupportsInt) -> Dict[str, Any]:
         """Fetch a sticker from a guild given its ID."""
         return await self.request(Route(
             'GET', '/guilds/{guild_id}/stickers/{sticker_id}',
@@ -1562,7 +1579,7 @@ class RESTClient(WebhookRequester):
 
     async def create_sticker(
         self,
-        guild: int,
+        guild: SupportsInt,
         *,
         name: str,
         description: str,
@@ -1584,8 +1601,8 @@ class RESTClient(WebhookRequester):
 
     async def edit_sticker(
         self,
-        guild: int,
-        sticker: int,
+        guild: SupportsInt,
+        sticker: SupportsInt,
         *,
         name: str = MISSING,
         description: str = MISSING,
@@ -1612,8 +1629,8 @@ class RESTClient(WebhookRequester):
 
     async def delete_sticker(
         self,
-        guild: int,
-        sticker: int,
+        guild: SupportsInt,
+        sticker: SupportsInt,
         *,
         reason: str = MISSING
     ) -> None:
@@ -1636,7 +1653,7 @@ class RESTClient(WebhookRequester):
         """
         return await self.request(Route('GET', '/users/@me'))
 
-    async def fetch_user(self, user: int) -> Dict[str, Any]:
+    async def fetch_user(self, user: SupportsInt) -> Dict[str, Any]:
         """Fetch a user by its ID.
 
         You do not need to share a guild with the user to fetch their
@@ -1669,11 +1686,11 @@ class RESTClient(WebhookRequester):
         """Fetch all guilds that the bot user is in."""
         return await self.request(Route('GET', '/users/@me/guilds'))
 
-    async def leave_guild(self, guild: int) -> None:
+    async def leave_guild(self, guild: SupportsInt) -> None:
         """Make the bot user leave the specified guild."""
         await self.request(Route('DELETE', '/users/@me/guilds/{guild_id}', guild_id=int(guild)))
 
-    async def create_dm(self, recipient: int) -> Dict[str, Any]:
+    async def create_dm(self, recipient: SupportsInt) -> Dict[str, Any]:
         """Create a DM with the recipient.
 
         This method is safe to call several times to get the DM channel when
@@ -1687,7 +1704,11 @@ class RESTClient(WebhookRequester):
     # Webhook endpoints (without usage of webhook token)
 
     async def create_webhook(
-        self, channel: int, *, name: str, avatar: Optional[str] = None
+        self,
+        channel: SupportsInt,
+        *,
+        name: str,
+        avatar: Optional[str] = None
     ) -> Dict[str, Any]:
         """Create a new webhook.
 
@@ -1700,19 +1721,19 @@ class RESTClient(WebhookRequester):
             json={'name': name, 'avatar': avatar}
         )
 
-    async def fetch_channel_webhooks(self, channel: int) -> List[Dict[str, Any]]:
+    async def fetch_channel_webhooks(self, channel: SupportsInt) -> List[Dict[str, Any]]:
         """Fetch all webhooks for a channel."""
         return await self.request(Route(
             'GET', '/channels/{channel_id}/webhooks', channel_id=int(channel)
         ))
 
-    async def fetch_guild_webhooks(self, guild: int) -> List[Dict[str, Any]]:
+    async def fetch_guild_webhooks(self, guild: SupportsInt) -> List[Dict[str, Any]]:
         """Fetch all webhooks for a comlete guild."""
         return await self.request(Route(
             'GET', '/guilds/{guild_id}/webhooks', guild_id=int(guild)
         ))
 
-    async def fetch_webhook(self, webhook: int, token: str = MISSING) -> Dict[str, Any]:
+    async def fetch_webhook(self, webhook: SupportsInt, token: str = MISSING) -> Dict[str, Any]:
         """Fetch a specific webhook by its id.
 
         This wraps both `/webhooks/{webhook.id}` and
@@ -1728,18 +1749,18 @@ class RESTClient(WebhookRequester):
     @overload
     async def edit_webhook(
         self,
-        webhook: int,
+        webhook: SupportsInt,
         *,
         name: str = MISSING,
         avatar: str = MISSING,
-        channel: int = MISSING
+        channel: SupportsInt = MISSING
     ) -> Dict[str, Any]:
         ...
 
     @overload
     async def edit_webhook(
         self,
-        webhook: int,
+        webhook: SupportsInt,
         token: str,
         *,
         name: str = MISSING,
@@ -1749,12 +1770,12 @@ class RESTClient(WebhookRequester):
 
     async def edit_webhook(
         self,
-        webhook: int,
+        webhook: SupportsInt,
         token: str = MISSING,
         *,
         name: str = MISSING,
         avatar: str = MISSING,
-        channel: int = MISSING
+        channel: SupportsInt = MISSING
     ) -> Dict[str, Any]:
         """Edit a webhook's fields.
 
@@ -1777,7 +1798,7 @@ class RESTClient(WebhookRequester):
         return await self.request(
             Route('PATCH', 'webhooks/{webhook_id}', webhook_id=int(webhook)), json=payload)
 
-    async def delete_webhook(self, webhook: int, token: str = MISSING) -> None:
+    async def delete_webhook(self, webhook: SupportsInt, token: str = MISSING) -> None:
         """Delete a webhook by its ID."""
         if token is not MISSING:
             return await super().delete_webhook(webhook, token)

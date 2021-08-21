@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, SupportsInt
 
 from ..models import AllowedMentions, Object
 from ..utils import MISSING
@@ -35,7 +35,7 @@ __all__ = ('WebhookRequester', 'Webhook',)
 class WebhookRequester(Requester):
     """Bare requester subclass for use of a standalone webhook."""
 
-    async def fetch_webhook(self, webhook: int, token: str) -> Dict[str, Any]:
+    async def fetch_webhook(self, webhook: SupportsInt, token: str) -> Dict[str, Any]:
         """Fetch a specific webhook by its id with the token."""
         return await self.request(Route(
             'GET', '/webhooks/{webhook_id}/{webhook_token}',
@@ -44,7 +44,7 @@ class WebhookRequester(Requester):
 
     async def edit_webhook(
         self,
-        webhook: int,
+        webhook: SupportsInt,
         token: str,
         *,
         name: str = MISSING,
@@ -64,7 +64,7 @@ class WebhookRequester(Requester):
             webhook_id=int(webhook), webhook_token=token
         ), json=payload)
 
-    async def delete_webhook(self, webhook: int, token: str) -> None:
+    async def delete_webhook(self, webhook: SupportsInt, token: str) -> None:
         """Delete a webhook."""
         await self.request(Route(
             'DELETE', '/webhooks/{webhook_id}/{webhook_token}',
@@ -73,11 +73,11 @@ class WebhookRequester(Requester):
 
     async def execute_webhook(
         self,
-        webhook: int,
+        webhook: SupportsInt,
         token: str,
         *,
         wait: bool = False,
-        thread: int = MISSING,
+        thread: SupportsInt = MISSING,
         content: str = MISSING,
         username: str = MISSING,
         avatar_url: str = MISSING,
@@ -122,7 +122,12 @@ class WebhookRequester(Requester):
             data=data, params=params
         )
 
-    async def fetch_webhook_message(self, webhook: int, token: str, message: int) -> Dict[str, Any]:
+    async def fetch_webhook_message(
+        self,
+        webhook: SupportsInt,
+        token: str,
+        message: SupportsInt
+    ) -> Dict[str, Any]:
         """Fetch a webhook's sent message."""
         return await self.request(Route(
             'GET', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
@@ -131,9 +136,9 @@ class WebhookRequester(Requester):
 
     async def edit_webhook_message(
         self,
-        webhook: int,
+        webhook: SupportsInt,
         token: str,
-        message: int,
+        message: SupportsInt,
         *,
         content: Optional[str] = MISSING,
         embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
@@ -165,7 +170,12 @@ class WebhookRequester(Requester):
             data=data
         )
 
-    async def delete_webhook_message(self, webhook: int, token: str, message: int) -> None:
+    async def delete_webhook_message(
+        self,
+        webhook: SupportsInt,
+        token: str,
+        message: SupportsInt
+    ) -> None:
         """Delete a webhook's sent message."""
         return await self.request(Route(
             'DELETE', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
@@ -205,7 +215,7 @@ class Webhook(Object):
         content: str = MISSING,
         *,
         wait: bool = MISSING,
-        thread: int = MISSING,
+        thread: SupportsInt = MISSING,
         username: str = MISSING,
         avatar_url: str = MISSING,
         tts: bool = MISSING,
@@ -223,7 +233,7 @@ class Webhook(Object):
             allowed_mentions=allowed_mentions, file=file
         )
 
-    async def fetch_message(self, message: int) -> Dict[str, Any]:
+    async def fetch_message(self, message: SupportsInt) -> Dict[str, Any]:
         """Fetch a message this webhook has sent."""
         return await self.rest.fetch_webhook_message(
             self.id, self.token, message
@@ -231,7 +241,7 @@ class Webhook(Object):
 
     async def edit_message(
         self,
-        message: int,
+        message: SupportsInt,
         *,
         content: Optional[str] = MISSING,
         embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
@@ -245,7 +255,7 @@ class Webhook(Object):
             file=file, allowed_mentions=allowed_mentions, attachments=attachments
         )
 
-    async def delete_message(self, message: int) -> None:
+    async def delete_message(self, message: SupportsInt) -> None:
         """Delete a message this webhook has sent."""
         return await self.rest.delete_webhook_message(
             self.id, self.token, message
