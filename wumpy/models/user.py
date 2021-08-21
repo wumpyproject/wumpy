@@ -28,6 +28,7 @@ from ..rest import File
 from ..utils import MISSING
 from .asset import Asset
 from .base import Object
+from .channels import DMChannel
 from .flags import AllowedMentions, UserFlags
 
 if TYPE_CHECKING:
@@ -126,7 +127,7 @@ class BotUser(_BaseUser):
 class User(_BaseUser):
     """Discord User object."""
 
-    channel: Optional[Dict[str, Any]]
+    channel: Optional[DMChannel]
 
     __slots__ = ('channel',)
 
@@ -135,7 +136,7 @@ class User(_BaseUser):
 
         self.channel = None
 
-    async def create_dm(self) -> Dict[str, Any]:
+    async def create_dm(self) -> DMChannel:
         """Create a DM with the user, returning the DM channel."""
         self.channel = await self._rest.create_dm(self)
         return self.channel
@@ -161,7 +162,7 @@ class User(_BaseUser):
             # type checker doesn't know it does
             self.channel = await self.create_dm()
 
-        return await self._rest.send_message(
-            self.channel['id'], content=content, tts=tts, embeds=embeds,
+        return await self.channel.send(
+            content, tts=tts, embeds=embeds,
             allowed_mentions=allowed_mentions, file=file, stickers=stickers
         )

@@ -28,12 +28,12 @@ from typing import (
 )
 from urllib.parse import quote as urlquote
 
-from ..models import AllowedMentions, PermissionOverwrite
+from ..models import AllowedMentions, PermissionOverwrite, DMChannel
 from ..rest import File, Route, WebhookRequester
 from ..utils import MISSING
 
 if TYPE_CHECKING:
-    from .state import ApplicationState
+    from .state import Cache
 
 
 __all__ = ('RESTClient',)
@@ -42,14 +42,14 @@ __all__ = ('RESTClient',)
 class RESTClient(WebhookRequester):
     """Requester subclass wrapping endpoints used for Discord applications."""
 
-    _state: 'ApplicationState'
+    _cache: Optional['Cache']
 
-    __slots__ = ('_state',)
+    __slots__ = ('_cache',)
 
-    def __init__(self, state: 'ApplicationState', token: str, *args, **kwargs):
+    def __init__(self, cache: Optional['Cache'], token: str, *args, **kwargs):
         super().__init__(*args, **kwargs, headers={"Authorization": f"Bot {token}"})
 
-        self._state = state
+        self._cache = cache
 
     # Audit Log endpoints
 
@@ -1690,16 +1690,20 @@ class RESTClient(WebhookRequester):
         """Make the bot user leave the specified guild."""
         await self.request(Route('DELETE', '/users/@me/guilds/{guild_id}', guild_id=int(guild)))
 
-    async def create_dm(self, recipient: SupportsInt) -> Dict[str, Any]:
+    async def create_dm(self, recipient: SupportsInt) -> DMChannel:
         """Create a DM with the recipient.
 
         This method is safe to call several times to get the DM channel when
         needed. In fact, in other wrappers this is called everytime you send
         a message to a user.
         """
-        return await self.request(Route(
+        data = await self.request(Route(
             'POST', '/users/@me/channels'), json={'recipient_id': int(recipient)}
         )
+        if self._cache:
+            return self._cache.store_channel(data)
+        else:
+            return DMChannel(self, self._cache, data)
 
     # Webhook endpoints (without usage of webhook token)
 
