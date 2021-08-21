@@ -34,8 +34,9 @@ DISCORD_EPOCH = 1420070400000
 class Object:
     """The root for all Wumpy objects, a Discord object with an ID.
 
-    Stateless by choice so that classes themselves can decide if they want
-    to be stateful.
+    A Wumpy object is a simple wrapper over an integer, the Discord snowflake
+    which is guaranteed by Discord to be unique. It tries to support as many
+    operations as possible.
     """
 
     id: int
@@ -43,22 +44,25 @@ class Object:
     __slots__ = ('id',)
 
     def __init__(self, id: int) -> None:
-        # If we'd include state as optionally None, that would make it
-        # annoying to deal with in subclasses when we know state is there
         self.id = id
 
     def __repr__(self) -> str:
         # To be clear that it isn't a normal object
         return f'<wumpy.Object id={self.id}>'
 
+    def __str__(self) -> str:
+        return str(self.id)
+
+    def __bytes__(self) -> bytes:
+        return bytes(self.id)
+
     def __hash__(self) -> int:
         return self.id >> 22
 
-    def __int__(self) -> int:
+    def __index__(self) -> int:
+        # __index__ convers __complex__, __int__ and __float__
+        # by defining this one we don't need to define the rest
         return self.id
-
-    def __float__(self) -> float:
-        return float(self.id)
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, int):
@@ -66,17 +70,20 @@ class Object:
         elif isinstance(other, self.__class__):
             value = other.id
         else:
-            return False
+            return NotImplemented
 
         return self.id == value
 
     def __ne__(self, other: Any) -> bool:
+        # There's a performance hit to not defining __ne__, even though
+        # Python will automatically call __eq__ and invert it
+
         if isinstance(other, int):
             value = other
         elif isinstance(other, self.__class__):
             value = other.id
         else:
-            return True
+            return NotImplemented
 
         return self.id != value
 
