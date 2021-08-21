@@ -23,4 +23,5 @@ SOFTWARE.
 """
 
 from .cache import *
+from .rest import *
 from .state import *

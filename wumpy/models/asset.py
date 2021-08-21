@@ -21,10 +21,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ..state import ApplicationState
+    from ..state import RESTClient
 
 __all__ = ('Asset',)
 
@@ -32,15 +33,15 @@ __all__ = ('Asset',)
 class Asset:
     """Simple wrapper over a Discord CDN asset that can be read."""
 
-    _state: 'ApplicationState'
+    _rest: 'RESTClient'
     path: str
 
-    __slots__ = ('_state', 'path')
+    __slots__ = ('_rest', 'path')
 
     BASE = 'https://cdn.discordapp.com'
 
-    def __init__(self, state: 'ApplicationState', path: str) -> None:
-        self._state = state
+    def __init__(self, rest: 'RESTClient', path: str) -> None:
+        self._rest = rest
 
         self.path = path
 
@@ -78,4 +79,4 @@ class Asset:
             # if we subtract 1, then (0111) AND it we should get 0 (0000).
             raise ValueError('size argument must be a power of two.')
 
-        return await self._state.http.read_asset(self.url + f'.{fmt}', size=size)
+        return await self._rest.read_asset(self.url + f'.{fmt}', size=size)
