@@ -23,9 +23,8 @@ SOFTWARE.
 """
 
 import asyncio
-from collections.abc import MutableMapping
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional, Union
+from typing import Dict, MutableMapping, Optional, Union
 from urllib.parse import quote as urlquote
 from weakref import WeakValueDictionary
 
@@ -138,7 +137,7 @@ class DictRateLimiter:
     global_event: asyncio.Event
 
     buckets: Dict[str, str]
-    locks: WeakValueDictionary[str, RateLimit]
+    locks: WeakValueDictionary
     fallbacks: Dict[str, RateLimit]
 
     __slots__ = ('global_event', 'buckets', 'locks', 'fallbacks')
@@ -148,17 +147,17 @@ class DictRateLimiter:
         self.global_event = asyncio.Event()
         self.global_event.set()
 
-        self.buckets: Dict[str, str] = {}  # Route endpoint to X-RateLimit-Bucket
+        self.buckets = {}  # Route endpoint to X-RateLimit-Bucket
 
         # By using a WeakValueDictionary, Python can deallocate locks if
         # they're not in any way used (waiting, or acquired). This way we
         # don't have to deal with any form of LRU structure.
         # This is important as each bucket + major parameters gets a lock in
         # this dictionary, even if you only send one request.
-        self.locks: WeakValueDictionary[str, RateLimit] = WeakValueDictionary()
+        self.locks = WeakValueDictionary()
 
         # Fallback locks before buckets get populated
-        self.fallbacks: Dict[str, RateLimit] = {}
+        self.fallbacks = {}
 
     def default(self, mapping: MutableMapping[str, RateLimit], key: str) -> RateLimit:
         """Get `key` from the mapping, if it isn't found initialize a RateLimit in its place."""

@@ -26,7 +26,8 @@ import asyncio
 from collections import deque
 from typing import Any
 
-from typing_extensions import Deque, Protocol
+from typing_extensions import Deque as DequeType
+from typing_extensions import Protocol
 
 __all__ = ('Lock', 'RateLimit')
 
@@ -78,7 +79,7 @@ class RateLimit:
     locked: bool
 
     event: asyncio.Event
-    _waiters: Deque[asyncio.Future[None]]
+    _waiters: DequeType[asyncio.Future]
 
     __slots__ = ('deferred', 'locked', 'event', '_waiters')
 

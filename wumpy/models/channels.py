@@ -93,7 +93,7 @@ class ChannelHistory:
 
         # We have to ignore the types here because we don't want to add
         # an overload that accepts all kwargs
-        messages = self._rest.fetch_channel_messages(
+        messages = self._rest.fetch_messages(
             self.channel, before=self.before,
             after=self.after, around=self.around,
             limit=amount
@@ -162,7 +162,7 @@ class SendableChannel(Object):
 
     async def fetch_message(self, id: int) -> Dict[str, Any]:
         """Fetch a single message from the channel."""
-        return await self._rest.fetch_channel_message(self, id)
+        return await self._rest.fetch_message(self, id)
 
     @overload
     def history(self, *, before: int, limit: int = 50) -> ChannelHistory: ...

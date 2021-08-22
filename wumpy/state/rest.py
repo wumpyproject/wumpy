@@ -28,7 +28,7 @@ from typing import (
 )
 from urllib.parse import quote as urlquote
 
-from ..models import AllowedMentions, PermissionOverwrite, DMChannel
+from ..models import AllowedMentions, DMChannel, PermissionOverwrite
 from ..rest import File, Route, WebhookRequester
 from ..utils import MISSING
 

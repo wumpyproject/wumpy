@@ -90,7 +90,7 @@ class Requester:
         self._session = aiohttp.ClientSession(headers=self.headers, json_serialize=dump)
 
     @staticmethod
-    def _clean_dict(mapping: Dict[Any, Union[MISSING, Any]]) -> Dict[Any, Any]:
+    def _clean_dict(mapping: Dict[Any, Any]) -> Dict[Any, Any]:
         """Clean a dictionary from MISSING values.
 
         Returned is a new dictionary with only the keys not having a

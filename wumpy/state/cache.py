@@ -27,7 +27,6 @@ from typing import Any, Dict, Optional, Type
 from ..models import DMChannel, User
 from .rest import RESTClient
 
-
 __all__ = ('Cache',)
 
 

@@ -22,7 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Any, Final, final
+from typing import Any
+
+from typing_extensions import Final, final
 
 __all__ = ('MISSING',)
 
