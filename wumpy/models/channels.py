@@ -23,13 +23,14 @@ SOFTWARE.
 """
 
 import collections
+from typing import TYPE_CHECKING, Any
+from typing import Deque as DequeType
 from typing import (
-    TYPE_CHECKING, Any, Deque as DequeType, Dict, List, Optional,
-    Sequence, SupportsInt, Tuple, overload
+    Dict, List, Optional, Sequence, SupportsInt, Tuple, overload
 )
 
+from ..models import PermissionOverwrite, PermissionTarget
 from ..rest import File
-
 from ..utils import MISSING
 from .base import Object, Snowflake
 from .flags import AllowedMentions
@@ -164,6 +165,31 @@ class SendableChannel(Object):
         """Fetch a single message from the channel."""
         return await self._rest.fetch_message(self, id)
 
+    async def edit_message(
+        self,
+        id: int,
+        *,
+        content: Optional[str] = MISSING,
+        embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
+        file: Optional[File] = MISSING,
+        allowed_mentions: Optional[AllowedMentions] = MISSING,
+        attachments: Optional[Dict[str, Any]] = MISSING
+    ) -> Dict[str, Any]:
+        """Edit a message the bot sent in a message."""
+        return await self._rest.edit_message(
+            self, id,
+            content=content, embeds=embeds, file=file,
+            allowed_mentions=allowed_mentions, attachments=attachments
+        )
+
+    async def delete_message(self, id: int, *, reason: str = MISSING) -> None:
+        """Delete a message sent in the channel."""
+        await self._rest.delete_message(self, id, reason=reason)
+
+    async def bulk_delete_messages(self, messages: List[SupportsInt], *, reason: str = MISSING) -> None:
+        """Bulk delete several messages in the channel."""
+        await self._rest.bulk_delete_messages(self, messages, reason=reason)
+
     @overload
     def history(self, *, before: int, limit: int = 50) -> ChannelHistory: ...
 
@@ -242,3 +268,57 @@ class DMChannel(SendableChannel):
             recipient = User(self._rest, user_data)
 
         self.recipient = recipient
+
+
+class GuildChannel(Object):
+    """Channel attached to a guild."""
+
+    _rest: 'RESTClient'
+
+    __slots__ = ('_rest',)
+
+    def __init__(self, rest: 'RESTClient', data: Dict[str, Any]) -> None:
+        super().__init__(int(data['id']))
+
+        self._rest = rest
+
+    async def set_permission(
+        self,
+        overwrite: PermissionOverwrite,
+        type: Optional[PermissionTarget] = None,
+        *,
+        reason: str = MISSING
+    ) -> None:
+        """Edit a permission overwrite."""
+        if type is None and overwrite.type is None:
+            raise TypeError("'type' not set in PermissionOverwrite object or arguments")
+
+        assert type is not None and overwrite.type is not None  # Pyright bug
+
+        await self._rest.set_permission(
+            self, overwrite.id,
+            allow=int(overwrite.allow), deny=int(overwrite.deny),
+            type=type or overwrite.type, reason=reason
+        )
+
+    async def delete_permission(self, target: SupportsInt, *, reason: str = MISSING) -> None:
+        """Delete a channel permission overwrite."""
+        await self._rest.delete_permission(self, target, reason=reason)
+
+
+class VoiceChannel(GuildChannel):
+    """Discord voice channel allowing voice calls."""
+    pass
+
+
+class TextChannel(GuildChannel, SendableChannel):
+    """Discord Text channel in a guild."""
+    pass
+
+
+class NewsChannel(GuildChannel, SendableChannel):
+    """Discord News channel."""
+
+    async def follow(self, target: SupportsInt) -> None:
+        """Follow the channel in the target so that messages are posted there."""
+        await self._rest.follow_channel(self, target)
