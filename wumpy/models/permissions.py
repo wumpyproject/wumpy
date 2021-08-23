@@ -23,12 +23,12 @@ SOFTWARE.
 """
 
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, SupportsInt, Type, TypeVar, Union
 
 from .base import Object
 from .flags import BaseFlags, flag
 
-__all__ = ('Permissions', 'PermissionOverwrite')
+__all__ = ('Permissions', 'PermissionTarget', 'PermissionOverwrite')
 
 
 class Permissions(BaseFlags):
@@ -307,11 +307,18 @@ class PermissionOverwrite(Object):
 
     __slots__ = ('type', 'allow', 'deny')
 
-    def __init__(self, target: int, **options: bool) -> None:
+    def __init__(
+        self,
+        target: SupportsInt,
+        *,
+        type: Optional[PermissionTarget] = None,
+        **options: bool
+    ) -> None:
         super().__init__(int(target))
 
         self.allow = Permissions(0)
         self.deny = Permissions(0)
+        self.type = type
 
         for name, value in options.items():
             setattr(self, name, value)
