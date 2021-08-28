@@ -45,10 +45,13 @@ try:
         return orjson.dumps(obj).decode('utf-8')
 
     dump = orjson_dump
+    load = orjson.loads
+
 except ImportError:
     import json
 
     dump = json.dumps
+    load = json.loads
 
 __all__ = ('build_user_agent', 'Requester')
 
@@ -128,7 +131,7 @@ class Requester:
             text = await res.text(encoding='utf-8')
             if res.headers.get('Content-Type') == 'application/json':
                 # Parse the response
-                data = json.loads(text)
+                data = load(text)
             else:
                 data = text
 
