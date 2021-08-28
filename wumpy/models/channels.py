@@ -29,11 +29,10 @@ from typing import (
     Dict, List, Optional, Sequence, SupportsInt, Tuple, overload
 )
 
-from ..models import PermissionOverwrite, PermissionTarget
-from ..rest import File
-from ..utils import MISSING
+from ..utils import MISSING, File
 from .base import Object, Snowflake
 from .flags import AllowedMentions
+from .permissions import PermissionOverwrite, PermissionTarget
 
 if TYPE_CHECKING:
     from ..state import Cache, RESTClient

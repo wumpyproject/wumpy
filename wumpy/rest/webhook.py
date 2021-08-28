@@ -25,9 +25,8 @@ SOFTWARE.
 from typing import Any, Dict, Optional, Sequence, SupportsInt
 
 from ..models import AllowedMentions, Object
-from ..utils import MISSING
+from ..utils import MISSING, File
 from .requester import Requester, Route
-from .utils import File
 
 __all__ = ('WebhookRequester', 'Webhook',)
 

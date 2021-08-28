@@ -29,8 +29,8 @@ from typing import (
 from urllib.parse import quote as urlquote
 
 from ..models import AllowedMentions, DMChannel, PermissionOverwrite
-from ..rest import File, Route, WebhookRequester
-from ..utils import MISSING
+from ..rest import Route, WebhookRequester
+from ..utils import MISSING, File
 
 if TYPE_CHECKING:
     from .state import Cache

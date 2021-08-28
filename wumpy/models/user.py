@@ -24,8 +24,7 @@ SOFTWARE.
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, SupportsInt
 
-from ..rest import File
-from ..utils import MISSING
+from ..utils import MISSING, File
 from .asset import Asset
 from .base import Object
 from .channels import DMChannel
