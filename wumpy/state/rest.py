@@ -28,6 +28,8 @@ from typing import (
 )
 from urllib.parse import quote as urlquote
 
+from wumpy.models.permissions import PermissionTarget
+
 from ..models import AllowedMentions, DMChannel, PermissionOverwrite
 from ..rest import Route, WebhookRequester
 from ..utils import MISSING, File
@@ -430,14 +432,14 @@ class RESTClient(WebhookRequester):
         *,
         allow: Union[str, int],
         deny: Union[str, int],
-        type: Literal[0, 1],
+        type: PermissionTarget,
         reason: str = MISSING
     ) -> None:
         """Edit channel permission overwrites for a user or role."""
         payload: Dict[str, Any] = {
             'allow': str(allow),
             'deny': str(deny),
-            'type': type
+            'type': type.value
         }
         await self.request(
             Route(
