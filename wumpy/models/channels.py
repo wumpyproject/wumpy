@@ -125,20 +125,21 @@ class ChannelHistory:
             return self.messages.popleft()
 
 
-class SendableChannel(Object):
-    """Discord text-based channel that you can message."""
+class SendableChannel:
+    """Discord text-based channel that you can message.
 
+    This is an incomplete-mixin that should not be used on its own.
+    """
+
+    id: int  # Resolved by classes inherting the mixin
     _rest: 'RESTClient'
 
-    __slots__ = ('_rest',)
+    __slots__ = ()
 
-    def __init__(self, rest: 'RESTClient', data: Dict[str, Any]) -> None:
-        super().__init__(int(data['id']))
-
-        self._rest = rest
-
-    def _update(self, data: Dict[str, Any]) -> None:
-        pass
+    # Satisfy type checkers who don't know that this class
+    # will be subclassed with Object in the future
+    def __int__(self) -> int:
+        return self.id
 
     async def send(
         self,
@@ -233,23 +234,22 @@ class SendableChannel(Object):
 
     async def delete(self, *, reason: str = MISSING) -> None:
         """Delete the channel."""
-        data = await self._rest.delete_channel(self, reason=reason)
-        self._update(data)
+        await self._rest.delete_channel(self, reason=reason)
 
 
-class DMChannel(SendableChannel):
+class DMChannel(Object, SendableChannel):
     """Discord DM channel object with a user."""
 
+    _rest: 'RESTClient'
     _cache: Optional['Cache']
 
     last_message_id: Snowflake
     recipient: 'User'
 
-    __slots__ = ('_cache', 'last_message_id', 'recipient')
+    __slots__ = ('_rest', '_cache', 'last_message_id', 'recipient')
 
     def __init__(self, rest: 'RESTClient', cache: Optional['Cache'], data: Dict[str, Any]) -> None:
-        super().__init__(rest, data)
-
+        self._rest = rest
         self._cache = cache
 
         self._update(data)
