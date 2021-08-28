@@ -244,3 +244,8 @@ class Requester:
                 raise ServerException(res, data)
             else:
                 raise RequestException(res, data)
+
+    async def _ws_connect(self, url: str) -> aiohttp.ClientWebSocketResponse:
+        """Connect a WebSocket to the specified URL with the formatted query params."""
+
+        return await self._session.ws_connect(url)

@@ -100,3 +100,23 @@ class NotFound(RequestException):
 class ServerException(RequestException):
     """Exception raised when the requester hits a 500 range response."""
     pass
+
+
+class ConnectionClosed(WumpyException):
+    """Exception raised when the WebSocket to the Discord gateway was closed."""
+    pass
+
+
+class ReconnectWebsocket(ConnectionClosed):
+    """Exception raised when the WebSocket was closed and should be reconnected.
+
+    `resume` is an attribute indicating whether to RESUME or IDENTIFY after the
+    reconnection.
+    """
+
+    resume: bool
+
+    def __init__(self, resume: bool, *args) -> None:
+        super().__init__(*args)
+
+        self.resume = resume
