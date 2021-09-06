@@ -22,9 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..rest import Requester
+if TYPE_CHECKING:
+    from ..rest import Requester
 
 __all__ = ('Asset',)
 

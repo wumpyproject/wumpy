@@ -64,6 +64,9 @@ class _BaseUser(Object):
         super().__init__(int(data['id']))
         self._rest = rest
 
+        self.bot = None
+        self.system = None
+
         # We may need to update this object again, so if we seperate it
         # into another method we can call again
         self._update(data)
