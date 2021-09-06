@@ -252,3 +252,8 @@ class Requester:
         """Connect a WebSocket to the specified URL with the formatted query params."""
 
         return await self._session.ws_connect(url)
+
+    # Asset endpoint
+
+    async def read_asset(self, url: str, *, size: int) -> bytes:
+        return await self._bypass_request('GET', url, size=size)

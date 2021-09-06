@@ -22,10 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from ..state import RESTClient
+from ..rest import Requester
 
 __all__ = ('Asset',)
 
@@ -33,14 +32,14 @@ __all__ = ('Asset',)
 class Asset:
     """Simple wrapper over a Discord CDN asset that can be read."""
 
-    _rest: 'RESTClient'
+    _rest: 'Requester'
     path: str
 
     __slots__ = ('_rest', 'path')
 
     BASE = 'https://cdn.discordapp.com'
 
-    def __init__(self, rest: 'RESTClient', path: str) -> None:
+    def __init__(self, rest: 'Requester', path: str) -> None:
         self._rest = rest
 
         self.path = path

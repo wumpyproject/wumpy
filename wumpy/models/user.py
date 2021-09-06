@@ -24,6 +24,7 @@ SOFTWARE.
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, SupportsInt
 
+from ..rest import Requester
 from ..utils import MISSING, File
 from .asset import Asset
 from .base import Object
@@ -33,7 +34,7 @@ from .flags import AllowedMentions, UserFlags
 if TYPE_CHECKING:
     from ..state import RESTClient
 
-__all__ = ('BotUser', 'User')
+__all__ = ('InteractionUser', 'BotUser', 'User')
 
 
 class _BaseUser(Object):
@@ -43,7 +44,7 @@ class _BaseUser(Object):
     to inherit certain methods, you cannot DM yourself for example.
     """
 
-    _rest: 'RESTClient'
+    _rest: 'Requester'
 
     username: str
     discriminator: int
@@ -59,7 +60,7 @@ class _BaseUser(Object):
         'avatar', 'public_flags', 'bot', 'system'
     )
 
-    def __init__(self, rest: 'RESTClient', data: Dict) -> None:
+    def __init__(self, rest: 'Requester', data: Dict) -> None:
         super().__init__(int(data['id']))
         self._rest = rest
 
@@ -91,8 +92,15 @@ class _BaseUser(Object):
         return Asset(self._rest, f'embed/avatars/{self.discriminator % 5}')
 
 
+class InteractionUser(_BaseUser):
+    """User object from an interaction, this wraps no user endpoints."""
+    pass
+
+
 class BotUser(_BaseUser):
     """User object attached to an application; the bot application's user account."""
+
+    _rest: 'RESTClient'
 
     bio: str
     locale: str
@@ -101,8 +109,13 @@ class BotUser(_BaseUser):
 
     __slots__ = ('bio', 'locale', 'mfa_enabled', 'verified')
 
-    # We don't need to define __init__, it calls _update() which
-    # we have overridden to handle the extra fields
+    def __init__(self, rest: 'RESTClient', data: Dict) -> None:
+        super().__init__(rest, data)
+        self._rest = rest
+
+        # We may need to update this object again, so if we seperate it
+        # into another method we can call again
+        self._update(data)
 
     def _update(self, data: Dict) -> None:
         super()._update(data)
@@ -125,6 +138,8 @@ class BotUser(_BaseUser):
 
 class User(_BaseUser):
     """Discord User object."""
+
+    _rest: 'RESTClient'
 
     channel: Optional[DMChannel]
 

@@ -59,11 +59,6 @@ class RESTClient(WebhookRequester):
         """Fetch the audit log entries for this guild."""
         return await self.request(Route('GET', '/guilds/{guild_id}/audit-logs', guild_id=int(guild)))
 
-    # Asset endpoint
-
-    async def read_asset(self, url: str, *, size: int) -> bytes:
-        return await self._bypass_request('GET', url, size=size)
-
     # Channel endpoints
 
     async def fetch_channel(self, channel: SupportsInt):
