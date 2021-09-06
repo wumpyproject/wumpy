@@ -25,7 +25,7 @@ SOFTWARE.
 import asyncio
 import sys
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 from urllib.parse import quote as urlquote
 
 import aiohttp
@@ -224,8 +224,8 @@ class Requester:
         self,
         method: str,
         url: str,
-        body: Dict[str, Any] = None,
-        **query: Union[str, int]
+        *args,
+        **kwargs
     ) -> bytes:
         """Bypass retrying, ratelimit handling and json serialization.
 
@@ -233,7 +233,7 @@ class Requester:
         Commonly to a CDN endpoint, that does not have ratelimits and needs to
         read the bytes.
         """
-        async with self._session.request(method, url, json=body, params=query) as res:
+        async with self._session.request(method, url, *args, **kwargs) as res:
             if res.status == 200:
                 return await res.read()
 
@@ -256,4 +256,4 @@ class Requester:
     # Asset endpoint
 
     async def read_asset(self, url: str, *, size: int) -> bytes:
-        return await self._bypass_request('GET', url, size=size)
+        return await self._bypass_request('GET', url, params={'size': size})

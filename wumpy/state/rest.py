@@ -1331,7 +1331,7 @@ class RESTClient(WebhookRequester):
         return await self._bypass_request(
             'GET',
             Route.BASE + f'/guilds/{int(guild)}/widget.png',
-            style=style
+            params={'style': style}
         )
 
     async def fetch_welcome_screen(self, guild: SupportsInt) -> Dict[str, Any]:
