@@ -5,25 +5,13 @@ from typing import (
 )
 
 from ...utils import MISSING
+from ..base import ApplicationCommandOption, CommandInteractionOption
 
 
 class ApplicationCommandType(Enum):
     chat_input = 1
     user = 2
     message = 3
-
-
-class ApplicationCommandOption(Enum):
-    subcommand = 1
-    subcommand_group = 2
-    string = 3
-    integer = 4
-    boolean = 5
-    user = 6
-    channel = 7
-    role = 8
-    mentionable = 9
-    number = 10  # Includes decimals
 
 
 class OptionClass:
@@ -182,6 +170,6 @@ class OptionClass:
         if param.annotation is not param.empty and self.type is MISSING:
             self.determine_type(param.annotation)
 
-    def resolve(self, data: Dict) -> Any:
+    def resolve(self, data: CommandInteractionOption) -> Any:
         """Resolve a value from Discord option data."""
-        return data['value']
+        return data.value

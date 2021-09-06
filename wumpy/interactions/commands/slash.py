@@ -1,9 +1,9 @@
 import inspect
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Union
 
 from ...utils import MISSING
+from ..base import ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 from .base import CommandCallback
-from .option import ApplicationCommandOption
 
 if TYPE_CHECKING:
     from .registrar import CommandRegistrar
@@ -77,21 +77,28 @@ class SubcommandGroup(Subcommand):
 
         self.subcommands = {}
 
-    async def handle_interaction(self, interaction, options) -> None:
+    async def handle_interaction(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
         """Handle and forward the interaction to the correct subcommand."""
         for option in options:
-            if option['type'] is ApplicationCommandOption.subcommand:
+            if option.type is ApplicationCommandOption.subcommand:
                 break
         else:
             raise RuntimeError('SubcommandGroup cannot handle interaction')
 
         # If we got here we should have found a subcommand option
 
-        command = self.subcommands.get(option['name'])
+        command = self.subcommands.get(option.name)
         if not command:
-            raise RuntimeError("Could not find command locally")
+            raise RuntimeError('Could not find command locally')
 
-        return await command.handle_interaction(interaction, option['options'])
+        # Primarily for static type checkers, but it's also a good santity check
+        assert option.options is not None, 'Subcommand option missing further options'
+
+        return await command.handle_interaction(interaction, option.options)
 
     def register_command(self, command: Subcommand) -> None:
         """Register a subcommand handler once it has been given a name."""
@@ -133,10 +140,14 @@ class SlashCommand(Subcommand):
     ) -> None:
         super().__init__(callback, name=name, description=description, parent=parent)
 
-    async def handle_interaction(self, interaction, options) -> None:
+    async def handle_interaction(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
         """Handle and forward the interaction to the correct subcommand."""
         for option in options:
-            if option['type'] is {
+            if option.type in {
                     ApplicationCommandOption.subcommand,
                     ApplicationCommandOption.subcommand_group
             }:
@@ -148,11 +159,13 @@ class SlashCommand(Subcommand):
 
         # If we got here we should have found a subcommand option
 
-        command = self.subcommands.get(option['name'])
+        command = self.subcommands.get(option.name)
         if not command:
             raise RuntimeError("Could not find command locally")
 
-        return await command.handle_interaction(interaction, option['options'])
+        assert option.options is not None, 'Subcommand option missing further options'
+
+        return await command.handle_interaction(interaction, option.options)
 
     def register_command(self, command: Union[Subcommand, SubcommandGroup]) -> None:
         """Register the subcommand, or subcommand group."""

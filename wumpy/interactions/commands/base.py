@@ -1,7 +1,8 @@
 import inspect
-from typing import Awaitable, Callable, Dict, TypeVar, Union
+from typing import Awaitable, Callable, Dict, List, TypeVar, Union
 
 from ...utils import MISSING
+from ..base import CommandInteractionOption
 from .option import ApplicationCommandOption, OptionClass
 
 CT = TypeVar('CT')
@@ -94,15 +95,15 @@ class CommandCallback:
 
         return void
 
-    async def handle_interaction(self, interaction, options) -> None:
+    async def handle_interaction(self, interaction, options: List[CommandInteractionOption]) -> None:
         """Invoke the callback with the interaction and options."""
         args, kwargs = [], {}
 
         for option in options:
-            param = self.options[option['name']]
+            param = self.options[option.name]
             if param.kind in {param.kind.POSITIONAL_ONLY, param.kind.POSITIONAL_OR_KEYWORD}:
                 args.append(param.resolve(option))
             else:
-                kwargs[option.param] = param.resolve(option)
+                kwargs[param.param] = param.resolve(option)
 
         await self.callback(interaction, *args, **kwargs)
