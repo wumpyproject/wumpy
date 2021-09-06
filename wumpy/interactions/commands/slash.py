@@ -2,7 +2,9 @@ import inspect
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Union
 
 from ...utils import MISSING
-from ..base import ApplicationCommandOption, CommandInteraction, CommandInteractionOption
+from ..base import (
+    ApplicationCommandOption, CommandInteraction, CommandInteractionOption
+)
 from .base import CommandCallback
 
 if TYPE_CHECKING:

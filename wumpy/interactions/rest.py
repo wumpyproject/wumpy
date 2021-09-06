@@ -22,7 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import datetime
 from typing import Any, Dict, List, Optional, Sequence, SupportsInt
+
+import aiohttp
 
 from ..models import AllowedMentions
 from ..rest import Route, WebhookRequester
@@ -34,13 +37,53 @@ class InteractionRequester(WebhookRequester):
 
     application: int
 
-    def __init__(self, application: SupportsInt, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    OAUTH2_TOKEN = 'https://discord.com/api/v9/oauth2/token'
+
+    def __init__(
+        self,
+        application: SupportsInt,
+        *,
+        secret: str = MISSING,
+        token: str = MISSING,
+        **kwargs
+    ) -> None:
+        if token is not MISSING:
+            kwargs['headers'] = {'Authorization': f'Bot {token}', **kwargs.get('headers', {})}
+
+        super().__init__(**kwargs)
 
         self.application = int(application)
+        self.secret = secret
+
+        self.expires_at = datetime.datetime.now()
+
+    async def fetch_access_token(self) -> None:
+        """Fetch a new access token using the Client Credentials flow."""
+        data = await self.request(
+            Route('POST', '/oauth2/token'),
+            json={'grant_type': 'client_credentials', 'scope': 'identify'},
+            auth=aiohttp.BasicAuth(str(self.application), self.secret)
+        )
+        expires_in = datetime.timedelta(seconds=float(data['expires_in']))
+        self.expires_at = datetime.datetime.now() + expires_in
+
+        self.headers['Authorization'] = f"Bearer {data['access_token']}"
+
+    async def refresh(self) -> None:
+        """Refresh the access token if it has expired.
+
+        This method will not do anything if the access token has not yet
+        expired, as such it is safe to call before each request.
+        """
+        if self.expires_at > datetime.datetime.now():
+            return
+
+        await self.fetch_access_token()
 
     async def fetch_global_commands(self) -> List[Any]:
         """Fetch all global commands for the application."""
+        await self.refresh()
+
         return await self.request(Route(
             'GET', '/applications/{application_id}/commands',
             application_id=self.application
@@ -48,6 +91,8 @@ class InteractionRequester(WebhookRequester):
 
     async def fetch_global_command(self, command: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific global command."""
+        await self.refresh()
+
         return await self.request(Route(
             'GET', '/applications/{application_id}/commands/{command_id}}',
             application_id=self.application, command_id=int(command)
@@ -55,6 +100,8 @@ class InteractionRequester(WebhookRequester):
 
     async def delete_global_command(self, command: SupportsInt) -> None:
         """Delete a global command."""
+        await self.refresh()
+
         await self.request(Route(
             'DELETE', '/applications/{application_id}/commands/{command_id}',
             application_id=self.application, command_id=int(command)
@@ -62,6 +109,8 @@ class InteractionRequester(WebhookRequester):
 
     async def fetch_guild_commands(self, guild: SupportsInt) -> List[Any]:
         """Fetch all commands created for a guild."""
+        await self.refresh()
+
         return await self.request(Route(
             'GET', '/applications/{application_id}/guilds/{guild_id}/commands',
             application_id=self.application, guild_id=int(guild)
@@ -73,6 +122,8 @@ class InteractionRequester(WebhookRequester):
         command: SupportsInt
     ) -> Dict[str, Any]:
         """Fetch a specific guild command."""
+        await self.refresh()
+
         return await self.request(Route(
             'GET', '/applications/{application_id}/guilds/{guild_id}/commands/{command_id}',
             application_id=self.application, guild_id=int(guild), command_id=int(command)
@@ -84,6 +135,8 @@ class InteractionRequester(WebhookRequester):
         command: SupportsInt
     ) -> None:
         """Delete a guild specific command."""
+        await self.refresh()
+
         await self.request(Route(
             'DELETE', '/applications/{application_id}/guilds/{guild_id}/commands/{command_id}',
             application_id=self.application, guild_id=int(guild), command_id=int(command)
@@ -91,6 +144,8 @@ class InteractionRequester(WebhookRequester):
 
     async def fetch_all_guild_command_permissions(self, guild: SupportsInt) -> List[Any]:
         """Fetch all permissions for all commands in a guild."""
+        await self.refresh()
+
         return await self.request(Route(
             'GET', '/application/{application_id}/guilds/{guild_id}/commands/permissions',
             application_id=self.application, guild_id=int(guild)
@@ -102,10 +157,15 @@ class InteractionRequester(WebhookRequester):
         command: SupportsInt
     ) -> Dict[str, Any]:
         """Fetch a specific guild command's permissions."""
+        await self.refresh()
+
         return await self.request(Route(
             'GET', '/application/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions',
             application_id=self.application, guild_id=int(guild), command_id=int(command)
         ))
+
+    # The following methods use the interaction token and does not require
+    # further authorization (compared to the endpoints above)
 
     async def fetch_original_response(self, token: str) -> Dict[str, Any]:
         """Fetch the initial response to an interaction."""
