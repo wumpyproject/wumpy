@@ -138,7 +138,7 @@ class CommandInteraction(Interaction):
         self.invoked = data['data']['id']
         self.invoked_type = ApplicationCommandOption(data['data']['type'])
 
-        self.resolved = ResolvedInteractionData(data['data']['resolved'])
+        self.resolved = ResolvedInteractionData(data['data'].get('resolved', {}))
         self.options = [CommandInteractionOption(option) for option in data['data']['options']]
 
 
