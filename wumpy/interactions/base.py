@@ -64,7 +64,7 @@ class CommandInteractionOption:
     type: ApplicationCommandOption
 
     value: Optional[Any]
-    options: Optional[List['CommandInteractionOption']]
+    options: List['CommandInteractionOption']
 
     __slots__ = ('name', 'type', 'value', 'options')
 
@@ -73,11 +73,7 @@ class CommandInteractionOption:
         self.type = ApplicationCommandOption(data['type'])
 
         self.value = data.get('value')
-        options = data.get('options')
-        if options:
-            options = [CommandInteractionOption(option) for option in options]
-
-        self.options = options
+        self.options = [CommandInteractionOption(option) for option in data.get('options', [])]
 
 
 class Interaction(Object):
