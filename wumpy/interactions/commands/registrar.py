@@ -9,6 +9,8 @@ class CommandRegistrar:
 
     commands: Dict[str, SlashCommand]
 
+    full_name = ''
+
     def __init__(self) -> None:
         self.commands = {}
 
@@ -25,7 +27,7 @@ class CommandRegistrar:
     def register_command(self, command) -> None:
         """Register a command handler, the command must have a name."""
         if command.name is MISSING:
-            raise RuntimeError('Cannot register a command with a MISSING name')
+            raise ValueError('Cannot register a command with a missing name')
 
         self.commands[command.name] = command
 

@@ -4,6 +4,7 @@ from typing import (
     Annotated, Any, AnyStr, Dict, Literal, Type, Union, get_args, get_origin
 )
 
+from ...errors import CommandSetupError
 from ...utils import MISSING
 from ..base import ApplicationCommandOption, CommandInteractionOption
 
@@ -172,4 +173,7 @@ class OptionClass:
 
     def resolve(self, data: CommandInteractionOption) -> Any:
         """Resolve a value from Discord option data."""
+        if data.type is not self.type:
+            raise CommandSetupError(f'Received option with wrong type, expected {self.type}')
+
         return data.value

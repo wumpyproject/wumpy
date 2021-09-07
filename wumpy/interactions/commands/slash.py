@@ -1,6 +1,7 @@
 import inspect
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Union
 
+from ...errors import CommandNotFound, CommandSetupError
 from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
@@ -52,6 +53,13 @@ class Subcommand(CommandCallback):
         if self.parent:
             self.parent.register_command(self)
 
+    @property
+    def full_name(self) -> str:
+        if self.parent is None:
+            return self.name
+
+        return f'{self.parent.full_name} {self.name}'
+
 
 class SubcommandGroup(Subcommand):
     """Subcommand group, which cannot in of itself be called.
@@ -85,27 +93,20 @@ class SubcommandGroup(Subcommand):
         options: List[CommandInteractionOption]
     ) -> None:
         """Handle and forward the interaction to the correct subcommand."""
-        for option in options:
-            if option.type is ApplicationCommandOption.subcommand:
-                break
-        else:
-            raise RuntimeError('SubcommandGroup cannot handle interaction')
+        found = [option for option in options if option.type is ApplicationCommandOption.subcommand]
+        if not found:
+            raise CommandSetupError('Subcommand-group did not receive a subcommand option')
 
-        # If we got here we should have found a subcommand option
-
-        command = self.subcommands.get(option.name)
+        command = self.subcommands.get(found[0].name)
         if not command:
-            raise RuntimeError('Could not find command locally')
+            raise CommandNotFound(interaction, f'{self.full_name} {command}')
 
-        # Primarily for static type checkers, but it's also a good santity check
-        assert option.options is not None, 'Subcommand option missing further options'
-
-        return await command.handle_interaction(interaction, option.options)
+        return await command.handle_interaction(interaction, found[0].options)
 
     def register_command(self, command: Subcommand) -> None:
         """Register a subcommand handler once it has been given a name."""
         if command.name is MISSING:
-            raise RuntimeError('Cannot register a command with a MISSING name')
+            raise ValueError('Cannot register a command with a missing name')
 
         self.subcommands[command.name] = command
 
@@ -142,6 +143,10 @@ class SlashCommand(Subcommand):
     ) -> None:
         super().__init__(callback, name=name, description=description, parent=parent)
 
+    @property
+    def full_name(self) -> str:
+        return self.name
+
     async def handle_interaction(
         self,
         interaction: CommandInteraction,
@@ -163,9 +168,7 @@ class SlashCommand(Subcommand):
 
         command = self.subcommands.get(option.name)
         if not command:
-            raise RuntimeError("Could not find command locally")
-
-        assert option.options is not None, 'Subcommand option missing further options'
+            raise CommandNotFound(interaction, f'{self.full_name} {command}')
 
         return await command.handle_interaction(interaction, option.options)
 
@@ -173,7 +176,7 @@ class SlashCommand(Subcommand):
         """Register the subcommand, or subcommand group."""
         # This is called afterhand, when the command is given a name
         if command.name is MISSING:
-            raise RuntimeError('Cannot register a command with a MISSING name')
+            raise ValueError('Cannot register a command with a missing name')
 
         self.subcommands[command.name] = command
 

@@ -22,9 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 from aiohttp import ClientResponse
+
+if TYPE_CHECKING:
+    from .interactions.base import CommandInteraction
+
 
 __all__ = (
     'WumpyException', 'HTTPException', 'Forbidden',
@@ -120,3 +124,30 @@ class ReconnectWebsocket(ConnectionClosed):
         super().__init__(*args)
 
         self.resume = resume
+
+
+class CommandException(WumpyException):
+    """Parent for all exceptions raised regarding command handlers."""
+    pass
+
+
+class CommandSetupError(CommandException):
+    """Raised when local command setup does not align with interactions.
+
+    Examples of this is incorrect types of local options compared to what
+    Discord sends, or subcommand-groups not receiving subcommands.
+    """
+    pass
+
+
+class CommandNotFound(CommandSetupError):
+    """Raised when no local command handler can be found for an interaction."""
+
+    interaction: 'CommandInteraction'
+    command: str
+
+    def __init__(self, interaction: 'CommandInteraction', command: str) -> None:
+        super().__init__(f"Command handler for '{command}' not found")
+
+        self.interaction = interaction
+        self.command = command
