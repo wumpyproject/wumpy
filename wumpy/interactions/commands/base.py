@@ -102,8 +102,8 @@ class CommandCallback:
         for option in options:
             param = self.options[option.name]
             if param.kind in {param.kind.POSITIONAL_ONLY, param.kind.POSITIONAL_OR_KEYWORD}:
-                args.append(param.resolve(option))
+                args.append(await param.resolve(interaction, option))
             else:
-                kwargs[param.param] = param.resolve(option)
+                kwargs[param.param] = await param.resolve(interaction, option)
 
         await self.callback(interaction, *args, **kwargs)

@@ -6,7 +6,7 @@ from typing import (
 
 from ...errors import CommandSetupError
 from ...utils import MISSING
-from ..base import ApplicationCommandOption, CommandInteractionOption
+from ..base import ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 
 
 class ApplicationCommandType(Enum):
@@ -171,7 +171,7 @@ class OptionClass:
         if param.annotation is not param.empty and self.type is MISSING:
             self.determine_type(param.annotation)
 
-    def resolve(self, data: CommandInteractionOption) -> Any:
+    async def resolve(self, interaction: CommandInteraction, data: CommandInteractionOption) -> Any:
         """Resolve a value from Discord option data."""
         if data.type is not self.type:
             raise CommandSetupError(f'Received option with wrong type, expected {self.type}')
