@@ -81,7 +81,7 @@ class RateLimit:
     event: asyncio.Event
     _waiters: DequeType[asyncio.Future]
 
-    __slots__ = ('deferred', 'locked', 'event', '_waiters')
+    __slots__ = ('__weakref__', 'deferred', 'locked', 'event', '_waiters')
 
     def __init__(self, event: asyncio.Event) -> None:
         self.deferred = False
