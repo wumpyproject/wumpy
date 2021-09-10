@@ -44,7 +44,7 @@ class MissingType(object):
         return '<MISSING>'
 
 
-MISSING: Final[Any] = object()
+MISSING: Final[Any] = MissingType()
 
 
 class File:
