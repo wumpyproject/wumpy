@@ -1,4 +1,3 @@
-import asyncio
 import enum
 import json
 import zlib
@@ -6,6 +5,7 @@ from sys import platform
 from typing import Any, Callable, Dict, Literal, Optional, SupportsInt
 
 import aiohttp
+import anyio
 from typing_extensions import Protocol
 
 from ..errors import ConnectionClosed, ReconnectWebsocket
@@ -33,10 +33,8 @@ class Opcode(enum.IntEnum):
     HEARTBEAT_ACK = 11
 
 
-class IdentifyLock(asyncio.Semaphore):
+class IdentifyLock(anyio.Semaphore):
     """Simple lock that schedules releases after an amount of time."""
-
-    # There's no point in defining __slots__, asyncio doesn't
 
     def __init__(self, rate: int, per: int) -> None:
         super().__init__(per)
@@ -154,7 +152,7 @@ class Connection:
                 raise ReconnectWebsocket(True)
 
             await self.heartbeat()
-            await asyncio.sleep(self.heartbeat_interval)
+            await anyio.sleep(self.heartbeat_interval)
 
     async def identify(self, extra: Dict[str, Any] = {}) -> None:
         """Identify to the Discord gateway.

@@ -29,12 +29,13 @@ from typing import Any, Dict, Optional
 from urllib.parse import quote as urlquote
 
 import aiohttp
+import anyio
 
 from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
 )
 from ..utils import MISSING
-from .locks import Lock
+from .locks import RateLimit
 from .ratelimiter import DictRateLimiter, RateLimiter, Route
 
 try:
@@ -109,7 +110,7 @@ class Requester:
         if is_global:
             self.ratelimiter.lock()  # Globally lock all requests
 
-        await asyncio.sleep(retry_after)
+        await anyio.sleep(retry_after)
 
         if is_global:
             self.ratelimiter.unlock()  # Release now that the global ratelimit has passed
@@ -118,7 +119,7 @@ class Requester:
         self,
         route: Route,
         headers: Dict[str, str],
-        ratelimit: Lock,
+        ratelimit: RateLimit,
         attempt: int,
         **params: Any
     ) -> Optional[Any]:
@@ -162,7 +163,7 @@ class Requester:
 
             elif res.status in {500, 502, 504}:
                 # Unconditionally sleep and retry
-                await asyncio.sleep(1 + attempt * 2)
+                await anyio.sleep(1 + attempt * 2)
                 return None
 
             elif res.status == 403:
@@ -200,14 +201,15 @@ class Requester:
             headers['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
         for attempt in range(5):
-            async with self.ratelimiter.get(route) as rl:
+            rl = self.ratelimiter.get(route)
+            async with rl:
                 try:
                     res = await self._request(route, headers, rl, attempt, **kwargs)
                 except OSError as error:
                     # Connection reset by peer
                     if attempt < 4 and error.errno in (54, 10054):
                         # Exponentially backoff and try again
-                        await asyncio.sleep(1 + attempt * 2)
+                        await anyio.sleep(1 + attempt * 2)
                         continue
 
                     # The last attempt or some other error

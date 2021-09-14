@@ -28,10 +28,11 @@ from typing import Dict, MutableMapping, Optional, Union
 from urllib.parse import quote as urlquote
 from weakref import WeakValueDictionary
 
+import anyio
 from typing_extensions import Protocol
 
 from ..models.base import Snowflake
-from .locks import Lock, RateLimit
+from .locks import RateLimit
 
 __all__ = ('Route', 'RateLimiter', 'DictRateLimiter')
 
@@ -96,7 +97,7 @@ class RateLimiter(Protocol):
 
     def __init__(self) -> None: ...
 
-    def get(self, route: Route) -> Lock:
+    def get(self, route: Route) -> RateLimit:
         """Get a lock by the route about to be made a request towards.
 
         The implementation of this function should handle several endpoints
