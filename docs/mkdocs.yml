@@ -1,0 +1,30 @@
+site_name: Wumpy
+site_description: Documentation for the Discord API wrapper Wumpy
+site_author: Bluenix
+
+repo_url: https://github.com/Bluenix2/wumpy
+repo_name: GitHub
+edit_uri: tree/main/docs
+
+docs_dir: 'source'
+
+theme:
+  name: material
+  palette:
+    scheme: discord  # Custom scheme
+    primary: blurple
+    accent: blurple
+  features:
+    - content.code.annotate
+extra_css:
+  - css/_extra.css
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight
+
+nav:
+  - First Tutorial and User Guide:
+    - tutorial/index.md
+    - tutorial/hello-world.md
+    - tutorial/counter.md
