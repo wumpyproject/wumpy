@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Sequence, Optional
 
 from ..models import InteractionUser, Object
 from .rest import InteractionRequester
@@ -79,7 +79,9 @@ class CommandInteractionOption:
 class Interaction(Object):
     """Base for all interaction objects."""
 
+    _send: Callable[[Dict[str, Any]], Awaitable[None]]
     _rest: InteractionRequester
+
     application_id: int
     type: InteractionType
 
@@ -90,13 +92,22 @@ class Interaction(Object):
     token: str
 
     __slots__ = (
-        '_rest', 'application_id', 'type', 'guild_id', 'channel_id',
-        'member', 'user', 'token', 'version'
+        'app', '_send', '_rest', 'application_id', 'type', 'guild_id',
+        'channel_id', 'member', 'user', 'token', 'version'
     )
 
-    def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        app: Any,
+        send: Callable[[Dict[str, Any]], Awaitable[None]],
+        rest: InteractionRequester,
+        data: Dict[str, Any]
+    ) -> None:
         super().__init__(int(data['id']))
 
+        self.app = app
+
+        self._send = send
         self._rest = rest
 
         self.application_id = data['application_id']
@@ -127,8 +138,14 @@ class CommandInteraction(Interaction):
 
     __slots__ = ('name', 'invoked', 'invoked_type', 'resolved', 'options')
 
-    def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
-        super().__init__(rest, data)
+    def __init__(
+        self,
+        app: Any,
+        send: Callable[[Dict[str, Any]], Awaitable[None]],
+        rest: InteractionRequester,
+        data: Dict[str, Any]
+    ) -> None:
+        super().__init__(app, send, rest, data)
 
         self.name = data['data']['name']
         self.invoked = data['data']['id']
@@ -148,8 +165,14 @@ class MessageComponentInteraction(Interaction):
 
     __slots__ = ('message', 'custom_id', 'component_type')
 
-    def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
-        super().__init__(rest, data)
+    def __init__(
+        self,
+        app: Any,
+        send: Callable[[Dict[str, Any]], Awaitable[None]],
+        rest: InteractionRequester,
+        data: Dict[str, Any]
+    ) -> None:
+        super().__init__(app, send, rest, data)
 
         self.message = data['data']
 
@@ -184,7 +207,13 @@ class SelectMenuInteraction(MessageComponentInteraction):
 
     __slots__ = ('values',)
 
-    def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
-        super().__init__(rest, data)
+    def __init__(
+        self,
+        app: Any,
+        send: Callable[[Dict[str, Any]], Awaitable[None]],
+        rest: InteractionRequester,
+        data: Dict[str, Any]
+    ) -> None:
+        super().__init__(app, send, rest, data)
 
         self.values = [SelectInteractionValue(value) for value in data['data']['values']]
