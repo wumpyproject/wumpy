@@ -20,12 +20,14 @@ extra_css:
   - css/_extra.css
 markdown_extensions:
   - admonition
-  - pymdownx.superfences
   - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
 
 nav:
   - First Tutorial and User Guide:
     - tutorial/index.md
     - tutorial/creating-the-bot.md
+    - tutorial/talking-to-discord.md
     - tutorial/hello-world.md
     - tutorial/counter.md
