@@ -2,31 +2,31 @@
 [data-md-color-scheme=discord] {
 
   /* Default color shades */
-  --md-default-fg-color:               #FFFFFFDE;
-  --md-default-fg-color--light:        #FFFFFF89;
-  --md-default-fg-color--lighter:      #FFFFFF51;
-  --md-default-fg-color--lightest:     #FFFFFF12;
-  --md-default-bg-color:               #2c2f33;
+  --md-default-fg-color:               #dcddde;
+  --md-default-fg-color--light:        #e3e5e8;
+  --md-default-fg-color--lighter:      #f5f6f7;
+  --md-default-fg-color--lightest:     #ffffff;
+  --md-default-bg-color:               #36393f;
   --md-default-bg-color--light:        #4F545C;
   --md-default-bg-color--lighter:      #72767D;
   --md-default-bg-color--lightest:     #BEB9BB;
 
   /* Primary color shades */
-  --md-primary-fg-color:               #5865F2;
-  --md-primary-fg-color--light:        #5865F2;
-  --md-primary-fg-color--dark:         #5865F2;
+  --md-primary-fg-color:               #5865f2;
+  --md-primary-fg-color--light:        #5865f2;
+  --md-primary-fg-color--dark:         #5865f2;
   --md-primary-bg-color:               hsla(0, 0%, 100%, 1);
   --md-primary-bg-color--light:        hsla(0, 0%, 100%, 0.7);
 
   /* Accent color shades */
-  --md-accent-fg-color:                #5865F2;
-  --md-accent-fg-color--transparent:   hsla(#5865F2, 0.1);
+  --md-accent-fg-color:                #5865f2;
+  --md-accent-fg-color--transparent:   hsla(#5865f2, 0.1);
   --md-accent-bg-color:                hsla(0, 0%, 100%, 1);
   --md-accent-bg-color--light:         hsla(0, 0%, 100%, 0.7);
 
   /* Code color shades */
   --md-code-fg-color: hsla(var(--md-hue),18%,86%,1);
-  --md-code-bg-color: #202225;
+  --md-code-bg-color: #18191c;
   --md-code-bg-border: #23272a;
 
   /* Code highlighting color shades */
@@ -40,7 +40,7 @@
   --md-code-hl-name-color:           var(--md-code-fg-color);
   --md-code-hl-operator-color:       var(--md-default-fg-color--light);
   --md-code-hl-punctuation-color:    var(--md-default-fg-color--light);
-  --md-code-hl-comment-color:        var(--md-default-fg-color--light);
+  --md-code-hl-comment-color:         var(--md-default-fg-color--light);
   --md-code-hl-generic-color:        var(--md-default-fg-color--light);
   --md-code-hl-variable-color:       var(--md-default-fg-color--light);
 
@@ -75,11 +75,18 @@
   --md-footer-fg-color--lighter:     hsla(0, 0%, 100%, 0.3);
   --md-footer-bg-color:              hsla(0, 0%, 0%, 0.87);
   --md-footer-bg-color--dark:        hsla(0, 0%, 0%, 0.32);
+
+  /* Fonts similar to Discord's */
+  --md-text-font-family: Whitney,Helvetica Neue,Helvetica,Arial,sans-serif;
+  --md-code-font-family: monospace;
 }
 
 /* Make headers clearer */
 .md-typeset h1 {
-  color: var(--md-typeset-color);
+  color: var(--md-default-fg-color--lightest);
+}
+.md-typeset h2 {
+  color: var(--md-default-fg-color--lighter);
 }
 
 /* Give codeblocks borders */
