@@ -25,9 +25,12 @@ markdown_extensions:
   - pymdownx.tabbed
 
 nav:
-  - First Tutorial and User Guide:
+  - Setting up the bot:
+    - setup/index.md
+    - setup/creating-the-bot.md
+    - setup/authenticating.md
+    - setup/running-the-bot.md
+
+  - Basic Tutorial:
     - tutorial/index.md
-    - tutorial/creating-the-bot.md
-    - tutorial/talking-to-discord.md
     - tutorial/hello-world.md
-    - tutorial/counter.md

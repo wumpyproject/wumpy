@@ -1,4 +1,4 @@
-# Talking to Discord
+# Authenticating to Discord
 
 The next step is to use the application you created, this page will go through authenticating
 to Discord so that it isn't repeated on each page.
@@ -20,7 +20,7 @@ To use an interaction server there is at minimum two values you need. It is the
 They can be found on the first page after visiting the
 [Discord Developer Portal](https://discord.com/developers/) and selecting your application:
 
-![General Information page](images/talking-to-discord/general-information.png)
+![General Information page](images/authenticating/general-information.png)
 
 These can now be passed to `InteractionApp` like this:
 
@@ -39,7 +39,7 @@ If you want Wumpy to automatically sync interaction commands there is a 3rd valu
 
 It is the **Client Secret** and can be found under the OAuth2 tab in the sidebar:
 
-![OAuth2 page overview](images/talking-to-discord/oauth2-page.png)
+![OAuth2 page overview](images/authenticating/oauth2-page.png)
 
 You can now change the code to pass the secret with `secret=`:
 
@@ -71,7 +71,7 @@ You can also receive interactions through the gateway, **but not at the same tim
 You only need one credential when using the gateway and it is the **Bot Token** you'll find
 under the Bot tab in the sidebar:
 
-![Bot tab overview](images/talking-to-discord/bot-overview.png)
+![Bot tab overview](images/authenticating/bot-overview.png)
 
 It can then be passed to `Client` like this:
 
