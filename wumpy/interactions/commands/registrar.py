@@ -11,18 +11,20 @@ class CommandRegistrar:
 
     full_name = ''
 
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
         self.commands = {}
 
-    async def handle_interaction(self, send, interaction) -> None:
+    async def handle_command(self, interaction, *, tg) -> None:
         """Handle the interaction, propogating it to the correct command handler."""
         command = self.commands.get(interaction.name)
         if command is None:
-            await send({'type': 'http.response.start', 'status': 404})
-            await send({'type': 'http.response.body', 'body': b'Not Found'})
+            await interaction._send({'type': 'http.response.start', 'status': 404})
+            await interaction._send({'type': 'http.response.body', 'body': b'Not Found'})
             return
 
-        await command.handle_interaction(interaction, interaction.options)
+        command.handle_interaction(interaction, interaction.options, tg=tg)
 
     def register_command(self, command) -> None:
         """Register a command handler, the command must have a name."""

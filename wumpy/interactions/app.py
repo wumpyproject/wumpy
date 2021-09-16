@@ -24,22 +24,24 @@ SOFTWARE.
 
 import json
 from typing import (
-    Any, Awaitable, Callable, Dict, Optional, Tuple, Type, overload
+    Any, Awaitable, Callable, Dict, Optional, Tuple, overload
 )
 
+import anyio
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 
 from ..utils import MISSING
 from .base import (
-    CommandInteraction, Interaction, InteractionType,
+    CommandInteraction, InteractionType,
     MessageComponentInteraction
 )
 from .commands.registrar import CommandRegistrar
+from .components.handler import ComponentHandler
 from .rest import InteractionRequester
 
 
-class InteractionApp(CommandRegistrar):
+class InteractionApp(CommandRegistrar, ComponentHandler):
     """Simple interaction application implementing the ASGI protocol.
 
     This is a very bare implementation of the ASGI protocol that only does
@@ -51,12 +53,6 @@ class InteractionApp(CommandRegistrar):
 
     token: str
     secret: str
-
-    # By using a class variable like this someone can easily override it
-    interactions: Dict[InteractionType, Type[Interaction]] = {
-        InteractionType.application_command: CommandInteraction,
-        InteractionType.message_component: MessageComponentInteraction
-    }
 
     @overload
     def __init__(
@@ -103,12 +99,29 @@ class InteractionApp(CommandRegistrar):
         data: Dict[str, Any]
     ) -> None:
         """Process the interaction and trigger appropriate callbacks."""
-        # Lookup the interaction type in the dictionary of types to
-        # models, then initialize with the data and pass to the registrar.
-        # This way we don't need big if-statements for it and the model can
-        # easily be overriden if someone wants to use a subclass.
-        model = self.interactions[InteractionType(data['type'])](self.rest, data)
-        return await super().handle_interaction(send, model)
+        # This event is necessary as we should not return to the ASGI server
+        # before send has been called, we later wait for this event.
+        complete = anyio.Event()
+
+        def wrapped(data: Dict[str, Any]) -> Awaitable[None]:
+            complete.set()  # Set the event and signal a response has been sent
+            return send(data)
+
+        async with anyio.create_task_group() as tg:
+            enum_val = InteractionType(data['type'])
+            if enum_val is InteractionType.application_command:
+                self.handle_command(
+                    CommandInteraction(self, send, self.rest, data),
+                    tg=tg
+                )
+            elif enum_val is InteractionType.message_component:
+                self.handle_component(
+                    MessageComponentInteraction(self, send, self.rest, data),
+                    tg=tg
+                )
+
+            with anyio.fail_after(3):
+                await complete.wait()
 
     async def verify_request(
         self,

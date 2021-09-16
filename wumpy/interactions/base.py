@@ -174,7 +174,7 @@ class MessageComponentInteraction(Interaction):
     ) -> None:
         super().__init__(app, send, rest, data)
 
-        self.message = data['data']
+        self.message = data['message']
 
         self.custom_id = data['data']['custom_id']
         self.component_type = ComponentType(data['data']['component_type'])

@@ -1,5 +1,8 @@
 import inspect
-from typing import Awaitable, Callable, Dict, List, TypeVar, Union
+from functools import partial
+from typing import Callable, Coroutine, Dict, List, TypeVar, Union
+
+import anyio.abc
 
 from ...utils import MISSING
 from ..base import CommandInteractionOption
@@ -17,11 +20,11 @@ class CommandCallback:
 
     options: Dict[str, OptionClass]
 
-    _callback: Callable[..., Awaitable[None]]
+    _callback: Callable[..., Coroutine]
 
     __slots__ = ('_callback', 'options')
 
-    def __init__(self, callback: Callable[..., Awaitable[None]] = MISSING) -> None:
+    def __init__(self, callback: Callable[..., Coroutine] = MISSING) -> None:
         self.options = {}
 
         self.callback = callback
@@ -95,15 +98,21 @@ class CommandCallback:
 
         return void
 
-    async def handle_interaction(self, interaction, options: List[CommandInteractionOption]) -> None:
+    def handle_interaction(
+        self,
+        interaction,
+        options: List[CommandInteractionOption],
+        *,
+        tg: anyio.abc.TaskGroup
+    ) -> None:
         """Invoke the callback with the interaction and options."""
         args, kwargs = [], {}
 
         for option in options:
             param = self.options[option.name]
             if param.kind in {param.kind.POSITIONAL_ONLY, param.kind.POSITIONAL_OR_KEYWORD}:
-                args.append(await param.resolve(interaction, option))
+                args.append(param.resolve(interaction, option))
             else:
-                kwargs[param.param] = await param.resolve(interaction, option)
+                kwargs[param.param] = param.resolve(interaction, option)
 
-        await self.callback(interaction, *args, **kwargs)
+        tg.start_soon(partial(self.callback, interaction, *args, **kwargs))
