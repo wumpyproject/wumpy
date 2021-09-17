@@ -34,3 +34,6 @@ nav:
   - Basic Tutorial:
     - tutorial/index.md
     - tutorial/hello-world.md
+    - tutorial/nested-hellos.md
+    - tutorial/options.md
+    - tutorial/optional-options.md
