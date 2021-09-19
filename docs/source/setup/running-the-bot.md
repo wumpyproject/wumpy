@@ -74,6 +74,6 @@ Start the bot by importing `anyio` and use `anyio.run()` with the backend you wa
         `if __name__ == '__main__':` is a way to ensure that code only runs when the bot is
         ran directly, otherwise you might start the bot when attempting to import it.
 
-!!! warn
-The downside with a long-living WebSocket is that many free hosters like
-[Replit](https://replit.com) or [Heroku](https://heroku.com) might kill the bot.
+!!! warning
+    The downside with a long-living WebSocket is that many free hosters like
+    [Replit](https://replit.com) or [Heroku](https://heroku.com) might kill the bot.
