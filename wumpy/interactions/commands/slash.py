@@ -1,5 +1,7 @@
 import inspect
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Union
+
+import anyio.abc
 
 from ...errors import CommandNotFound, CommandSetupError
 from ...utils import MISSING
@@ -22,7 +24,7 @@ class Subcommand(CommandCallback):
 
     def __init__(
         self,
-        callback: Callable[..., Awaitable[None]] = MISSING,
+        callback: Callable[..., Coroutine] = MISSING,
         *,
         name: str = MISSING,
         description: str = MISSING,
@@ -77,7 +79,7 @@ class SubcommandGroup(Subcommand):
 
     def __init__(
         self,
-        callback: Callable[..., Awaitable[None]] = MISSING,
+        callback: Callable[..., Coroutine] = MISSING,
         *,
         name: str = MISSING,
         description: str = MISSING,
@@ -87,10 +89,12 @@ class SubcommandGroup(Subcommand):
 
         self.subcommands = {}
 
-    async def handle_interaction(
+    def handle_interaction(
         self,
         interaction: CommandInteraction,
-        options: List[CommandInteractionOption]
+        options: List[CommandInteractionOption],
+        *,
+        tg: anyio.abc.TaskGroup
     ) -> None:
         """Handle and forward the interaction to the correct subcommand."""
         found = [option for option in options if option.type is ApplicationCommandOption.subcommand]
@@ -101,7 +105,7 @@ class SubcommandGroup(Subcommand):
         if not command:
             raise CommandNotFound(interaction, f'{self.full_name} {command}')
 
-        return await command.handle_interaction(interaction, found[0].options)
+        return command.handle_interaction(interaction, found[0].options, tg=tg)
 
     def register_command(self, command: Subcommand) -> None:
         """Register a subcommand handler once it has been given a name."""
@@ -112,7 +116,7 @@ class SubcommandGroup(Subcommand):
 
     def subcommand(
         self,
-        callback: Callable[..., Awaitable[None]] = MISSING,
+        callback: Callable[..., Coroutine] = MISSING,
         *,
         name: str = MISSING,
         description: str = MISSING,
@@ -147,10 +151,12 @@ class SlashCommand(Subcommand):
     def full_name(self) -> str:
         return self.name
 
-    async def handle_interaction(
+    def handle_interaction(
         self,
         interaction: CommandInteraction,
-        options: List[CommandInteractionOption]
+        options: List[CommandInteractionOption],
+        *,
+        tg: anyio.abc.TaskGroup
     ) -> None:
         """Handle and forward the interaction to the correct subcommand."""
         for option in options:
@@ -162,7 +168,7 @@ class SlashCommand(Subcommand):
         else:
             # There's no subcommand, or subcommand group option. We should
             # handle the interaction ourselves.
-            return await super().handle_interaction(interaction, options)
+            return super().handle_interaction(interaction, options, tg=tg)
 
         # If we got here we should have found a subcommand option
 
@@ -170,7 +176,7 @@ class SlashCommand(Subcommand):
         if not command:
             raise CommandNotFound(interaction, f'{self.full_name} {command}')
 
-        return await command.handle_interaction(interaction, option.options)
+        return command.handle_interaction(interaction, option.options, tg=tg)
 
     def register_command(self, command: Union[Subcommand, SubcommandGroup]) -> None:
         """Register the subcommand, or subcommand group."""

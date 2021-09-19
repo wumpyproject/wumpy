@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import anyio.abc
 
-from ..base import MessageComponentInteraction
+from ..base import ComponentInteraction
 
 
 class ComponentHandler:
@@ -19,7 +19,7 @@ class ComponentHandler:
 
     def handle_component(
         self,
-        interaction: MessageComponentInteraction,
+        interaction: ComponentInteraction,
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:

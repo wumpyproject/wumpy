@@ -23,19 +23,14 @@ SOFTWARE.
 """
 
 import json
-from typing import (
-    Any, Awaitable, Callable, Dict, Optional, Tuple, overload
-)
+from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, overload
 
 import anyio
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 
 from ..utils import MISSING
-from .base import (
-    CommandInteraction, InteractionType,
-    MessageComponentInteraction
-)
+from .base import CommandInteraction, ComponentInteraction, InteractionType
 from .commands.registrar import CommandRegistrar
 from .components.handler import ComponentHandler
 from .rest import InteractionRequester
@@ -116,7 +111,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
                 )
             elif enum_val is InteractionType.message_component:
                 self.handle_component(
-                    MessageComponentInteraction(self, send, self.rest, data),
+                    ComponentInteraction(self, send, self.rest, data),
                     tg=tg
                 )
 

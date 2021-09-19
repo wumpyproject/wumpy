@@ -6,7 +6,9 @@ from typing import (
 
 from ...errors import CommandSetupError
 from ...utils import MISSING
-from ..base import ApplicationCommandOption, CommandInteraction, CommandInteractionOption
+from ..base import (
+    ApplicationCommandOption, CommandInteraction, CommandInteractionOption
+)
 
 
 class ApplicationCommandType(Enum):

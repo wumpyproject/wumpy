@@ -1,7 +1,12 @@
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Optional, Union
+from typing import (
+    TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, Dict, List, Optional,
+    Union
+)
+
+from .component import Component, ComponentEmoji
 
 if TYPE_CHECKING:
-    from ..base import MessageComponentInteraction
+    from ..base import ComponentInteraction
 
 
 class SelectOption:
@@ -10,7 +15,7 @@ class SelectOption:
     label: str
     value: str
     description: Optional[str]
-    # emoji: ...
+    emoji: Optional[ComponentEmoji]
     default: bool
 
     def __init__(
@@ -19,12 +24,16 @@ class SelectOption:
         label: str,
         value: Optional[str] = None,
         description: Optional[str] = None,
-        # emoji: ... = ...,
+        emoji: Optional[Union[ComponentEmoji, str]] = None,
         default: bool = False
     ) -> None:
         self.label = label
         self.value = value or label
 
+        if isinstance(emoji, str):
+            emoji = ComponentEmoji.from_string(emoji)
+
+        self.emoji = emoji
         self.description = description
         self.default = default
 
@@ -33,12 +42,13 @@ class SelectOption:
             'label': self.label,
             'value': self.value,
             'description': self.description,
+            'emoji': self.emoji.to_dict() if self.emoji else None,
             'default': self.default
         }
         return {k: v for k, v in data.items() if v is not None}
 
 
-class SelectMenu:
+class SelectMenu(Component):
     """Interactive drop-down select menu on messages."""
 
     options: List[SelectOption]
@@ -50,8 +60,6 @@ class SelectMenu:
 
     disabled: bool
 
-    callback: Optional[Callable[['MessageComponentInteraction'], Awaitable[None]]]
-
     def __init__(
         self,
         options: Union[List[SelectOption], List[str]],
@@ -61,8 +69,10 @@ class SelectMenu:
         min: int = 1,
         max: int = 1,
         disabled: bool = False,
-        callback: Optional[Callable[['MessageComponentInteraction'], Awaitable[None]]] = None
+        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
     ) -> None:
+        super().__init__(callback)
+
         self.options = [SelectOption(label=option) if isinstance(option, str)
                         else option for option in options]
 
@@ -74,13 +84,7 @@ class SelectMenu:
 
         self.disabled = disabled
 
-        self.callback = callback
-
-    def handle_interaction(self, interaction: 'MessageComponentInteraction', *, tg) -> None:
-        if self.callback is not None:
-            tg.start_soon(self.callback, interaction)
-
-    def to_json(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         data = {
             'type': 3,
             'custom_id': self.custom_id,

@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Awaitable, Callable, Dict, List, Sequence, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence
 
 from ..models import InteractionUser, Object
 from .rest import InteractionRequester
@@ -155,7 +155,7 @@ class CommandInteraction(Interaction):
         self.options = [CommandInteractionOption(option) for option in data['data']['options']]
 
 
-class MessageComponentInteraction(Interaction):
+class ComponentInteraction(Interaction):
     """Interaction for a message component."""
 
     message: Dict[str, Any]

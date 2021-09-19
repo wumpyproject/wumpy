@@ -16,12 +16,10 @@ class CommandRegistrar:
 
         self.commands = {}
 
-    async def handle_command(self, interaction, *, tg) -> None:
+    def handle_command(self, interaction, *, tg) -> None:
         """Handle the interaction, propogating it to the correct command handler."""
         command = self.commands.get(interaction.name)
         if command is None:
-            await interaction._send({'type': 'http.response.start', 'status': 404})
-            await interaction._send({'type': 'http.response.body', 'body': b'Not Found'})
             return
 
         command.handle_interaction(interaction, interaction.options, tg=tg)

@@ -1,24 +1,17 @@
-from typing import TYPE_CHECKING, Any, Dict
+from typing import Any, Dict
 
-if TYPE_CHECKING:
-    from ..base import MessageComponentInteraction
+from .componentlist import ComponentList
 
 
-class ActionRow(list):
+class ActionRow(ComponentList):
     """Non-interactive container component for other components.
 
     This is different from a ComponentList in that it is an actual component
-    sent to the Discord API and cannot be subtituted for a ComponentList.
+    sent to the Discord API.
     """
 
-    def handle_component(self, interaction: 'MessageComponentInteraction', *, tg) -> Any:
-        for component in self:
-            if component.custom_id == interaction.custom_id:
-                component.handle_component(interaction, tg=tg)
-                return component
-
-    def to_json(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             'type': 1,
-            'components': [item.to_json() for item in self]
+            'components': [item.to_dict() for item in self.children]
         }
