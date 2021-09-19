@@ -36,13 +36,14 @@
   --md-code-hl-function-color:     #c973d9;
   --md-code-hl-constant-color:     #9383e2;
   --md-code-hl-keyword-color:      #6791e0;
+  --md-code-hl-comment-color:      #4f545c;
   --md-code-hl-string-color:       #2fb170;
-  --md-code-hl-name-color:           var(--md-code-fg-color);
-  --md-code-hl-operator-color:       var(--md-default-fg-color--light);
-  --md-code-hl-punctuation-color:    var(--md-default-fg-color--light);
-  --md-code-hl-comment-color:         var(--md-default-fg-color--light);
-  --md-code-hl-generic-color:        var(--md-default-fg-color--light);
-  --md-code-hl-variable-color:       var(--md-default-fg-color--light);
+  --md-code-hl-docstring-color:    var(--md-code-hl-string-color);
+  --md-code-hl-name-color:         var(--md-code-fg-color);
+  --md-code-hl-operator-color:     var(--md-default-fg-color--light);
+  --md-code-hl-punctuation-color:  var(--md-default-fg-color--light);
+  --md-code-hl-generic-color:      var(--md-default-fg-color--light);
+  --md-code-hl-variable-color:     var(--md-default-fg-color--light);
 
   /* Typeset color shades */
   --md-typeset-color:                var(--md-default-fg-color);
@@ -101,4 +102,9 @@
   position: relative;
   left: 50%;
   transform: translate(-50%);
+}
+
+/* Make docstrings have a separate color */
+.highlight .sd {
+  color: var(--md-code-hl-docstring-color);
 }
