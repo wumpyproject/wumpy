@@ -1,13 +1,13 @@
 # Running the bot
 
 Discord will not host bots for you, it is your responsibility to be running the bot.
-This page will go through tips for running the bot and testing.
+This page will go through tips for running the bot and testing locally.
 
 ## Interaction server
 
 The interaction server is just an HTTP server, like a website!
 
-Wumpy's `InteractionApp` implements the ASGI specification, this means that you can run
+Wumpy's `InteractionApp` implements the ASGI specification, meaning that you can run
 your bot with any ASGI server. The following is a non-exhaustive list of ASGI servers:
 
 - [Uvicorn](https://github.com/encode/uvicorn)
@@ -17,13 +17,14 @@ Follow the respective guide for the ASGI server you pick.
 
 To use an interaction server, make sure the the server is running then log into the
 [Discord Developer Portal](https://discord.com/developers) and configure the interaction
-server URL to tell Discord where to send interactions:
+server URL to tell Discord where to send the interactions:
 
 ![Application overview](images/running-the-bot/interaction-url.png)
 
 ### Running it locally
 
-The big drawback with using an interaction server is that Discord requires HTTPS.
+The big drawback with using an interaction server is that Discord requires the usage of HTTPS
+which can have a very complicated setup.
 
 This means that you need to port-forward the server and configure certificates.
 
@@ -33,7 +34,7 @@ There are tools for this though, because you are not alone in this inconvenience
 test the interaction server locally over HTTPS.
 
 !!! info
-    Ngrok will not give you the same URL everytime you run it, unless you are using a Pro plan.
+    Ngrok will not give you the same URL everytime you run it unless you are using a Pro plan.
     This means that you need to update the interaction URL everytime you restart Ngrok.
 
 ## Gateway
@@ -55,7 +56,7 @@ Start the bot by importing `anyio` and use `anyio.run()` with the backend you wa
     ```
 
     !!! note
-        `if __name__ == '__main__':` is a way to ensure that code only runs when the bot is
+        `if __name__ == '__main__':` is a way to ensure that code only runs when the file is
         ran directly, otherwise you might start the bot when attempting to import it.
 
 === "Trio"
@@ -71,7 +72,7 @@ Start the bot by importing `anyio` and use `anyio.run()` with the backend you wa
     ```
 
     !!! note
-        `if __name__ == '__main__':` is a way to ensure that code only runs when the bot is
+        `if __name__ == '__main__':` is a way to ensure that code only runs when the file is
         ran directly, otherwise you might start the bot when attempting to import it.
 
 !!! warning

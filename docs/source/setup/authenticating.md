@@ -1,7 +1,7 @@
 # Authenticating to Discord
 
-The next step is to use the application you created, this page will go through authenticating
-to Discord so that it isn't repeated on each page.
+The next step is to use the application you created! This page will go through authenticating
+to Discord and getting the necessary credentials.
 
 ## Interaction Server
 
@@ -14,7 +14,7 @@ It is the recommended way if you are making a bot that only relies on interactio
 tutorial will focus on using an interaction server because it is the easiest to use with free
 services like [Heroku](https://www.heroku.com/) and [Replit](https://replit.com/).
 
-To use an interaction server there is at minimum two values you need. It is the
+To use an interaction server there is at a minimum two values you need. It is the
 **Application ID** and **Public Key** of your application.
 
 They can be found on the first page after visiting the
@@ -35,13 +35,14 @@ app = interactions.InteractionApp(
 
 ### Automatically creating commands
 
-If you want Wumpy to automatically sync interaction commands there is a 3rd value necessary.
+If you want Wumpy to be able to automatically synchronize application commands
+with Discord there is a third value necessary.
 
 It is the **Client Secret** and can be found under the OAuth2 tab in the sidebar:
 
 ![OAuth2 page overview](images/authenticating/oauth2-page.png)
 
-You can now change the code to pass the secret with `secret=`:
+You can now change the code to pass the secret with the `secret` keyword-argument:
 
 ```python
 from wumpy import interactions
@@ -54,18 +55,19 @@ app = interactions.InteractionApp(
 ```
 
 !!! error
-    **The client secret should stay secret!** Never ever push the secret to GitHub or hand it
+    **The client secret must stay secret!** Never ever push the secret to GitHub or hand it
     out to anyone. Read [Hiding credentials](#hiding-credentials) for more information.
 
 ## Gateway
 
-This is the second option, the bot will connect to Discord through a WebSocket and will receive
-events like a user.
+This is the second way to use the Discord API, the bot will connect to Discord through a
+WebSocket and receive events like a user.
 
-If you are making a bot that needs to react to messages, reactions, typings, channels being
-changed, joins and leaves, presences or similar events you need to use the gateway.
+If you are making a bot that needs to react to messages, reactions, typings, changes to
+channels, members joining or leaving, presence updates or similar events then you have no
+choice but to use the gateway.
 
-You can also receive interactions through the gateway, **but not at the same time as you have**
+You can also receive interactions through the gateway **but not at the same time as you have**
 **an interaction server**.
 
 You only need one credential when using the gateway and it is the **Bot Token** you'll find
@@ -83,17 +85,16 @@ bot = wumpy.Client(token='ODg3Mjg2Nzg4MzYyNzU2MDk2.YUB8Nw.AbCD3Fgh1jKLMn0pQRST0V
 ```
 
 !!! error
-    **The bot token must be hidden**, it should never be pushed to GitHub or given to anyone
-    else. With it anybody can log in as your bot. [Hiding Credentials](#hiding-credentials) has
-    tips for how to hide your bot token.
+    **The bot token must stay secret**, it should never be pushed to GitHub or given to anyone
+    else. Read [Hiding Credentials](#hiding-credentials) for more information.
 
 ## Hiding credentials
 
 There are some values required when talking to Discord that have to stay hidden.
 
-This is because if someone else knows this they can talk to Discord as you.
+This is because if someone else gets ahold of it they can talk to Discord as you.
 
-If Wumpus gets ahold of your bot token, it can login as your bot and do anything with it.
+If Wumpus gets ahold of your bot token, it can login as your bot and then do anything.
 
 ### Hidden Python files
 
@@ -110,7 +111,7 @@ with your client secret or bot token:
     SECRET = 'AbCd3fgH1jKlmN0pqrst0vwxyzAbCd3f'
     ```
 
-    Now go back to your main file and import this variable like this:
+    Now go back to your main file and import the variable like this:
 
     ```python
     from wumpy import interactions
@@ -132,7 +133,7 @@ with your client secret or bot token:
     TOKEN = 'ODg3Mjg2Nzg4MzYyNzU2MDk2.YUB8Nw.AbCD3Fgh1jKLMn0pQRST0VwxYz0'
     ```
 
-    Now go back to your main file and import this variable:
+    Now go back to your main file and import the variable like this:
 
     ```python
     import wumpy
@@ -143,12 +144,11 @@ with your client secret or bot token:
     ```
 
 If you use [Git](https://git-scm.com/) the final step is to add `config.py` to your
-`.gitignore` file so that it isn't included when you make a commit.
+`.gitignore` file so that it can't accidentally be included in commits.
 
 ### .env files
 
-Another option is to use `.env` files which will be loaded as what is called enviroment
-variables.
+Another option is to use `.env` files which will be loaded as enviroment variables.
 
 This will require `python-dotenv` to be installed so that it can load the file:
 
@@ -156,7 +156,7 @@ This will require `python-dotenv` to be installed so that it can load the file:
 python -m pip install python-dotenv
 ```
 
-After that has been called create a file called `.env`.
+After `python-dotenv` has been installed create a file called `.env`.
 
 === "Client Secret"
 
