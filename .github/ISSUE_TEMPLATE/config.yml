@@ -1,5 +1,17 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Start a new discussion
-    url: https://github.com/Bluenix2/wumpy/discussions
-    about: All bug reports and feature requests start as discussions, then they get converted to issues.
+  - name: Read the Documentation
+    url: https://wumpy.readthedocs.io/
+    about: Refer to the documentation before asking for help
+  - name: Questions or Support
+    url: https://github.com/Bluenix2/wumpy/discussions/new?category=questions-and-support
+    about: Ask the community for help with a question or report a problem with the library
+  - name: Discord API Feature Request
+    url: https://github.com/discord/discord-api-docs/discussions/new?category=api-feature-requests-ideas
+    about: Suggest a new feature to the Discord API
+  - name: Library Feature Request
+    url: https://github.com/Bluenix2/wumpy/discussions/new?category=feature-requests
+    about: Suggest a new feature to be implemented into Wumpy
+  - name: Development Discussion
+    url: https://github.com/Bluenix2/wumpy/discussions/new?category=development
+    about: Open a discussion about development of the library
