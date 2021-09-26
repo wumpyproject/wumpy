@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from ..models import InteractionUser, Object
 from .rest import InteractionRequester
@@ -134,9 +134,10 @@ class CommandInteraction(Interaction):
     invoked_type: ApplicationCommandOption
 
     resolved: ResolvedInteractionData
+    target_id: Optional[int]
     options: List[CommandInteractionOption]
 
-    __slots__ = ('name', 'invoked', 'invoked_type', 'resolved', 'options')
+    __slots__ = ('name', 'invoked', 'invoked_type', 'resolved', 'target_id', 'options')
 
     def __init__(
         self,
@@ -152,6 +153,10 @@ class CommandInteraction(Interaction):
         self.invoked_type = ApplicationCommandOption(data['data']['type'])
 
         self.resolved = ResolvedInteractionData(data['data'].get('resolved', {}))
+
+        target_id = data['data'].get('target_id')
+        self.target_id = int(target_id) if target_id else None
+
         self.options = [CommandInteractionOption(option) for option in data['data']['options']]
 
 
@@ -200,7 +205,7 @@ class SelectInteractionValue:
         self.emoji = data.get('default')
 
 
-class SelectMenuInteraction(MessageComponentInteraction):
+class SelectMenuInteraction(ComponentInteraction):
     """Interaction for a selection menu message component."""
 
     values: List[SelectInteractionValue]

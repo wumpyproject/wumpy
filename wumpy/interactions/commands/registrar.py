@@ -1,6 +1,8 @@
-from typing import Any, Callable, Dict
+from typing import Callable, Coroutine, Dict, Literal, Union, overload
 
 from ...utils import MISSING
+from .context import ContextMenuCommand, MessageCommand, UserCommand
+from .option import CommandType
 from .slash import SlashCommand
 
 
@@ -31,18 +33,81 @@ class CommandRegistrar:
 
         self.commands[command.name] = command
 
+    def group(
+        self,
+        *,
+        name: str,
+        description: str
+    ) -> SlashCommand:
+        """Create a slash command without a callback.
+
+        This exist so that slash commands can be created without attaching a
+        dummy-callback. Context menu commands cannot have subcommands, for that
+        reason this will always return a slash command.
+
+        Example usage:
+
+        ```python
+        from wumpy import interactions
+
+        app = interactions.InteractionApp(...)
+
+        parent = app.group(name='hello', description='Greet and say hello')
+
+        ...  # Register subcommands
+        ```
+        """
+        return SlashCommand(name=name, description=description)
+
+    @overload
     def command(
         self,
-        callback: Callable[..., Any] = MISSING,
+        type: CommandType = CommandType.chat_input,
         *,
         name: str = MISSING,
         description: str = MISSING
-    ) -> SlashCommand:
-        """Lazily create a new command.
+    ) -> Callable[[Callable[..., Coroutine]], SlashCommand]:
+        ...
 
-        The command is later registered once the command gets a name, which may
-        happen after the call of this function through a decorator. The command
-        may never be registered if a name cannot be facilitated. Examples of
-        this is creating a command without a name and assigning it to a variable.
+    @overload
+    def command(
+        self,
+        type: Literal[CommandType.user, CommandType.message],
+        *,
+        name: str = MISSING,
+        description: str = MISSING
+    ) -> Callable[[Callable[..., Coroutine]], ContextMenuCommand]:
+        ...
+
+    def command(
+        self,
+        type: CommandType = CommandType.chat_input,
+        *,
+        name: str = MISSING,
+        description: str = MISSING
+    ) -> Callable[[Callable[..., Coroutine]], Union[SlashCommand, ContextMenuCommand]]:
+        """Register and create a new application command through a decorator.
+
+        Example usage:
+
+        ```python
+        from wumpy import interactions
+
+        app = interactions.InteractionApp(...)
+
+        @app.command()
+        async def random(interaction: interactions.CommandInteraction) -> None:
+            await interaction.respond('4')  # chosen by fair dice roll
+        ```
         """
-        return SlashCommand(callback, name=name, description=description, parent=self)
+        def decorator(func: Callable[..., Coroutine]) -> Union[SlashCommand, ContextMenuCommand]:
+            if type is CommandType.chat_input:
+                return SlashCommand(func, name=name, description=description)
+            elif type is CommandType.message:
+                return MessageCommand(func, name=name)
+            elif type is CommandType.user:
+                return UserCommand(func, name=name)
+            else:
+                raise ValueError("Unknown value of 'type':", type)
+
+        return decorator

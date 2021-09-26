@@ -14,7 +14,7 @@ from wumpy import interactions
 
 app = interactions.InteractionApp(...)
 
-hello = app.command(name='hello', description='Greeting commands')
+hello = app.group(name='hello', description='Greeting commands')
 
 @hello.subcommand()
 async def random(interaction: interactions.CommandInteraction) -> None:

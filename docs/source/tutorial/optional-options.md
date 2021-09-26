@@ -14,7 +14,7 @@ from wumpy import interactions
 
 app = interactions.InteractionApp(...)
 
-hello = app.command(name='hello', description='Greeting commands')
+hello = app.group(name='hello', description='Greeting commands')
 
 @hello.subcommand()
 async def personal(
@@ -88,7 +88,7 @@ like this:
 
     app = interactions.InteractionApp(...)
 
-    hello = app.command(name='hello', description='Greeting commands')
+    hello = app.group(name='hello', description='Greeting commands')
 
     @hello.subcommand()
     async def personal(
@@ -110,7 +110,7 @@ like this:
 
     app = interactions.InteractionApp(...)
 
-    hello = app.command(name='hello', description='Greeting commands')
+    hello = app.group(name='hello', description='Greeting commands')
 
     @interactions.option('name', description='Name to greet')
     @hello.subcommand()

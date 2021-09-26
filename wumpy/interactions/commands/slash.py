@@ -1,5 +1,5 @@
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Union
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
 
 import anyio.abc
 
@@ -9,9 +9,7 @@ from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
 from .base import CommandCallback
-
-if TYPE_CHECKING:
-    from .registrar import CommandRegistrar
+from .option import CommandType, OptionClass
 
 
 class Subcommand(CommandCallback):
@@ -20,29 +18,22 @@ class Subcommand(CommandCallback):
     name: str
     description: str
 
-    parent: Union['SubcommandGroup', 'SlashCommand', 'CommandRegistrar', None]
+    options: Dict[str, OptionClass]
+
+    __slots__ = ('description', 'options')
 
     def __init__(
         self,
-        callback: Callable[..., Coroutine] = MISSING,
+        callback: Optional[Callable[..., Coroutine]] = None,
         *,
         name: str = MISSING,
-        description: str = MISSING,
-        parent: Union['SubcommandGroup', 'SlashCommand', 'CommandRegistrar', None] = None
+        description: str = MISSING
     ) -> None:
-        self.name = name
         self.description = description
 
-        self.parent = parent
+        super().__init__(callback, name=name)
 
-        # We need to call super()s __init__ last because it calls the
-        # _set_callback method, and that shouldn't be done before we at least
-        # set self.name and self.description to MISSING
-        super().__init__(callback)
-
-    def _set_callback(self, function) -> None:
-        self.name = function.__name__ if self.name is MISSING else self.name
-
+    def _set_callback(self, function: Callable[..., Coroutine]) -> None:
         doc = inspect.getdoc(function)
         if self.description is MISSING and doc is not None:
             # Similar to Markdown, we want to turn one full stop character into
@@ -50,20 +41,67 @@ class Subcommand(CommandCallback):
             doc = doc.split('\n\n')[0].replace('\n', ' ')
             self.description = doc
 
+        signature = inspect.signature(function)
+
+        for param in signature.parameters.values():
+            if isinstance(param.default, OptionClass):
+                option = param.default
+            else:
+                option = OptionClass()
+
+            # Make the option aware of the parameter it is defined in
+            option.update(param)
+
+            self.options[option.name] = option
+
         super()._set_callback(function)
 
-        if self.parent:
-            self.parent.register_command(self)
+    def update_option(
+        self,
+        param: str,
+        *,
+        name: str = MISSING,
+        description: str = MISSING,
+        required: bool = MISSING,
+        choices: Dict[str, Union[str, int, float]] = MISSING,
+        type: ApplicationCommandOption = MISSING
+    ) -> None:
+        """Update values of a slash command's options.
 
-    @property
-    def full_name(self) -> str:
-        if self.parent is None:
-            return self.name
+        The values passed here will override any previously set values.
+        """
+        # It is okay if this is O(n) to keep it O(1) when the app is running
+        found = [option for option in self.options.values() if option.param == param]
+        if not found:
+            raise ValueError("Could not find parameter with name '{param}'")
 
-        return f'{self.parent.full_name} {self.name}'
+        option = found[0]
+
+        if type is not MISSING:
+            option.type = type
+
+        if name is not MISSING:
+            option.name = name
+
+        if description is not MISSING:
+            option.description = description
+
+        if required is not MISSING:
+            option.required = required
+
+        if choices is not MISSING:
+            option.choices = choices
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            **super().to_dict(),
+            'description': self.description,
+            'type': ApplicationCommandOption.subcommand,
+            'options': [option.to_dict() for option in self.options.values()]
+        }
 
 
-class SubcommandGroup(Subcommand):
+class SubcommandGroup:
     """Subcommand group, which cannot in of itself be called.
 
     This follows the Discord API with how subcommand-groups can be used. With
@@ -74,18 +112,18 @@ class SubcommandGroup(Subcommand):
     name: str
     description: str
 
-    parent: 'SlashCommand'
     subcommands: Dict[str, Subcommand]
+
+    __slots__ = ('name', 'description', 'subcommands')
 
     def __init__(
         self,
-        callback: Callable[..., Coroutine] = MISSING,
         *,
-        name: str = MISSING,
-        description: str = MISSING,
-        parent: 'SlashCommand'
+        name: str,
+        description: str
     ) -> None:
-        super().__init__(callback, name=name, description=description, parent=parent)
+        self.name = name
+        self.description = description
 
         self.subcommands = {}
 
@@ -103,15 +141,14 @@ class SubcommandGroup(Subcommand):
 
         command = self.subcommands.get(found[0].name)
         if not command:
-            raise CommandNotFound(interaction, f'{self.full_name} {command}')
+            raise CommandSetupError(
+                "Could not find subcommand '{found[0].name}' of '{self.name}'"
+            )
 
         return command.handle_interaction(interaction, found[0].options, tg=tg)
 
     def register_command(self, command: Subcommand) -> None:
         """Register a subcommand handler once it has been given a name."""
-        if command.name is MISSING:
-            raise ValueError('Cannot register a command with a missing name')
-
         self.subcommands[command.name] = command
 
     def subcommand(
@@ -126,10 +163,18 @@ class SubcommandGroup(Subcommand):
         The subcommand is later registered once a name can be facilitated, be
         very, this may never happen if no name or callback is added.
         """
-        subcommand = Subcommand(callback, name=name, description=description, parent=self)
+        subcommand = Subcommand(callback, name=name, description=description)
 
         self.subcommands[subcommand.name] = subcommand
         return subcommand
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'name': self.name,
+            'type': ApplicationCommandOption.subcommand_group,
+            'description': self.description,
+            'options': [option.to_dict() for option in self.subcommands.values()]
+        }
 
 
 class SlashCommand(Subcommand):
@@ -139,13 +184,12 @@ class SlashCommand(Subcommand):
 
     def __init__(
         self,
-        callback,
+        callback: Optional[Callable[..., Coroutine]] = None,
         *,
         name: str,
-        description: str,
-        parent: 'CommandRegistrar'
+        description: str
     ) -> None:
-        super().__init__(callback, name=name, description=description, parent=parent)
+        super().__init__(callback, name=name, description=description)
 
     @property
     def full_name(self) -> str:
@@ -180,15 +224,10 @@ class SlashCommand(Subcommand):
 
     def register_command(self, command: Union[Subcommand, SubcommandGroup]) -> None:
         """Register the subcommand, or subcommand group."""
-        # This is called afterhand, when the command is given a name
-        if command.name is MISSING:
-            raise ValueError('Cannot register a command with a missing name')
-
         self.subcommands[command.name] = command
 
     def group(
         self,
-        callback: Callable[..., Any] = MISSING,
         *,
         name: str = MISSING,
         description: str = MISSING,
@@ -197,7 +236,7 @@ class SlashCommand(Subcommand):
 
         It is then registered once a name can be facilitated.
         """
-        subcommand = SubcommandGroup(callback, name=name, description=description, parent=self)
+        subcommand = SubcommandGroup(name=name, description=description)
 
         if subcommand.name is not MISSING:
             self.subcommands[subcommand.name] = subcommand
@@ -216,8 +255,7 @@ class SlashCommand(Subcommand):
         to ensure this never happens make sure to always register a callback
         or explicitly define a name.
         """
-        subcommand = Subcommand(callback, name=name, description=description, parent=self)
+        subcommand = Subcommand(callback, name=name, description=description)
 
-        if subcommand.name is not MISSING:
-            self.subcommands[subcommand.name] = subcommand
+        self.subcommands[subcommand.name] = subcommand
         return subcommand

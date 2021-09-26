@@ -5,18 +5,6 @@ In Wumpy you can register subcommands similarly to how you registered commands.
 All we have to do is first create a command and give it a name, then we can assign it to a
 variable and use that to register subcommands.
 
-!!! warn
-    If you do not give the command a name, it won't be registered on the `InteractionApp`.
-    Here's an example of troublesome code:
-
-    ```python
-    from wumpy import interactions
-
-    app = interactions.InteractionApp(...)
-
-    example = app.command()  # WILL NOT BE REGISTERED
-    ```
-
 Let's create a "hello" command, and add a "random" subcommand to it:
 
 ```python
@@ -24,7 +12,7 @@ from wumpy import interactions
 
 app = interactions.InteractionApp(...)
 
-hello = app.command(name='hello', description='Greeting commands')
+hello = app.group(name='hello', description='Greeting commands')
 
 @hello.subcommand()
 async def random(interaction: interactions.CommandInteraction) -> None:
@@ -46,7 +34,7 @@ from wumpy import interactions
 
 app = interactions.InteractionApp(...)
 
-hello = app.command(name='hello', description='Greeting commands')
+hello = app.group(name='hello', description='Greeting commands')
 
 @hello.subcommand()
 async def random(interaction: interactions.CommandInteraction) -> None:
@@ -65,7 +53,7 @@ from wumpy import interactions
 
 app = interactions.InteractionApp(...)
 
-hello = app.command(name='hello', description='Greeting commands')
+hello = app.group(name='hello', description='Greeting commands')
 
 @hello.subcommand()
 async def random(interaction: interactions.CommandInteraction) -> None:
