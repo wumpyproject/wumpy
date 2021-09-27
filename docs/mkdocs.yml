@@ -37,3 +37,6 @@ nav:
     - tutorial/nested-hellos.md
     - tutorial/options.md
     - tutorial/optional-options.md
+    - Context Menus:
+      - tutorial/context-menus/message-commands.md
+      - tutorial/context-menus/user-commands.md
