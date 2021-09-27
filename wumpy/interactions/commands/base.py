@@ -61,3 +61,5 @@ class CommandCallback:
         """Invoke the attached callbacks with the task group."""
         raise NotImplementedError()
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {'name': self.name}

@@ -62,6 +62,9 @@ class MessageCommand(ContextMenuCommand):
 
         return message
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {**super().to_dict(), 'type': CommandType.message.value}
+
 
 class UserCommand(ContextMenuCommand):
     """User or member context menu command."""
@@ -79,3 +82,6 @@ class UserCommand(ContextMenuCommand):
             raise CommandSetupError("User command's second argument incorrectly annotated")
 
         return target
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {**super().to_dict(), 'type': CommandType.user.value}

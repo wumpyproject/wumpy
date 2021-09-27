@@ -259,3 +259,11 @@ class SlashCommand(Subcommand):
 
         self.subcommands[subcommand.name] = subcommand
         return subcommand
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'name': self.name,
+            'type': CommandType.chat_input,
+            'description': self.description,
+            'options': [option.to_dict() for option in self.options.values()]
+        }

@@ -179,3 +179,16 @@ class OptionClass:
             raise CommandSetupError(f'Received option with wrong type, expected {self.type}')
 
         return data.value
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = {
+            'name': self.name,
+            'type': self.type.value,
+            'description': self.description,
+            'required': self.required,
+        }
+
+        if self.choices is not MISSING:
+            data['choices'] = self.choices
+
+        return data

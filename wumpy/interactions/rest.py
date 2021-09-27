@@ -37,84 +37,113 @@ class InteractionRequester(WebhookRequester):
 
     application: int
 
-    OAUTH2_TOKEN = 'https://discord.com/api/v9/oauth2/token'
-
     def __init__(
         self,
         application: SupportsInt,
         *,
-        secret: str = MISSING,
-        token: str = MISSING,
+        token: Optional[str] = None,
+        secret: Optional[str] = None,
         **kwargs
     ) -> None:
-        if token is not MISSING:
-            kwargs['headers'] = {'Authorization': f'Bot {token}', **kwargs.get('headers', {})}
-
         super().__init__(**kwargs)
 
         self.application = int(application)
+
+        self.token = token
         self.secret = secret
 
         self.expires_at = datetime.datetime.now()
+        self._cached_header = ''
 
     async def fetch_access_token(self) -> None:
         """Fetch a new access token using the Client Credentials flow."""
+        assert self.secret is not None, 'Cannot fetch an access token without client secret'
+
         data = await self.request(
             Route('POST', '/oauth2/token'),
-            json={'grant_type': 'client_credentials', 'scope': 'identify'},
+            data={'grant_type': 'client_credentials', 'scope': 'applications.commands.update'},
             auth=aiohttp.BasicAuth(str(self.application), self.secret)
         )
+
         expires_in = datetime.timedelta(seconds=float(data['expires_in']))
         self.expires_at = datetime.datetime.now() + expires_in
 
-        self.headers['Authorization'] = f"Bearer {data['access_token']}"
+        self._cached_header = f"Bearer {data['access_token']}"
 
-    async def refresh(self) -> None:
-        """Refresh the access token if it has expired.
+    async def _fetch_headers(self, headers: Dict[str, str] = {}) -> Dict[str, str]:
+        """Return authorizing headers to use for the request.
 
         This method will not do anything if the access token has not yet
         expired, as such it is safe to call before each request.
         """
-        if self.expires_at > datetime.datetime.now():
-            return
+        if self.token is None and self.expires_at < datetime.datetime.now():
+            await self.fetch_access_token()
 
-        await self.fetch_access_token()
+        return {'Authorization': self._cached_header, **headers}
 
     async def fetch_global_commands(self) -> List[Any]:
         """Fetch all global commands for the application."""
-        await self.refresh()
 
         return await self.request(Route(
             'GET', '/applications/{application_id}/commands',
             application_id=self.application
-        ))
+        ), headers=await self._fetch_headers())
+
+    async def create_global_command(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a global command."""
+        return await self.request(Route(
+            'POST', '/applications/{application_id}/commands',
+            application_id=self.application
+        ), json=payload)
 
     async def fetch_global_command(self, command: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific global command."""
-        await self.refresh()
-
         return await self.request(Route(
             'GET', '/applications/{application_id}/commands/{command_id}}',
             application_id=self.application, command_id=int(command)
-        ))
+        ), headers=await self._fetch_headers())
+
+    async def edit_global_command(self, command: SupportsInt, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Edit a global command values."""
+        return await self.request(
+            Route(
+                'PATCH', '/applications/{application_id}/commands/{command_id}',
+                application_id=self.application, command_id=int(command)
+            ),
+            json=data, headers=await self._fetch_headers()
+        )
 
     async def delete_global_command(self, command: SupportsInt) -> None:
         """Delete a global command."""
-        await self.refresh()
-
         await self.request(Route(
             'DELETE', '/applications/{application_id}/commands/{command_id}',
             application_id=self.application, command_id=int(command)
-        ))
+        ), headers=await self._fetch_headers())
+
+    async def overwrite_global_commands(self, payloads: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Bulk overwrite all global commands."""
+        return await self.request(Route(
+            'PUT', '/applications/{application_id}/commands',
+            application_id=self.application
+        ), json=payloads)
 
     async def fetch_guild_commands(self, guild: SupportsInt) -> List[Any]:
         """Fetch all commands created for a guild."""
-        await self.refresh()
-
         return await self.request(Route(
             'GET', '/applications/{application_id}/guilds/{guild_id}/commands',
             application_id=self.application, guild_id=int(guild)
-        ))
+        ), headers=await self._fetch_headers())
+
+    async def create_guild_command(
+        self,
+        guild: SupportsInt,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create a guild-specific command."""
+        return await self.request(Route(
+            'POST', '/applications/{application_id}/guilds/{guild_id}/commands/{command_id}',
+            application_id=self.application, guild_id=int(guild)
+        ), json=payload)
 
     async def fetch_guild_command(
         self,
@@ -122,12 +151,25 @@ class InteractionRequester(WebhookRequester):
         command: SupportsInt
     ) -> Dict[str, Any]:
         """Fetch a specific guild command."""
-        await self.refresh()
-
         return await self.request(Route(
             'GET', '/applications/{application_id}/guilds/{guild_id}/commands/{command_id}',
             application_id=self.application, guild_id=int(guild), command_id=int(command)
-        ))
+        ), headers=await self._fetch_headers())
+
+    async def edit_guild_command(
+        self,
+        command: SupportsInt,
+        guild: SupportsInt,
+        data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Edit a specific guild's command values."""
+        return await self.request(
+            Route(
+                'PATCH', '/applications/{application_id}/guilds/{guild_id}commands/{command_id}',
+                application_id=self.application, guild_id=int(guild), command_id=int(command)
+            ),
+            json=data, headers=await self._fetch_headers()
+        )
 
     async def delete_guild_command(
         self,
@@ -135,21 +177,28 @@ class InteractionRequester(WebhookRequester):
         command: SupportsInt
     ) -> None:
         """Delete a guild specific command."""
-        await self.refresh()
-
         await self.request(Route(
             'DELETE', '/applications/{application_id}/guilds/{guild_id}/commands/{command_id}',
             application_id=self.application, guild_id=int(guild), command_id=int(command)
-        ))
+        ), headers=await self._fetch_headers())
+
+    async def overwrite_guild_command(
+        self,
+        guild: SupportsInt,
+        payloads: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Bulk overwrite a guild's all commands."""
+        return await self.request(Route(
+            'PUT', '/applications/{application_id}/guilds/{guild_id}/commands',
+            application_id=self.application, guild_id=int(guild)
+        ), json=payloads)
 
     async def fetch_all_guild_command_permissions(self, guild: SupportsInt) -> List[Any]:
         """Fetch all permissions for all commands in a guild."""
-        await self.refresh()
-
         return await self.request(Route(
             'GET', '/application/{application_id}/guilds/{guild_id}/commands/permissions',
             application_id=self.application, guild_id=int(guild)
-        ))
+        ), headers=await self._fetch_headers())
 
     async def fetch_guild_command_permissions(
         self,
@@ -157,12 +206,10 @@ class InteractionRequester(WebhookRequester):
         command: SupportsInt
     ) -> Dict[str, Any]:
         """Fetch a specific guild command's permissions."""
-        await self.refresh()
-
         return await self.request(Route(
             'GET', '/application/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions',
             application_id=self.application, guild_id=int(guild), command_id=int(command)
-        ))
+        ), headers=await self._fetch_headers())
 
     # The following methods use the interaction token and does not require
     # further authorization (compared to the endpoints above)

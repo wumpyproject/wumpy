@@ -23,17 +23,18 @@ SOFTWARE.
 """
 
 import json
-from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, overload
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, overload
 
 import anyio
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 
-from ..utils import MISSING
 from .base import CommandInteraction, ComponentInteraction, InteractionType
 from .commands.registrar import CommandRegistrar
 from .components.handler import ComponentHandler
 from .rest import InteractionRequester
+
+__all__ = ('InteractionApp',)
 
 
 class InteractionApp(CommandRegistrar, ComponentHandler):
@@ -46,8 +47,8 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     rest: InteractionRequester
     verification: VerifyKey
 
-    token: str
-    secret: str
+    token: Optional[str]
+    secret: Optional[str]
 
     @overload
     def __init__(
@@ -55,7 +56,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         application_id: int,
         public_key: str,
         *,
-        token: str = MISSING
+        token: Optional[str] = None
     ) -> None:
         ...
 
@@ -65,7 +66,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         application_id: int,
         public_key: str,
         *,
-        secret: str = MISSING
+        secret: Optional[str] = None
     ) -> None:
         ...
 
@@ -74,12 +75,10 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         application_id: int,
         public_key: str,
         *,
-        token: str = MISSING,
-        secret: str = MISSING
+        token: Optional[str] = None,
+        secret: Optional[str] = None,
+        register_commands: bool = True,
     ) -> None:
-        if token is MISSING and secret is MISSING:
-            raise TypeError("one of 'token' and 'secret' is required")
-
         super().__init__()
 
         self.rest = InteractionRequester(application_id)
@@ -87,6 +86,10 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         self.token = token
         self.secret = secret
+
+        self.rest = InteractionRequester(application_id, token=token, secret=secret)
+
+        self.register_commands = register_commands
 
     async def process_interaction(
         self,
@@ -106,12 +109,12 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             enum_val = InteractionType(data['type'])
             if enum_val is InteractionType.application_command:
                 self.handle_command(
-                    CommandInteraction(self, send, self.rest, data),
+                    CommandInteraction(self, wrapped, self.rest, data),
                     tg=tg
                 )
             elif enum_val is InteractionType.message_component:
                 self.handle_component(
-                    ComponentInteraction(self, send, self.rest, data),
+                    ComponentInteraction(self, wrapped, self.rest, data),
                     tg=tg
                 )
 
@@ -119,6 +122,47 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
                 await complete.wait()
 
     async def verify_request(
+        self,
+        scope: Dict[str, Any],
+        send: Callable[[Dict[str, Any]], Awaitable[None]],
+        *,
+        # These are actually here so that they can be modified, users can
+        # subclass and call super() modifying these
+        type: str = 'http',
+        path: str = '/',
+        method: str = 'POST',
+    ) -> bool:
+        """Verify that the request was made to the correct endpoint.
+
+        Returning a bool indicating whether an error response has been sent.
+        """
+        if scope['type'] != type:
+            await send({
+                'type': 'http.response.start', 'status': 501,
+                'headers': [(b'content-type', b'text/plain')]
+            })
+            await send({'type': 'http.response.body', 'body': b'Not Implemented'})
+            return True
+
+        if scope['path'] != path:
+            await send({
+                'type': 'http.response.start', 'status': 404,
+                'headers': [(b'content-type', b'text/plain')]
+            })
+            await send({'type': 'http.response.body', 'body': b'Not Found'})
+            return True
+
+        elif scope['method'] != method:
+            await send({
+                'type': 'http.response.start', 'status': 405,
+                'headers': [(b'content-type', b'text/plain')]
+            })
+            await send({'type': 'http.response.body', 'body': b'Method Not Allowed'})
+            return True
+
+        return False
+
+    async def authorize_request(
         self,
         scope: Dict[str, Any],
         receive: Callable[[], Awaitable[Dict[str, Any]]]
@@ -160,30 +204,56 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         return True, body
 
+    async def sync_commands(self, commands: List[Any]) -> None:
+        """Synchronize the commands with Discord."""
+        for local in self.commands.values():
+            found = [c for c in commands if c['name'] == local.name]
+            if not found:
+                await self.rest.create_global_command(local.to_dict())
+                continue
+
+            command = found[0]
+
+            if (
+                    local.description != command['description'] or
+                    local.to_dict()['options'] != command['options']
+            ):
+                await self.rest.edit_global_command(command['id'], local.to_dict())
+                continue
+
+        for command in commands:
+            if command['name'] not in self.commands:
+                await self.rest.delete_global_command(command['id'])
+
+    async def lifespan(
+        self,
+        scope: Dict[str, Any],
+        receive: Callable[[], Awaitable[Dict[str, Any]]],
+        send: Callable[[Dict[str, Any]], Awaitable[None]]
+    ) -> None:
+        event = await receive()
+        if event['type'] == 'lifespan.startup':
+            if self.register_commands:
+                commands = await self.rest.fetch_global_commands()
+                await self.sync_commands(commands)
+
+            await send({'type': 'lifespan.startup.complete'})
+        else:
+            await send({'type': 'lifespan.shutdown.complete'})
+
     async def __call__(
         self,
         scope: Dict[str, Any],
         receive: Callable[[], Awaitable[Dict[str, Any]]],
         send: Callable[[Dict[str, Any]], Awaitable[None]]
     ) -> None:
-        # The only endpoint we have is POST /
-        if scope['path'] != '/':
-            await send({
-                'type': 'http.response.start', 'status': 404,
-                'headers': [(b'content-type', b'text/plain')]
-            })
-            await send({'type': 'http.response.body', 'body': b'Not Found'})
+        if scope['type'] == 'lifespan':
+            return await self.lifespan(scope, receive, send)
+
+        if await self.verify_request(scope, send):
             return
 
-        elif scope['method'] != 'POST':
-            await send({
-                'type': 'http.response.start', 'status': 405,
-                'headers': [(b'content-type', b'text/plain')]
-            })
-            await send({'type': 'http.response.body', 'body': b'Method Not Allowed'})
-            return
-
-        verified, body = await self.verify_request(scope, receive)
+        verified, body = await self.authorize_request(scope, receive)
 
         # The latter is for static type checkers, even though there is no case
         # were verified is True and body is None
