@@ -138,8 +138,9 @@ class OptionClass:
             return self.determine_type(args[0])
 
         elif origin is Annotated:
-            # Grab the last item, with normal usage this should be the 2nd item
-            return self.determine_type(args[-1])
+            # Attempt to convert each argument until it is successful,
+            # excluding the first argument (which is meant for editors).
+            return any(self.determine_type(attempt) for attempt in args[1:])
 
         elif origin is Literal and self.choices is MISSING:
             # Discord wants a name and a value, for Literal we simply have to
