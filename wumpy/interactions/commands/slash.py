@@ -30,6 +30,7 @@ class Subcommand(CommandCallback):
         description: str = MISSING
     ) -> None:
         self.description = description
+        self.options = {}
 
         super().__init__(callback, name=name)
 
