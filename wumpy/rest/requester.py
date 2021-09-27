@@ -193,7 +193,7 @@ class Requester:
             kwargs['json'] = self._clean_dict(kwargs['json'])
 
         # Create the headers for the request
-        headers: dict[str, str] = {}
+        headers: dict[str, str] = kwargs.pop('headers', {})
 
         # The second part of the if-statement is to check if the value is
         # truthy, otherwise we'll send an X-Audit-Log-Reason of None
