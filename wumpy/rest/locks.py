@@ -30,7 +30,7 @@ import anyio
 __all__ = ('RateLimit',)
 
 
-class RateLimit(anyio.Lock):
+class RateLimit:
     """An API rate limit lock and default implementation of the Lock protocol."""
 
     deferred: bool
@@ -40,6 +40,12 @@ class RateLimit(anyio.Lock):
     def __init__(self, event: anyio.Event) -> None:
         self.deferred = False
         self.event = event
+        self.lock = anyio.Lock()
+
+    async def __aenter__(self) -> 'RateLimit':
+        await self.lock.acquire()
+        self.deferred = False
+        return self
 
     async def __aexit__(
         self,
@@ -48,7 +54,7 @@ class RateLimit(anyio.Lock):
         exc_tb: Optional[TracebackType]
     ) -> None:
         if not self.deferred:
-            self.release()
+            self.lock.release()
 
     def defer(self) -> None:
         """Defer the lock from releasing during the next __aexit__.
@@ -57,8 +63,6 @@ class RateLimit(anyio.Lock):
         """
         self.deferred = True
 
-    def acquire_nowait(self) -> None:
-        """Acquire the lock, without blocking."""
-        self.deferred = False  # Reset the value
-
-        return super().acquire_nowait()
+    def release(self) -> None:
+        """Release the ratelimit lock."""
+        self.lock.release()

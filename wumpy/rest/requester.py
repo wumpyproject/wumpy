@@ -201,8 +201,7 @@ class Requester:
             headers['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
         for attempt in range(5):
-            rl = self.ratelimiter.get(route)
-            async with rl:
+            async with self.ratelimiter.get(route) as rl:
                 try:
                     res = await self._request(route, headers, rl, attempt, **kwargs)
                 except OSError as error:
