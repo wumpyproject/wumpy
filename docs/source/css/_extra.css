@@ -9,7 +9,7 @@
   --md-default-bg-color:               #36393f;
   --md-default-bg-color--light:        #4F545C;
   --md-default-bg-color--lighter:      #72767D;
-  --md-default-bg-color--lightest:     #BEB9BB;
+  --md-default-bg-color--lightest:     #72767D;
 
   /* Primary color shades */
   --md-primary-fg-color:               #5865f2;
@@ -46,10 +46,10 @@
   --md-code-hl-variable-color:     var(--md-default-fg-color--light);
 
   /* Typeset color shades */
-  --md-typeset-color:                var(--md-default-fg-color);
+  --md-typeset-color:                #b9bbbe;
 
   /* Typeset `a` color shades */
-  --md-typeset-a-color:              var(--md-primary-fg-color);
+  --md-typeset-a-color:              var(--md-default-fg-color--lightest);
 
   /* Typeset `mark` color shades */
   --md-typeset-mark-color:           rgba(255,255,0,0.5);
@@ -83,11 +83,8 @@
 }
 
 /* Make headers clearer */
-.md-typeset h1 {
+.md-typeset h1, .md-typeset h2, .md-typeset h3 {
   color: var(--md-default-fg-color--lightest);
-}
-.md-typeset h2 {
-  color: var(--md-default-fg-color--lighter);
 }
 
 /* Give codeblocks borders */
@@ -107,4 +104,20 @@
 /* Make docstrings have a separate color */
 .highlight .sd {
   color: var(--md-code-hl-docstring-color);
+}
+
+/* 
+ * The navigation links use the lighter colors by default but in the discord
+ * theme the lighter colors mean more white and accentuated
+ */
+.md-nav__link[data-md-state=blur] {
+  color: var(--md-typeset-color);
+}
+
+.md-nav__link:focus, .md-nav__link:hover {
+  color: var(--md-primary-fg-color);
+}
+
+.md-nav__item .md-nav__link--active {
+  color: var(--md-default-fg-color--lightest);
 }
