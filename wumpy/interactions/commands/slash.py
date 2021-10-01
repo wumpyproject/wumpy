@@ -50,7 +50,6 @@ class Subcommand(CommandCallback[P, RT]):
         signature = inspect.signature(function)
 
         for param in signature.parameters.values():
-            print(param.annotation)
             if issubclass(param.annotation, CommandInteraction):
                 continue
 
