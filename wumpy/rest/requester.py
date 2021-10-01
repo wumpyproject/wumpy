@@ -153,8 +153,10 @@ class Requester:
             if 300 > res.status >= 200:
                 return data
 
-            # In all of these error cases the response will be a dict
-            assert isinstance(data, dict)  # For the static type checking
+            # In all of the following error cases the response should be JSON,
+            # this if-statement is if that isn't the case
+            if not isinstance(data, dict):
+                raise HTTPException(f'Unknwon response {res.status} {res.reason}:', data)
 
             # We're being ratelimited by Discord
             if res.status == 429:
