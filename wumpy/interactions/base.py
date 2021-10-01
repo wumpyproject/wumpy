@@ -1,6 +1,10 @@
 import enum
+import json
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
+from wumpy.models.flags import AllowedMentions
+
+from ..utils import MISSING
 from ..models import InteractionUser, Object
 from .rest import InteractionRequester
 
@@ -125,6 +129,51 @@ class Interaction(Object):
         self.token = data['token']
         self.version = data['version']
 
+    async def respond(
+        self,
+        content: str = MISSING,
+        *,
+        tts: bool = MISSING,
+        embeds: List[Dict[str, Any]] = MISSING,
+        allowed_mentions: AllowedMentions = MISSING,
+        ephemeral: bool = MISSING,
+        components: Any = MISSING,
+    ) -> None:
+        """Directly respond to the interaction with a message."""
+        data = {
+            'content': content,
+            'tts': tts,
+            'embeds': embeds,
+            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'components': components.to_dict() if components else components
+        }
+        if ephemeral:
+            data['flags'] = 1 << 6
+
+        data = {k: v for k, v in data.items() if v is not MISSING}
+
+        await self._send({
+            'type': 'http.response.start', 'status': 200,
+            'headers': [(b'content-type', b'application/json')]
+        })
+        # Respond with CHANNEL_MESSAGE_WITH_SOURCE
+        await self._send({
+            'type': 'http.response.body',
+            'body': json.dumps({'type': 4, 'data': data}).encode()
+        })
+
+    async def defer(self) -> None:
+        """Defer the interaction and respond later.
+
+        The user will see a loading state and wait for a result.
+        """
+        await self._send({
+            'type': 'http.response.start', 'status': 200,
+            'headers': [(b'content-type', b'application/json')]
+        })
+        # Respond with DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+        await self._send({'type': 'http.response.body', 'body': b'{"type": 5}'})
+
 
 class CommandInteraction(Interaction):
     """Interaction for a Discord command (slash)."""
@@ -157,7 +206,7 @@ class CommandInteraction(Interaction):
         target_id = data['data'].get('target_id')
         self.target_id = int(target_id) if target_id else None
 
-        self.options = [CommandInteractionOption(option) for option in data['data']['options']]
+        self.options = [CommandInteractionOption(option) for option in data['data'].get('options', [])]
 
 
 class ComponentInteraction(Interaction):
@@ -183,6 +232,54 @@ class ComponentInteraction(Interaction):
 
         self.custom_id = data['data']['custom_id']
         self.component_type = ComponentType(data['data']['component_type'])
+
+    async def defer_update(self) -> None:
+        """Defer the update/edit of the original response.
+
+        This has the benefit of the user not seeing a loading state, it can
+        therefor be used when not wanting to send any form of response.
+        """
+        await self._send({
+            'type': 'http.response.start', 'status': 200,
+            'headers': [(b'content-type', b'application/json')]
+        })
+        # Respond with DEFERRED_UPDATE_MESSAGE
+        await self._send({
+            'type': 'http.response.body', 'body': b'{"type": 6}'
+        })
+
+    async def update(
+        self,
+        content: str = MISSING,
+        *,
+        tts: bool = MISSING,
+        embeds: List[Dict[str, Any]] = MISSING,
+        allowed_mentions: AllowedMentions = MISSING,
+        ephemeral: bool = MISSING,
+        components: Any = MISSING,
+    ) -> None:
+        """Update the original message this component is attached to."""
+        data = {
+            'content': content,
+            'tts': tts,
+            'embeds': embeds,
+            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'components': components.to_dict() if components else components
+        }
+        if ephemeral:
+            data['flags'] = 1 << 6
+
+        data = {k: v for k, v in data.items() if v is not MISSING}
+
+        await self._send({
+            'type': 'http.response.start', 'status': 200,
+            'headers': [(b'content-type', b'application/json')]
+        })
+        # Respond with UPDATE_MESSAGE
+        await self._send({
+            'type': 'http.response.body',
+            'body': json.dumps({'type': 7, 'data': data}).encode()
+        })
 
 
 class SelectInteractionValue:
