@@ -1,7 +1,7 @@
 import inspect
 from enum import Enum
 from typing import (
-    Annotated, Any, AnyStr, Dict, Literal, Type, Union, get_args, get_origin
+    Annotated, Any, AnyStr, Dict, Literal, Optional, Type, Union, get_args, get_origin
 )
 
 from ...errors import CommandSetupError
@@ -174,10 +174,24 @@ class OptionClass:
         if param.annotation is not param.empty and self.type is MISSING:
             self.determine_type(param.annotation)
 
-    async def resolve(self, interaction: CommandInteraction, data: CommandInteractionOption) -> Any:
+    async def resolve(
+        self,
+        interaction: CommandInteraction,
+        data: Optional[CommandInteractionOption]
+    ) -> Any:
         """Resolve a value from Discord option data."""
+        if data is None:
+            if self.default is MISSING:
+                raise CommandSetupError(
+                    "Missing data for option '{self.param}' of command '{interaction.name}'"
+                )
+
+            return self.default
+
         if data.type is not self.type:
-            raise CommandSetupError(f'Received option with wrong type, expected {self.type}')
+            raise CommandSetupError(
+                f"'{self.param}' of '{interaction.name}' received option with wrong type"
+            )
 
         return data.value
 
