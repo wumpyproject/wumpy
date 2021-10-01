@@ -57,7 +57,8 @@ class InteractionRequester(WebhookRequester):
 
     async def fetch_access_token(self) -> None:
         """Fetch a new access token using the Client Credentials flow."""
-        assert self.secret is not None, 'Cannot fetch an access token without client secret'
+        if self.secret is None:
+            raise AttributeError("'secret' is set to None, expected a client secret")
 
         data = await self.request(
             Route('POST', '/oauth2/token'),
@@ -94,7 +95,7 @@ class InteractionRequester(WebhookRequester):
         return await self.request(Route(
             'POST', '/applications/{application_id}/commands',
             application_id=self.application
-        ), json=payload)
+        ), json=payload, headers=await self._fetch_headers())
 
     async def fetch_global_command(self, command: SupportsInt) -> Dict[str, Any]:
         """Fetch a specific global command."""
