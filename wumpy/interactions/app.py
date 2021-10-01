@@ -215,8 +215,8 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             command = found[0]
 
             if (
-                    local.description != command['description'] or
-                    local.to_dict()['options'] != command['options']
+                    (isinstance(local, SlashCommand) and local.description != command['description']) or
+                    local.to_dict()['options'] != command.get('options', [])
             ):
                 await self.rest.edit_global_command(command['id'], local.to_dict())
                 continue
