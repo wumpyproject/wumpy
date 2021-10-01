@@ -1,18 +1,23 @@
 import inspect
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Union, TypeVar, overload
 
 import anyio.abc
+from typing_extensions import ParamSpec
 
 from ...errors import CommandNotFound, CommandSetupError
 from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
-from .base import CommandCallback
+from .base import CommandCallback, Callback
 from .option import CommandType, OptionClass
 
+P = ParamSpec('P')
+RT = TypeVar('RT')
 
-class Subcommand(CommandCallback):
+
+class Subcommand(CommandCallback[P, RT]):
     """Subcommand and final callback handling an interaction."""
 
     name: str
@@ -24,7 +29,7 @@ class Subcommand(CommandCallback):
 
     def __init__(
         self,
-        callback: Optional[Callable[..., Coroutine]] = None,
+        callback: Optional[Callback[P, RT]] = None,
         *,
         name: str = MISSING,
         description: str = MISSING
@@ -34,7 +39,7 @@ class Subcommand(CommandCallback):
 
         super().__init__(callback, name=name)
 
-    def _set_callback(self, function: Callable[..., Coroutine]) -> None:
+    def _set_callback(self, function: Callback[P, RT]) -> None:
         doc = inspect.getdoc(function)
         if self.description is MISSING and doc is not None:
             # Similar to Markdown, we want to turn one full stop character into
@@ -45,6 +50,10 @@ class Subcommand(CommandCallback):
         signature = inspect.signature(function)
 
         for param in signature.parameters.values():
+            print(param.annotation)
+            if issubclass(param.annotation, CommandInteraction):
+                continue
+
             if isinstance(param.default, OptionClass):
                 option = param.default
             else:
@@ -56,6 +65,26 @@ class Subcommand(CommandCallback):
             self.options[option.name] = option
 
         super()._set_callback(function)
+
+    def handle_interaction(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption],
+        *,
+        tg: anyio.abc.TaskGroup
+    ) -> None:
+        # We receive options as a JSON array but this is inefficient to lookup
+        mapping = {option.name: option for option in options}
+        args, kwargs = [], {}
+
+        for option in self.options.values():
+            data = mapping.get(option.name)
+            if option.kind in {option.kind.POSITIONAL_ONLY, option.kind.POSITIONAL_OR_KEYWORD}:
+                args.append(option.resolve(interaction, data))
+            else:
+                kwargs[option.param] = option.resolve(interaction, data)
+
+        tg.start_soon(partial(self._call_wrapped, interaction, *args, **kwargs))
 
     def update_option(
         self,
@@ -113,9 +142,9 @@ class SubcommandGroup:
     name: str
     description: str
 
-    subcommands: Dict[str, Subcommand]
+    commands: Dict[str, Subcommand]
 
-    __slots__ = ('name', 'description', 'subcommands')
+    __slots__ = ('name', 'description', 'commands')
 
     def __init__(
         self,
@@ -126,7 +155,7 @@ class SubcommandGroup:
         self.name = name
         self.description = description
 
-        self.subcommands = {}
+        self.commands = {}
 
     def handle_interaction(
         self,
@@ -140,7 +169,7 @@ class SubcommandGroup:
         if not found:
             raise CommandSetupError('Subcommand-group did not receive a subcommand option')
 
-        command = self.subcommands.get(found[0].name)
+        command = self.commands.get(found[0].name)
         if not command:
             raise CommandSetupError(
                 "Could not find subcommand '{found[0].name}' of '{self.name}'"
@@ -150,42 +179,59 @@ class SubcommandGroup:
 
     def register_command(self, command: Subcommand) -> None:
         """Register a subcommand handler once it has been given a name."""
-        self.subcommands[command.name] = command
+        if command.name in self.commands:
+            raise ValueError(f"Command with name '{command.name}' already registered")
 
-    def subcommand(
+        self.commands[command.name] = command
+
+    @overload
+    def command(self, callback: Callback[P, RT]) -> Subcommand[P, RT]:
+        ...
+
+    @overload
+    def command(
         self,
-        callback: Callable[..., Coroutine] = MISSING,
+        *,
+        name: str = MISSING,
+        description: str = MISSING
+    ) -> Callable[[Callback[P, RT]], Subcommand[P, RT]]:
+        ...
+
+    def command(
+        self,
+        callback: Callback[P, RT] = MISSING,
         *,
         name: str = MISSING,
         description: str = MISSING,
-    ) -> Subcommand:
-        """Create a subcommand with this group as the parent.
+    ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
+        """Create a subcommand with this group as the parent."""
+        def decorator(func: Callback[P, RT]) -> Subcommand[P, RT]:
+            subcommand = Subcommand(func, name=name, description=description)
+            self.register_command(subcommand)
+            return subcommand
 
-        The subcommand is later registered once a name can be facilitated, be
-        very, this may never happen if no name or callback is added.
-        """
-        subcommand = Subcommand(callback, name=name, description=description)
+        if callable(callback):
+            return decorator(callback)
 
-        self.subcommands[subcommand.name] = subcommand
-        return subcommand
+        return decorator
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             'name': self.name,
             'type': ApplicationCommandOption.subcommand_group,
             'description': self.description,
-            'options': [option.to_dict() for option in self.subcommands.values()]
+            'options': [option.to_dict() for option in self.commands.values()]
         }
 
 
-class SlashCommand(Subcommand):
+class SlashCommand(Subcommand[P, RT]):
     """Top-level slash command which may contain other groups or subcommands."""
 
-    subcommands: Dict[str, Union[Subcommand, SubcommandGroup]]
+    commands: Dict[str, Union[Subcommand, SubcommandGroup]]
 
     def __init__(
         self,
-        callback: Optional[Callable[..., Coroutine]] = None,
+        callback: Optional[Callback[P, RT]] = None,
         *,
         name: str,
         description: str
@@ -199,12 +245,11 @@ class SlashCommand(Subcommand):
     def handle_interaction(
         self,
         interaction: CommandInteraction,
-        options: List[CommandInteractionOption],
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:
         """Handle and forward the interaction to the correct subcommand."""
-        for option in options:
+        for option in interaction.options:
             if option.type in {
                     ApplicationCommandOption.subcommand,
                     ApplicationCommandOption.subcommand_group
@@ -213,11 +258,11 @@ class SlashCommand(Subcommand):
         else:
             # There's no subcommand, or subcommand group option. We should
             # handle the interaction ourselves.
-            return super().handle_interaction(interaction, options, tg=tg)
+            return super().handle_interaction(interaction, interaction.options, tg=tg)
 
         # If we got here we should have found a subcommand option
 
-        command = self.subcommands.get(option.name)
+        command = self.commands.get(option.name)
         if not command:
             raise CommandNotFound(interaction, f'{self.full_name} {command}')
 
@@ -225,41 +270,52 @@ class SlashCommand(Subcommand):
 
     def register_command(self, command: Union[Subcommand, SubcommandGroup]) -> None:
         """Register the subcommand, or subcommand group."""
-        self.subcommands[command.name] = command
+        if command.name in self.commands:
+            raise ValueError(f"Command with name '{command.name}' already registered")
+
+        self.commands[command.name] = command
 
     def group(
         self,
         *,
-        name: str = MISSING,
-        description: str = MISSING,
+        name: str,
+        description: str,
     ) -> SubcommandGroup:
-        """Create a SubcommandGroup with this command as the parent.
+        """Create a SubcommandGroup with this command as the parent."""
+        group = SubcommandGroup(name=name, description=description)
+        self.register_command(group)
+        return group
 
-        It is then registered once a name can be facilitated.
-        """
-        subcommand = SubcommandGroup(name=name, description=description)
+    @overload
+    def command(self, callback: Callback[P, RT]) -> Subcommand[P, RT]:
+        ...
 
-        if subcommand.name is not MISSING:
-            self.subcommands[subcommand.name] = subcommand
-        return subcommand
-
-    def subcommand(
+    @overload
+    def command(
         self,
-        callback: Callable[..., Any] = MISSING,
         *,
         name: str = MISSING,
         description: str = MISSING
-    ) -> Subcommand:
-        """Create a Subcommand with this slash command as the parent.
+    ) -> Callable[[Callback[P, RT]], Subcommand[P, RT]]:
+        ...
 
-        The subcommand may never be registered if no name can be facilitated,
-        to ensure this never happens make sure to always register a callback
-        or explicitly define a name.
-        """
-        subcommand = Subcommand(callback, name=name, description=description)
+    def command(
+        self,
+        callback: Callback[P, RT] = MISSING,
+        *,
+        name: str = MISSING,
+        description: str = MISSING
+    ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
+        """Create a Subcommand with this slash command as the parent."""
+        def decorator(func: Callback[P, RT]) -> Subcommand[P, RT]:
+            subcommand = Subcommand(func, name=name, description=description)
+            self.register_command(subcommand)
+            return subcommand
 
-        self.subcommands[subcommand.name] = subcommand
-        return subcommand
+        if callable(callback):
+            return decorator(callback)
+
+        return decorator
 
     def to_dict(self) -> Dict[str, Any]:
         return {

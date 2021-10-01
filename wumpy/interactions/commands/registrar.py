@@ -1,36 +1,45 @@
-from typing import Callable, Coroutine, Dict, Literal, Union, overload
+from typing import Callable, Dict, Literal, TypeVar, Union, overload
+
+import anyio.abc
+from typing_extensions import ParamSpec
 
 from ...utils import MISSING
-from .context import ContextMenuCommand, MessageCommand, UserCommand
+from ..base import CommandInteraction
+from .base import Callback
+from .context import MessageCommand, UserCommand
 from .option import CommandType
 from .slash import SlashCommand
+
+P = ParamSpec('P')
+RT = TypeVar('RT')
+Command = Union[SlashCommand[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
 
 
 class CommandRegistrar:
     """Root registrar of command handlers."""
 
-    commands: Dict[str, SlashCommand]
-
-    full_name = ''
+    commands: Dict[str, Command]
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.commands = {}
 
-    def handle_command(self, interaction, *, tg) -> None:
+    def handle_command(
+        self,
+        interaction: CommandInteraction,
+        *,
+        tg: anyio.abc.TaskGroup
+    ) -> None:
         """Handle the interaction, propogating it to the correct command handler."""
         command = self.commands.get(interaction.name)
         if command is None:
             return
 
-        command.handle_interaction(interaction, interaction.options, tg=tg)
+        command.handle_interaction(interaction, tg=tg)
 
-    def register_command(self, command) -> None:
-        """Register a command handler, the command must have a name."""
-        if command.name is MISSING:
-            raise ValueError('Cannot register a command with a missing name')
-
+    def register_command(self, command: Command) -> None:
+        """Register a command handler to be called."""
         self.commands[command.name] = command
 
     def group(
@@ -62,30 +71,45 @@ class CommandRegistrar:
     @overload
     def command(
         self,
-        type: CommandType = CommandType.chat_input,
-        *,
-        name: str = MISSING,
-        description: str = MISSING
-    ) -> Callable[[Callable[..., Coroutine]], SlashCommand]:
+        type: Callback[P, RT]
+    ) -> SlashCommand[P, RT]:
         ...
 
     @overload
     def command(
         self,
-        type: Literal[CommandType.user, CommandType.message],
-        *,
-        name: str = MISSING,
-        description: str = MISSING
-    ) -> Callable[[Callable[..., Coroutine]], ContextMenuCommand]:
-        ...
-
-    def command(
-        self,
         type: CommandType = CommandType.chat_input,
         *,
         name: str = MISSING,
         description: str = MISSING
-    ) -> Callable[[Callable[..., Coroutine]], Union[SlashCommand, ContextMenuCommand]]:
+    ) -> Callable[[Callback[P, RT]], SlashCommand[P, RT]]:
+        ...
+
+    @overload
+    def command(
+        self,
+        type: Literal[CommandType.message],
+        *,
+        name: str = MISSING
+    ) -> Callable[[Callback[P, RT]], MessageCommand[P, RT]]:
+        ...
+
+    @overload
+    def command(
+        self,
+        type: Literal[CommandType.user],
+        *,
+        name: str = MISSING
+    ) -> Callable[[Callback[P, RT]], UserCommand[P, RT]]:
+        ...
+
+    def command(
+        self,
+        type: Union[CommandType, Callback[P, RT]] = CommandType.chat_input,
+        *,
+        name: str = MISSING,
+        description: str = MISSING
+    ) -> Union[Command[P, RT], Callable[[Callback[P, RT]], Command[P, RT]]]:
         """Register and create a new application command through a decorator.
 
         Example usage:
@@ -100,14 +124,20 @@ class CommandRegistrar:
             await interaction.respond('4')  # chosen by fair dice roll
         ```
         """
-        def decorator(func: Callable[..., Coroutine]) -> Union[SlashCommand, ContextMenuCommand]:
+        def decorator(func: Callback[P, RT]) -> Command[P, RT]:
             if type is CommandType.chat_input:
-                return SlashCommand(func, name=name, description=description)
+                command = SlashCommand(func, name=name, description=description)
             elif type is CommandType.message:
-                return MessageCommand(func, name=name)
+                command = MessageCommand(func, name=name)
             elif type is CommandType.user:
-                return UserCommand(func, name=name)
+                command = UserCommand(func, name=name)
             else:
                 raise ValueError("Unknown value of 'type':", type)
+
+            self.register_command(command)  # type: ignore
+            return command
+
+        if callable(type):
+            return decorator(type)
 
         return decorator

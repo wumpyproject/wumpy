@@ -1,6 +1,7 @@
 import inspect
 from functools import partial
-from typing import Any, Callable, Coroutine, Dict, Optional
+from typing import Any, Dict, Optional, TypeVar
+from typing_extensions import ParamSpec
 
 import anyio.abc
 
@@ -8,19 +9,22 @@ from ...errors import CommandSetupError
 from ...models import InteractionUser
 from ...utils import MISSING
 from ..base import CommandInteraction
-from .base import CommandCallback
+from .base import CommandCallback, Callback
 from .option import CommandType
 
+P = ParamSpec('P')
+RT = TypeVar('RT')
 
-class ContextMenuCommand(CommandCallback):
+
+class ContextMenuCommand(CommandCallback[P, RT]):
     """Discord context menu command that gets a user or message."""
 
-    def __init__(self, callback: Callable[..., Coroutine], *, name: str = MISSING) -> None:
+    def __init__(self, callback: Callback[P, RT], *, name: str = MISSING) -> None:
         super().__init__(callback, name=name)
 
         self.argument = MISSING
 
-    def _set_callback(self, function) -> None:
+    def _set_callback(self, function: Callback[P, RT]) -> None:
         super()._set_callback(function)
 
         signature = inspect.signature(function)
@@ -45,10 +49,10 @@ class ContextMenuCommand(CommandCallback):
         if value is None or self.callback is None:
             return
 
-        tg.start_soon(partial(self.callback, interaction, value))
+        tg.start_soon(partial(self._call_wrapped, interaction, value))
 
 
-class MessageCommand(ContextMenuCommand):
+class MessageCommand(ContextMenuCommand[P, RT]):
     """Message context menu command."""
 
     def resolve_value(self, interaction: CommandInteraction) -> Any:
@@ -66,7 +70,7 @@ class MessageCommand(ContextMenuCommand):
         return {**super().to_dict(), 'type': CommandType.message.value}
 
 
-class UserCommand(ContextMenuCommand):
+class UserCommand(ContextMenuCommand[P, RT]):
     """User or member context menu command."""
 
     def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
