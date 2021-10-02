@@ -23,7 +23,9 @@ SOFTWARE.
 """
 
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, SupportsInt, Type, TypeVar, Union
+from typing import (
+    Any, Callable, Dict, Optional, SupportsInt, Type, TypeVar, Union
+)
 
 from .base import Object
 from .flags import BaseFlags, flag

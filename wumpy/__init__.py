@@ -22,9 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from wumpy.errors import *
-# We want to reveal these under the wumpy namespace
-from wumpy.models import Object, Snowflake
-from wumpy.rest import Webhook
+from . import interactions, models
+from .errors import *
+from .models import Object, Snowflake  # Reveal under the wumpy namespace
+from .rest import Webhook
 
 __version__ = '0.0.1'

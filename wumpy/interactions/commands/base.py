@@ -1,5 +1,5 @@
-import traceback
 import sys
+import traceback
 from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar
 
 import anyio.abc
@@ -10,8 +10,10 @@ from ..base import CommandInteraction
 
 __all__ = ('Callback', 'CommandCallback')
 
+
 P = ParamSpec('P')
 RT = TypeVar('RT')
+
 
 Callback = Callable[P, Coroutine[Any, Any, RT]]
 

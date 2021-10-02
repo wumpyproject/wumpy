@@ -1,6 +1,8 @@
 import inspect
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union, TypeVar, overload
+from typing import (
+    Any, Callable, Dict, List, Optional, TypeVar, Union, overload
+)
 
 import anyio.abc
 from typing_extensions import ParamSpec
@@ -10,8 +12,11 @@ from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
-from .base import CommandCallback, Callback
+from .base import Callback, CommandCallback
 from .option import CommandType, OptionClass
+
+__all__ = ('Subcommand', 'SubcommandGroup', 'SlashCommand')
+
 
 P = ParamSpec('P')
 RT = TypeVar('RT')

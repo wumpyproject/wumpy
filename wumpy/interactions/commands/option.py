@@ -1,7 +1,8 @@
 import inspect
 from enum import Enum
 from typing import (
-    Annotated, Any, AnyStr, Dict, Literal, Optional, Type, Union, get_args, get_origin
+    Annotated, Any, AnyStr, Dict, Literal, Optional, Type, Union, get_args,
+    get_origin
 )
 
 from ...errors import CommandSetupError
@@ -9,6 +10,8 @@ from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
+
+__all__ = ('CommandType', 'OptionClass')
 
 
 class CommandType(Enum):

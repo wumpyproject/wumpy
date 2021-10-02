@@ -2,6 +2,8 @@ from typing import Any, Dict
 
 from .componentlist import ComponentList
 
+__all__ = ('ActionRow',)
+
 
 class ActionRow(ComponentList):
     """Non-interactive container component for other components.

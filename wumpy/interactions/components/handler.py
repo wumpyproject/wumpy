@@ -4,6 +4,8 @@ import anyio.abc
 
 from ..base import ComponentInteraction
 
+__all__ = ('ComponentHandler',)
+
 
 class ComponentHandler:
     """Dispatching components waiting for a result."""

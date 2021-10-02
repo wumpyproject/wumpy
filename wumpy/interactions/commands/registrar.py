@@ -10,6 +10,9 @@ from .context import MessageCommand, UserCommand
 from .option import CommandType
 from .slash import SlashCommand
 
+__all__ = ('CommandRegistrar',)
+
+
 P = ParamSpec('P')
 RT = TypeVar('RT')
 Command = Union[SlashCommand[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]

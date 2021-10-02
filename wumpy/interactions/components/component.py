@@ -10,6 +10,9 @@ from anyio.abc import TaskGroup
 if TYPE_CHECKING:
     from ..base import ComponentInteraction
 
+__all__ = ('Component', 'ComponentEmoji')
+
+
 RT = TypeVar('RT')
 
 

@@ -1,12 +1,14 @@
 from typing import (
-    TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, Dict, List, Optional,
-    Union
+    TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Union
 )
 
 from .component import Component, ComponentEmoji
 
 if TYPE_CHECKING:
     from ..base import ComponentInteraction
+
+
+__all__ = ('SelectOption', 'SelectMenu')
 
 
 class SelectOption:

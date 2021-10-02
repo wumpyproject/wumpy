@@ -3,6 +3,7 @@ from typing import Any, Dict, Type, Union
 from ...utils import MISSING
 from . import option as __option
 from .base import *
+from .context import *
 from .registrar import *
 from .slash import *
 
@@ -30,3 +31,8 @@ def Option(
         default, name=name, description=description,
         required=required, choices=choices, type=type
     )
+
+
+# Clean up as we don't want users importing these from here
+del Any, Dict, Type, Union
+del MISSING, __option

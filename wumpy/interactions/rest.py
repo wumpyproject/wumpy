@@ -31,6 +31,8 @@ from ..models import AllowedMentions
 from ..rest import Route, WebhookRequester
 from ..utils import MISSING, File
 
+__all__ = ('InteractionRequester',)
+
 
 class InteractionRequester(WebhookRequester):
     """Requester wrapping interaction endpoints."""

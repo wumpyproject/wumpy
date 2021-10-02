@@ -4,9 +4,16 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from wumpy.models.flags import AllowedMentions
 
-from ..utils import MISSING
 from ..models import InteractionUser, Object
+from ..utils import MISSING
 from .rest import InteractionRequester
+
+__all__ = (
+    'InteractionType', 'ComponentType', 'ApplicationCommandOption',
+    'ResolvedInteractionData', 'CommandInteractionOption', 'Interaction',
+    'CommandInteraction', 'ComponentInteraction', 'SelectInteractionValue',
+    'SelectMenuInteraction'
+)
 
 
 class InteractionType(enum.Enum):

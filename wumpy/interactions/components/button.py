@@ -10,6 +10,9 @@ if TYPE_CHECKING:
     from ..base import ComponentInteraction
 
 
+__all__ = ('ButtonStyle', 'Button')
+
+
 class ButtonStyle(Enum):
     primary = 1
     secondary = 2

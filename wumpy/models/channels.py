@@ -25,9 +25,7 @@ SOFTWARE.
 import collections
 from typing import TYPE_CHECKING, Any
 from typing import Deque as DequeType
-from typing import (
-    Dict, List, Optional, Sequence, SupportsInt, Tuple, overload
-)
+from typing import Dict, List, Optional, Sequence, SupportsInt, Tuple, overload
 
 from ..utils import MISSING, File
 from .base import Object, Snowflake

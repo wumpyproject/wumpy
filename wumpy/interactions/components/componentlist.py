@@ -8,6 +8,9 @@ if TYPE_CHECKING:
     from ..base import ComponentInteraction
 
 
+__all__ = ('ComponentList',)
+
+
 class ComponentList(Component):
     """A ComponentList is a mix between a list and a dict.
 
