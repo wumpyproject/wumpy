@@ -121,3 +121,18 @@
 .md-nav__item .md-nav__link--active {
   color: var(--md-default-fg-color--lightest);
 }
+
+.doc-heading code {
+  /*display: flex;*/
+  border: none;  /* Remove the border from earlier */
+}
+
+/* Indentation. */
+div.doc-contents:not(.first) {
+  padding-left: 25px;
+}
+
+/* Avoid breaking parameters name, etc. in table cells. */
+td code {
+  word-break: normal !important;
+}

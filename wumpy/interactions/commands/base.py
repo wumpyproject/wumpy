@@ -19,7 +19,11 @@ Callback = Callable[P, Coroutine[Any, Any, RT]]
 
 
 class CommandCallback(Generic[P, RT]):
-    """The base for application commands. A wrapped callback."""
+    """The base for application commands. A wrapped callback.
+
+    Attributes:
+        name: The name of the command.
+    """
 
     name: str
 
@@ -55,7 +59,7 @@ class CommandCallback(Generic[P, RT]):
         return self._set_callback(function)
 
     async def _call_wrapped(self, *args: P.args, **kwargs: P.kwargs) -> None:
-        """Call the wrapped callback and propogating error handlers."""
+        """Call the wrapped callback and propogate error handlers."""
         if self.callback is None:
             raise AttributeError("'callback' is not set to a function")
 
@@ -78,8 +82,21 @@ class CommandCallback(Generic[P, RT]):
         tg: anyio.abc.TaskGroup,
         **kwargs
     ) -> None:
-        """Invoke the attached callbacks with the task group."""
+        """Invoke the attached callback with the task group.
+
+        This is meant to be overriden by subclasses.
+
+        Parameters:
+            interaction: The interaction to pass onto the callback.
+            args: Any additional arguments that subclasses require.
+            tg: The task group to start the callback with.
+            kwargs: Any additional keyword arguments that subclasses require.
+
+        Exceptions:
+            NotImplementedError: This method has not been overriden.
+        """
         raise NotImplementedError()
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert this callback into a payload to send to Discord."""
         return {'name': self.name}

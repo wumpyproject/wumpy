@@ -44,7 +44,22 @@ nav:
       - tutorial/context-menus/message-commands.md
       - tutorial/context-menus/user-commands.md
 
+  - Reference:
+    - reference/interactions/commands.md
+
 plugins:
   - search: {}
   - mkdocstrings:
+      custom_templates: templates
       enable_inventory: true
+      handlers:
+        python:
+          selection:
+            new_path_syntax: true
+            inherited_members: true
+          rendering:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_root_members_full_path: false
+            members_order: source

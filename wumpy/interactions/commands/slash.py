@@ -23,7 +23,15 @@ RT = TypeVar('RT')
 
 
 class Subcommand(CommandCallback[P, RT]):
-    """Subcommand and final callback handling an interaction."""
+    """Subcommand and final callback handling an interaction.
+
+    A subcommand cannot have another subcommand nested under it.
+
+    Attributes:
+        name: The name of the subcommand.
+        description: A description of what the subcommand does.
+        options: Options you can pass to the subcommand.
+    """
 
     name: str
     description: str
@@ -77,6 +85,14 @@ class Subcommand(CommandCallback[P, RT]):
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:
+        """Handle an interaction and start the callback with the task group.
+
+        Parameters:
+            interaction: The interaction to handle.
+            options: A list of options to resolve values from.
+            tg: The task group to start the callback with.
+        """
+
         # We receive options as a JSON array but this is inefficient to lookup
         mapping = {option.name: option for option in options}
         args, kwargs = [], {}
@@ -103,6 +119,17 @@ class Subcommand(CommandCallback[P, RT]):
         """Update values of a slash command's options.
 
         The values passed here will override any previously set values.
+
+        Parameters:
+            param: The parameter name to update.
+            name: The new name of the option.
+            description: The new description of the option.
+            required: Whether the option can be omitted.
+            choices: Strict set of choices that the user needs to pick from.
+            type: New application command option type to use.
+
+        Exceptions:
+            ValueError: There's no parameter with the name passed.
         """
         # It is okay if this is O(n) to keep it O(1) when the app is running
         found = [option for option in self.options.values() if option.param == param]
@@ -127,11 +154,12 @@ class Subcommand(CommandCallback[P, RT]):
             option.choices = choices
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the subcommand into a payload to send to Discord."""
         return {
             **super().to_dict(),
             'description': self.description,
             'type': ApplicationCommandOption.subcommand,
-            'options': [option.to_dict() for option in self.options.values()]
+            'optio  ns': [option.to_dict() for option in self.options.values()]
         }
 
 
@@ -141,6 +169,11 @@ class SubcommandGroup:
     This follows the Discord API with how subcommand-groups can be used. With
     that reason you do not need a callback attached, and any options specified
     will not work.
+
+    Attributes:
+        name: The name of the subcommand group.
+        description: Description of what the subcommand group does.
+        commands: A dictionary of all registered subcommands.
     """
 
     name: str
@@ -168,7 +201,16 @@ class SubcommandGroup:
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:
-        """Handle and forward the interaction to the correct subcommand."""
+        """Handle and forward the interaction to the correct subcommand.
+
+        Parameters:
+            interaction: The interaction to handle.
+            options: Options to find the subcommand type in.
+            tg: The task group to forward into the subcommand.
+
+        Exceptions:
+            CommandSetupError: Couldn't find the subcommand or there is none.
+        """
         found = [option for option in options if option.type is ApplicationCommandOption.subcommand]
         if not found:
             raise CommandSetupError('Subcommand-group did not receive a subcommand option')
@@ -182,7 +224,14 @@ class SubcommandGroup:
         return command.handle_interaction(interaction, found[0].options, tg=tg)
 
     def register_command(self, command: Subcommand) -> None:
-        """Register a subcommand handler once it has been given a name."""
+        """Register a subcommand handler once it has been given a name.
+
+        Parameters:
+            command: The command to register into the internal dict.
+
+        Exceptions:
+            ValueError: The command is already registered.
+        """
         if command.name in self.commands:
             raise ValueError(f"Command with name '{command.name}' already registered")
 
@@ -208,7 +257,15 @@ class SubcommandGroup:
         name: str = MISSING,
         description: str = MISSING,
     ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
-        """Create a subcommand with this group as the parent."""
+        """Create and register a subcommand of this group.
+
+        This decorator can be used both with and without parentheses.
+
+        Parameters:
+            callback: This gets filled by the decorator.
+            name: The name of the subcommand.
+            description: The description of the subcommand.
+        """
         def decorator(func: Callback[P, RT]) -> Subcommand[P, RT]:
             subcommand = Subcommand(func, name=name, description=description)
             self.register_command(subcommand)
@@ -220,6 +277,7 @@ class SubcommandGroup:
         return decorator
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the subcommand group into a payload to send to Discord."""
         return {
             'name': self.name,
             'type': ApplicationCommandOption.subcommand_group,
@@ -229,7 +287,13 @@ class SubcommandGroup:
 
 
 class SlashCommand(Subcommand[P, RT]):
-    """Top-level slash command which may contain other groups or subcommands."""
+    """Top-level slash command which may contain other groups or subcommands.
+
+    Attributes:
+        name: The name of the slash command.
+        description: The description of the command.
+        commands: Internal dict of all registered subcommands and groups.
+    """
 
     commands: Dict[str, Union[Subcommand, SubcommandGroup]]
 
@@ -252,7 +316,12 @@ class SlashCommand(Subcommand[P, RT]):
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:
-        """Handle and forward the interaction to the correct subcommand."""
+        """Handle and forward the interaction to the correct subcommand.
+
+        Parameters:
+            interaction: The interaction to forward and handle.
+            tg: The task group to start callbacks with.
+        """
         for option in interaction.options:
             if option.type in {
                     ApplicationCommandOption.subcommand,
@@ -273,7 +342,14 @@ class SlashCommand(Subcommand[P, RT]):
         return command.handle_interaction(interaction, option.options, tg=tg)
 
     def register_command(self, command: Union[Subcommand, SubcommandGroup]) -> None:
-        """Register the subcommand, or subcommand group."""
+        """Register the subcommand, or subcommand group.
+
+        Parameters:
+            command: The command to register.
+
+        Exceptions:
+            ValueError: The command is already registered.
+        """
         if command.name in self.commands:
             raise ValueError(f"Command with name '{command.name}' already registered")
 
@@ -285,7 +361,26 @@ class SlashCommand(Subcommand[P, RT]):
         name: str,
         description: str,
     ) -> SubcommandGroup:
-        """Create a SubcommandGroup with this command as the parent."""
+        """Create a subcommand group without a callback on this slash command.
+
+        Examples:
+
+            ```python
+            from wumpy.interactions import InteractionApp, CommandInteraction
+
+            app = InteractionApp(...)
+
+            slash = app.group(name='gesture', description='Gesture something')
+
+            group = app.group(name='hello', description='Hello :3')
+
+            ...  # Register subcommands on this group
+            ```
+
+        Parameters:
+            name: The name of the subcommand group.
+            description: The description of the subcommand group.
+        """
         group = SubcommandGroup(name=name, description=description)
         self.register_command(group)
         return group
@@ -310,7 +405,22 @@ class SlashCommand(Subcommand[P, RT]):
         name: str = MISSING,
         description: str = MISSING
     ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
-        """Create a Subcommand with this slash command as the parent."""
+        """Create a subcommand directly on the slash command.
+
+        Examples:
+
+            ```python
+            from wumpy.interactions import InteractionApp, CommandInteraction
+
+            app = InteractionApp(...)
+
+            slash = app.group(name='hello', description='👋 *waving*')
+
+            @slash.command()
+            async def world(interaction: CommandInteraction) -> None:
+                await interaction.respond('Hello world')
+            ```
+            """
         def decorator(func: Callback[P, RT]) -> Subcommand[P, RT]:
             subcommand = Subcommand(func, name=name, description=description)
             self.register_command(subcommand)
@@ -322,6 +432,7 @@ class SlashCommand(Subcommand[P, RT]):
         return decorator
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn this slash command into a full payload to send to Discord."""
         return {
             'name': self.name,
             'type': CommandType.chat_input,

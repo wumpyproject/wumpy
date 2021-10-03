@@ -1,0 +1,33 @@
+{{ log.debug() }}
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for parameter in parameters %}
+      <tr>
+        <td><code>{{ parameter.name }}</code></td>
+        <td>{% if parameter.annotation %}<code>{{ parameter.annotation }}</code>{% endif %}</td>
+        <td>{{ parameter.description|convert_markdown(heading_level, html_id) }}</td>
+        <!-- Here we want to substitute our MISSING sentinel value with optional -->
+        <td>
+            {% if parameter.default %}
+              {% if parameter.default == '<MISSING>' %}
+                <em>optional</em>
+              {% else %}
+                <code>{{ parameter.default }}</code>
+              {% endif %}
+            {% else %}
+              <em>required</em>
+            {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -19,7 +19,11 @@ Command = Union[SlashCommand[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
 
 
 class CommandRegistrar:
-    """Root registrar of command handlers."""
+    """Root registrar of command handlers.
+
+    Attributes:
+        commands: A dictionary of all registered commands.
+    """
 
     commands: Dict[str, Command]
 
@@ -34,7 +38,15 @@ class CommandRegistrar:
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:
-        """Handle the interaction, propogating it to the correct command handler."""
+        """Handle the interaction and trigger appropriate callbacks.
+
+        There is not much use of this method as a user unless this class
+        is being extended.
+
+        Parameters:
+            interaction: The interaction to handle.
+            tg: An anyio task group that will be used to launch callbacks.
+        """
         command = self.commands.get(interaction.name)
         if command is None:
             return
@@ -42,7 +54,13 @@ class CommandRegistrar:
         command.handle_interaction(interaction, tg=tg)
 
     def register_command(self, command: Command) -> None:
-        """Register a command handler to be called."""
+        """Register a command to be added to the internal dictionary.
+
+        This should be used over manipulating the internal dictionary.
+
+        Parameters:
+            command: The command to register into the dictionary.
+        """
         self.commands[command.name] = command
 
     def group(
@@ -51,25 +69,33 @@ class CommandRegistrar:
         name: str,
         description: str
     ) -> SlashCommand:
-        """Create a slash command without a callback.
+        """Register and create a slash command without a callback.
 
         This exist so that slash commands can be created without attaching a
         dummy-callback. Context menu commands cannot have subcommands, for that
         reason this will always return a slash command.
 
-        Example usage:
+        **Usage:**
+            ```python
+            from wumpy import interactions
 
-        ```python
-        from wumpy import interactions
+            app = interactions.InteractionApp(...)
 
-        app = interactions.InteractionApp(...)
+            parent = app.group(name='hello', description='Greet and say hello')
 
-        parent = app.group(name='hello', description='Greet and say hello')
+            ...  # Register subcommands
+            ```
 
-        ...  # Register subcommands
-        ```
+        Parameters:
+            name: The name of the command.
+            description: The description of the command.
+
+        Returns:
+            A registered new Slashcommand without a callback.
         """
-        return SlashCommand(name=name, description=description)
+        command = SlashCommand(name=name, description=description)
+        self.register_command(command)  # type: ignore
+        return command
 
     @overload
     def command(
@@ -115,17 +141,30 @@ class CommandRegistrar:
     ) -> Union[Command[P, RT], Callable[[Callback[P, RT]], Command[P, RT]]]:
         """Register and create a new application command through a decorator.
 
-        Example usage:
+        The decorator can be used both with and without the parentheses.
 
-        ```python
-        from wumpy import interactions
+        Examples:
+            ```python
+            from wumpy.interactions import InteractionApp, CommandInteraction
 
-        app = interactions.InteractionApp(...)
+            app = InteractionApp(...)
 
-        @app.command()
-        async def random(interaction: interactions.CommandInteraction) -> None:
-            await interaction.respond('4')  # chosen by fair dice roll
-        ```
+            @app.command()
+            async def random(interaction: CommandInteraction) -> None:
+                await interaction.respond('4')  # chosen by fair dice roll
+            ```
+
+        Parameters:
+            type: The type of the command. Defaults to a slash command.
+            name: The name of the command.
+            description: The description of the command.
+
+        Returns:
+            A command or function that returns a command. Depending on whether
+            the decorator was used with or without parentheses.
+
+        Exceptions:
+            ValueError: The type wasn't a CommandType value
         """
         def decorator(func: Callback[P, RT]) -> Command[P, RT]:
             if type is CommandType.chat_input:

@@ -20,7 +20,16 @@ RT = TypeVar('RT')
 
 
 class ContextMenuCommand(CommandCallback[P, RT]):
-    """Discord context menu command that gets a user or message."""
+    """Discord context menu command that gets a user or message.
+
+    Attributes:
+        name: Name of the context menu command.
+        argument:
+            The parameter annotation on the callback. This is used by
+            subclasses to get some more information about the type to use.
+    """
+
+    argument: Any
 
     def __init__(self, callback: Callback[P, RT], *, name: str = MISSING) -> None:
         super().__init__(callback, name=name)
@@ -41,13 +50,21 @@ class ContextMenuCommand(CommandCallback[P, RT]):
             break
 
     def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
-        """Resolve the value to pass to the menu from the interaction.
+        """Resolve the single value for the interaction.
 
-        This gets overriden by subclasses to return the message or user.
+        Parameters:
+            interaction: The interaction to resolve a value from.
+
+        Returns:
+            The single value or None.
         """
         raise NotImplementedError()
 
     def handle_interaction(self, interaction: CommandInteraction, *, tg: anyio.abc.TaskGroup) -> None:
+        """Handle the interaction and call the registered callback.
+
+        If `resolve_value()` returns None the callback is not called.
+        """
         value = self.resolve_value(interaction)
         if value is None or self.callback is None:
             return
@@ -56,10 +73,24 @@ class ContextMenuCommand(CommandCallback[P, RT]):
 
 
 class MessageCommand(ContextMenuCommand[P, RT]):
-    """Message context menu command."""
+    """Message context menu command.
+
+    Attributes:
+        name: Name of the message command.
+        argument:
+            The parameter annotation on the callback. This isn't really used
+            by MessageCommand.
+    """
 
     def resolve_value(self, interaction: CommandInteraction) -> Any:
-        """Resolve the message to pass to the callback."""
+        """Resolve the message to pass to the callback.
+
+        Parameters:
+            interaction: The interaction to resolve a value from.
+
+        Returns:
+            The message resolved.
+        """
         if not interaction.target_id:
             raise CommandSetupError('Message command did not receive target ID.')
 
@@ -70,14 +101,31 @@ class MessageCommand(ContextMenuCommand[P, RT]):
         return message
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the command into a dictionary to send to Discord."""
         return {**super().to_dict(), 'type': CommandType.message.value}
 
 
 class UserCommand(ContextMenuCommand[P, RT]):
-    """User or member context menu command."""
+    """User or member context menu command.
+
+    Attributes:
+        name: Name of the user command.
+        argument:
+            The parameter annotation on the callback. This is used to figure
+            out whether a member or user object should be passed.
+    """
 
     def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
-        """Resolve the user or member to pass to the callback."""
+        """Resolve the user or member to pass to the callback.
+
+        Parameters:
+            interaction: The interaction to resolve a user or member from.
+
+        Returns:
+            A user or member object depending on what the `argument` attribute
+            is set to. If the `argument` attribute is set to a member but
+            Discord did not send member data this method will return None.
+        """
         if not interaction.target_id:
             raise CommandSetupError('User command did not receive target ID.')
 
@@ -91,4 +139,5 @@ class UserCommand(ContextMenuCommand[P, RT]):
         return target
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the command into a dictionary to send to Discord."""
         return {**super().to_dict(), 'type': CommandType.user.value}

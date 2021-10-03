@@ -1,8 +1,8 @@
 import inspect
 from enum import Enum
 from typing import (
-    Annotated, Any, AnyStr, Dict, Literal, Optional, Type, Union, get_args,
-    get_origin
+    Annotated, Any, AnyStr, ClassVar, Dict, Literal, Optional, Type, Union,
+    get_args, get_origin
 )
 
 from ...errors import CommandSetupError
@@ -23,11 +23,26 @@ class CommandType(Enum):
 class OptionClass:
     """A user-constructed option to an application command.
 
-    Although it is user-constructed it isn't meant to be used by users because
-    of quirks with attributes being the MISSING sentinel.
+    For most cases the `Option` helper function should be used.
 
-    This is inspected by the library as a default to a command parameter.
-    There is also a decorator on a command that can be used if preferred.
+    The OptionClass uses the `MISSING` sentinel for missing values. This can be
+    tricky to work with and in general users should not play around with this
+    class unless it is for the purpose of extending it.
+
+    Attributes:
+        type: Application command option type to send to Discord.
+        name: The name of the option in the Discord client.
+        description: A description of the option.
+        required: Whether the option can be omitted.
+        choices: Strict choices that the user can pick from.
+        default: Default the library will use when the option is omitted.
+        converter: Simple callable mainly used for enums.
+        param: The name of the parameter in the callback.
+        kind: The kind of the parameter in the callback.
+        type_mapping:
+            Mapping of primitive types (ie. `int`, `str`) to the application
+            command option type it will get. This is looked up by
+            `determine_type()` when the parameter annotation is read.
     """
 
     type: ApplicationCommandOption
@@ -50,7 +65,7 @@ class OptionClass:
 
     # Mapping of primitive types to their equivalent ApplicationCommandOption
     # enum values, placed in the class so that it can be overwritten.
-    type_mapping = {
+    type_mapping: ClassVar[Dict[Type, ApplicationCommandOption]] = {
         str: ApplicationCommandOption.string,
         int: ApplicationCommandOption.integer,
         bool: ApplicationCommandOption.boolean,
@@ -89,12 +104,17 @@ class OptionClass:
             self.determine_type(type)
 
     def determine_type(self, annotation: Any) -> bool:
-        """Determine the Discord API type for the explicit type or annotation.
+        """Determine the application command option type from an annotation.
 
-        By having this in the Option itself, it's very easy for a user to
-        override this method if need-be for custom behaviour.
+        This method is exposed for the purpose of extending it with advanced
+        custom behaviour. For simpler cases the `type_mapping` class variable
+        can be overriden with more values.
 
-        This should modify the Option instance in-place.
+        Args:
+            annotation: The annotation of the parameter.
+
+        Returns:
+            Whether an application command type was able to be determined.
         """
         if isinstance(annotation, ApplicationCommandOption):
             self.type = annotation
@@ -156,10 +176,14 @@ class OptionClass:
         return False
 
     def update(self, param: inspect.Parameter) -> None:
-        """Update with new information from the parameter it was defined in.
+        """Update the option with new information about the parameter.
 
-        We don't know anything about the parameter when the Option class is
-        initialized so this is used to later update values.
+        The class has no idea about the parameter it is being defined in so it
+        has to be made aware by the library after the fact. This is called when
+        the command is being created.
+
+        Args:
+            param: The parameter that this instance was defined in.
         """
         self.param = param.name
 
@@ -182,7 +206,23 @@ class OptionClass:
         interaction: CommandInteraction,
         data: Optional[CommandInteractionOption]
     ) -> Any:
-        """Resolve a value from Discord option data."""
+        """Resolve the value to pass to the callback.
+
+        The value that this returns is passed directly to the callback in the
+        option's place.
+
+        Args:
+            interaction: The interaction received from Discord.
+            data: The option received from Discord or None if it wasn't passed.
+
+        Returns:
+            The resolved value from the interaction and option.
+
+        Exceptions:
+            CommandSetupError:
+                There is no data and there is no default or the data is of the
+                wrong option type.
+        """
         if data is None:
             if self.default is MISSING:
                 raise CommandSetupError(
@@ -199,6 +239,7 @@ class OptionClass:
         return data.value
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the option into a dictionary to send to Discord."""
         data = {
             'name': self.name,
             'type': self.type.value,
