@@ -1,9 +1,11 @@
 import inspect
 from enum import Enum
 from typing import (
-    Annotated, Any, AnyStr, ClassVar, Dict, Literal, Optional, Type, Union,
+    Any, AnyStr, ClassVar, Dict, Literal, Optional, Type, Union,
     get_args, get_origin
 )
+
+from typing_extensions import Annotated
 
 from ...errors import CommandSetupError
 from ...utils import MISSING
