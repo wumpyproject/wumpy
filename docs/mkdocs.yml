@@ -43,6 +43,7 @@ nav:
     - Context Menus:
       - tutorial/context-menus/message-commands.md
       - tutorial/context-menus/user-commands.md
+    - tutorial/rock-paper-scissors.md
 
   - Reference:
     - reference/interactions/commands.md
