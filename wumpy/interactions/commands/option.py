@@ -170,7 +170,7 @@ class OptionClass:
         elif origin is Literal and self.choices is MISSING:
             # Discord wants a name and a value, for Literal we simply have to
             # use the arguments for both
-            self.choices = {value: value for value in args}
+            self.choices = {str(value): value for value in args}
             return True
 
         # This does not yet handle ForwardRefs, because it requires eval() with
