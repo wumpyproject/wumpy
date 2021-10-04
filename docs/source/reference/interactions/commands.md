@@ -9,6 +9,8 @@ This file contains the API reference for the application commands part of the
 
 ::: wumpy.interactions.commands.option:OptionClass
 
+::: wumpy.interactions.commands:option
+
 ::: wumpy.interactions.commands:SlashCommand
 
 ::: wumpy.interactions.commands:SubcommandGroup

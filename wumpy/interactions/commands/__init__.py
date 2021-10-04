@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type, Union
+from typing import Any, Callable, Dict, TypeVar, Type, Union
 
 from ...utils import MISSING
 from . import option as __option
@@ -6,6 +6,8 @@ from .base import *
 from .context import *
 from .registrar import *
 from .slash import *
+
+T = TypeVar('T', bound=Union[SlashCommand, Subcommand])
 
 
 # The reason for this function is because we need the "return type" to be Any.
@@ -55,6 +57,49 @@ def Option(
     )
 
 
+# This is different from the above function as this is a decorator meant
+# to be used on command instances.
+def option(
+    param: str,
+    name: str = MISSING,
+    description: str = MISSING,
+    required: bool = MISSING,
+    choices: Dict[str, Union[str, int, float]] = MISSING,
+    type: Type[Any] = MISSING
+) -> Callable[[T], T]:
+    """Option decorator for updating an option.
+
+    This decorator needs to be placed outside of the command decorator.
+
+    Parameters:
+        param: The name of the parameter for this option.
+        name: The new name of the option.
+        description: The new description of the option.
+        required: Whether the option should be able to be omitted.
+        choices: Set choices that the user needs to pick from.
+        type: New type of the option, overriding the annotation.
+
+    Exceptions:
+        ValueError: This decorator was not used on a command.
+    """
+    # Because of the fact that we delete the type variable below, it won't be
+    # available when this function is created.
+    def decorator(command: 'T') -> 'T':
+        if not isinstance(command, Subcommand):
+            raise ValueError(
+                "The 'option' decorator can only be used on commands."
+            )
+
+        command.update_option(
+            param, name=name, description=description,
+            required=required, choices=choices, type=type
+        )
+
+        # Return the command again for chaining.
+        return command
+    return decorator
+
+
 # Clean up as we don't want users importing these from here
-del Any, Dict, Type, Union
+del Any, Callable, Dict, T, Type, Union
 del MISSING, __option
