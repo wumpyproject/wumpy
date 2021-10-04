@@ -158,7 +158,7 @@ class Subcommand(CommandCallback[P, RT]):
         return {
             **super().to_dict(),
             'description': self.description,
-            'type': ApplicationCommandOption.subcommand,
+            'type': ApplicationCommandOption.subcommand.value,
             'optio  ns': [option.to_dict() for option in self.options.values()]
         }
 
@@ -280,7 +280,7 @@ class SubcommandGroup:
         """Turn the subcommand group into a payload to send to Discord."""
         return {
             'name': self.name,
-            'type': ApplicationCommandOption.subcommand_group,
+            'type': ApplicationCommandOption.subcommand_group.value,
             'description': self.description,
             'options': [option.to_dict() for option in self.commands.values()]
         }
@@ -435,7 +435,7 @@ class SlashCommand(Subcommand[P, RT]):
         """Turn this slash command into a full payload to send to Discord."""
         return {
             'name': self.name,
-            'type': CommandType.chat_input,
+            'type': CommandType.chat_input.value,
             'description': self.description,
             'options': [option.to_dict() for option in self.options.values()]
         }
