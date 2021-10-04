@@ -4,4 +4,4 @@ max-line-length = 105
 
 per-file-ignores =
     # Allow any __init__.py file to have unused imports
-    **/__init__.py: F401, F403
+    **/__init__.py: F401, F403, F405
