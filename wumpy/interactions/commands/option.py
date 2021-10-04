@@ -250,6 +250,10 @@ class OptionClass:
         }
 
         if self.choices is not MISSING:
-            data['choices'] = self.choices
+            # We store choices with the name as the key and value being the
+            # value but Discord expects a payload with explicit name and value
+            # keys so we need to convert it.
+            choices = [{'name': k, 'value': v} for k, v in self.choices.items()]
+            data['choices'] = choices
 
         return data
