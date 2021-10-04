@@ -1,7 +1,7 @@
 import inspect
 from enum import Enum
 from typing import (
-    Any, AnyStr, ClassVar, Dict, Literal, Optional, Type, Union,
+    Any, AnyStr, ClassVar, Dict, List, Literal, Optional, Type, Union,
     get_args, get_origin
 )
 
@@ -81,7 +81,9 @@ class OptionClass:
         name: str = MISSING,
         description: str = MISSING,
         required: bool = MISSING,
-        choices: Dict[str, Union[str, int, float]] = MISSING,
+        # This isn't very readable, but it means a list or dictionary of
+        # strings, integers or floats.
+        choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
         type: Type[Any] = MISSING
     ) -> None:
         self.name = name
@@ -93,6 +95,10 @@ class OptionClass:
             required = False
 
         self.required = required
+
+        if isinstance(choices, list):
+            choices = {str(value): value for value in choices}
+
         self.choices = choices
 
         self.default = default
