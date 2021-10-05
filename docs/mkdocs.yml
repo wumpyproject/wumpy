@@ -28,25 +28,28 @@ markdown_extensions:
   - pymdownx.tabbed
 
 nav:
+  - Start page:
+    - index.md
+
   - Setting up the bot:
     - setup/index.md
-    - setup/creating-the-bot.md
-    - setup/authenticating.md
-    - setup/running-the-bot.md
+    - Creating the Bot: setup/creating-the-bot.md
+    - Authenticatin with Discord: setup/authenticating.md
+    - Running the Bot: setup/running-the-bot.md
 
   - Basic Tutorial:
     - tutorial/index.md
-    - tutorial/hello-world.md
-    - tutorial/nested-hellos.md
-    - tutorial/options.md
-    - tutorial/optional-options.md
+    - Your first command: tutorial/hello-world.md
+    - Subcommands: tutorial/nested-hellos.md
+    - Command options: tutorial/options.md
+    - Optional options: tutorial/optional-options.md
     - Context Menus:
-      - tutorial/context-menus/message-commands.md
-      - tutorial/context-menus/user-commands.md
-    - tutorial/rock-paper-scissors.md
+      - Message commands: tutorial/context-menus/message-commands.md
+      - User commands: tutorial/context-menus/user-commands.md
+    - Option choices: tutorial/rock-paper-scissors.md
 
   - Reference:
-    - reference/interactions/commands.md
+    - Application commands: reference/interactions/commands.md
 
 plugins:
   - search: {}
