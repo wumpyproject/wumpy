@@ -227,9 +227,9 @@ class OptionClass:
             The resolved value from the interaction and option.
 
         Exceptions:
-            CommandSetupError:
-                There is no data and there is no default or the data is of the
-                wrong option type.
+            CommandSetupError: There is no data and a default is missing.
+            CommandSetupError: The data is of an unexpected type.
+            CommandSetupError: The data failed to be converted to an enum.
         """
         if data is None:
             if self.default is MISSING:
