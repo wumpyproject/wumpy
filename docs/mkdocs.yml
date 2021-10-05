@@ -48,6 +48,7 @@ nav:
       - User commands: tutorial/context-menus/user-commands.md
     - Option choices: tutorial/rock-paper-scissors.md
     - Multiple options: tutorial/mcdonalds-order.md
+    - Enum options: tutorial/choices-with-enums.md
 
   - Reference:
     - Application commands: reference/interactions/commands.md
