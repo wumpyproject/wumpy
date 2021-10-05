@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Application commands API Reference
 
 This file contains the API reference for the application commands part of the
