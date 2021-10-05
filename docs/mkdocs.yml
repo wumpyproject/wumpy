@@ -47,6 +47,7 @@ nav:
       - Message commands: tutorial/context-menus/message-commands.md
       - User commands: tutorial/context-menus/user-commands.md
     - Option choices: tutorial/rock-paper-scissors.md
+    - Multiple options: tutorial/mcdonalds-order.md
 
   - Reference:
     - Application commands: reference/interactions/commands.md
