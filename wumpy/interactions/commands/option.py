@@ -209,7 +209,7 @@ class OptionClass:
         if param.annotation is not param.empty and self.type is MISSING:
             self.determine_type(param.annotation)
 
-    async def resolve(
+    def resolve(
         self,
         interaction: CommandInteraction,
         data: Optional[CommandInteractionOption]
@@ -244,7 +244,14 @@ class OptionClass:
                 f"'{self.param}' of '{interaction.name}' received option with wrong type"
             )
 
-        return data.value
+        value = data.value
+        if self.converter is not MISSING:
+            try:
+                value = self.converter(value)
+            except Exception as exc:
+                raise CommandSetupError('Could not convert argument:', value) from exc
+
+        return value
 
     def to_dict(self) -> Dict[str, Any]:
         """Turn the option into a dictionary to send to Discord."""
