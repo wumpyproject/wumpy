@@ -135,6 +135,15 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         """Verify that the request was made to the correct endpoint.
 
         Returning a bool indicating whether an error response has been sent.
+
+        If another endpoint should be used, this should be overwritten and
+        call super() with the new values:
+
+        ```python
+        class MyApp(InteractionApp):
+            async def verify_request(self, *args):
+                return await super().verify_request(*args, path='/interactions')
+        ```
         """
         if scope['type'] != type:
             await send({
