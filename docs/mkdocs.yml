@@ -49,6 +49,7 @@ nav:
     - Option choices: tutorial/rock-paper-scissors.md
     - Multiple options: tutorial/mcdonalds-order.md
     - Enum options: tutorial/choices-with-enums.md
+    - Advanced options: tutorial/advanced-options.md
 
   - Reference:
     - Application commands: reference/interactions/commands.md
