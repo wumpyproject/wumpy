@@ -8,6 +8,7 @@ from typing import (
 from typing_extensions import Annotated
 
 from ...errors import CommandSetupError
+from ...models import InteractionUser
 from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
@@ -72,6 +73,7 @@ class OptionClass:
         int: ApplicationCommandOption.integer,
         bool: ApplicationCommandOption.boolean,
         float: ApplicationCommandOption.number,
+        InteractionUser: ApplicationCommandOption.user,
     }
 
     def __init__(
@@ -245,11 +247,30 @@ class OptionClass:
             )
 
         value = data.value
+
+        if value is None:
+            raise CommandSetupError(
+                f"Expected command option value for '{self.param}' of '{interaction.name}'"
+            )
+
         if self.converter is not MISSING:
             try:
                 value = self.converter(value)
             except Exception as exc:
                 raise CommandSetupError('Could not convert argument:', value) from exc
+
+        # Some options only pass IDs because Discord asynchronously resolves
+        # the data for them, these are then passed in a special `resolved`
+        # field that we need to look them up by.
+        if self.type is ApplicationCommandOption.user:
+            value = interaction.resolved.users.get(int(value))
+
+        # At this point `value` may be None from our lookups of the resolved
+        # data
+        if value is None:
+            raise CommandSetupError(
+                "Didn't receive resolved data for command '{interaction.name}'"
+            )
 
         return value
 

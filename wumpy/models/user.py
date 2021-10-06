@@ -78,8 +78,7 @@ class _BaseUser(Object):
         avatar = data['avatar']
         self.avatar = Asset(self._rest, f'avatars/{self.id}/{avatar}') if avatar else self.avatar
 
-        flags = data.get('public_flags')
-        self.public_flags = UserFlags(flags) if flags else self.public_flags
+        self.public_flags = UserFlags(data['public_flags'])
 
         self.bot = data.get('bot', self.bot)
         self.system = data.get('system', self.system)

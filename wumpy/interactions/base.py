@@ -44,7 +44,7 @@ class ApplicationCommandOption(enum.Enum):
 class ResolvedInteractionData:
     """Asynchronously resolved data from Discord."""
 
-    users: Dict[int, Dict[str, Any]]
+    users: Dict[int, InteractionUser]
     members: Dict[int, Dict[str, Any]]
 
     roles: Dict[int, Dict[str, Any]]
@@ -54,8 +54,8 @@ class ResolvedInteractionData:
 
     __slots__ = ('users', 'members', 'roles', 'channels', 'messages')
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.users = {int(k): v for k, v in data.get('users', {}).items()}
+    def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
+        self.users = {int(k): InteractionUser(rest, v) for k, v in data.get('users', {}).items()}
         self.members = {int(k): v for k, v in data.get('members', {}).items()}
 
         self.roles = {int(k): v for k, v in data.get('roles', {}).items()}
@@ -208,7 +208,7 @@ class CommandInteraction(Interaction):
         self.invoked = data['data']['id']
         self.invoked_type = ApplicationCommandOption(data['data']['type'])
 
-        self.resolved = ResolvedInteractionData(data['data'].get('resolved', {}))
+        self.resolved = ResolvedInteractionData(rest, data['data'].get('resolved', {}))
 
         target_id = data['data'].get('target_id')
         self.target_id = int(target_id) if target_id else None
