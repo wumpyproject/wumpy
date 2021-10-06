@@ -56,7 +56,7 @@ nav:
 plugins:
   - search: {}
   - mkdocstrings:
-      custom_templates: templates/
+      custom_templates: docs/templates/
       enable_inventory: true
       handlers:
         python:
