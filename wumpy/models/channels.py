@@ -30,11 +30,29 @@ from typing import Dict, List, Optional, Sequence, SupportsInt, Tuple, overload
 from ..utils import MISSING, File
 from .base import Object, Snowflake
 from .flags import AllowedMentions
-from .permissions import PermissionOverwrite, PermissionTarget
+from .permissions import PermissionOverwrite, Permissions, PermissionTarget
 
 if TYPE_CHECKING:
     from ..state import Cache, RESTClient
     from .user import User
+
+
+class InteractionChannel(Object):
+    """Discord channel received from an interaction."""
+
+    name: str
+    type: ...
+    permissions: Permissions
+
+    __slots__ = ('name', 'type', 'permissions')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        super().__init__(int(data['id']))
+
+        self.name = data['name']
+        self.type = data['type']
+
+        self.permissions = Permissions(int(data.get('permissions', 0)))
 
 
 class ChannelHistory:

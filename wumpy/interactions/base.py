@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from wumpy.models.flags import AllowedMentions
 
-from ..models import InteractionUser, Object
+from ..models import InteractionChannel, InteractionUser, Object
 from ..utils import MISSING
 from .rest import InteractionRequester
 
@@ -50,7 +50,7 @@ class ResolvedInteractionData:
     roles: Dict[int, Dict[str, Any]]
     channels: Dict[int, Dict[str, Any]]
 
-    messages: Dict[int, Dict[str, Any]]
+    messages: Dict[int, InteractionChannel]
 
     __slots__ = ('users', 'members', 'roles', 'channels', 'messages')
 
@@ -59,7 +59,7 @@ class ResolvedInteractionData:
         self.members = {int(k): v for k, v in data.get('members', {}).items()}
 
         self.roles = {int(k): v for k, v in data.get('roles', {}).items()}
-        self.channels = {int(k): v for k, v in data.get('channels', {}).items()}
+        self.channels = {int(k): InteractionChannel(v) for k, v in data.get('channels', {}).items()}
 
         self.messages = {int(k): v for k, v in data.get('messages', {}).items()}
 
