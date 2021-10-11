@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import (
-    TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, Dict, Optional, Union,
-    overload
+    TYPE_CHECKING, Any, Callable, Coroutine, Dict, Optional, Union, overload
 )
 
 from .component import Component, ComponentEmoji
@@ -22,7 +21,18 @@ class ButtonStyle(Enum):
 
 
 class Button(Component):
-    """Interactive message component that can be clicked by users."""
+    """Interactive message component that can be clicked by users.
+
+    Attributes:
+        style: The style and appearance of the button.
+        label: The label displayed to the user.
+        emoji: Emoji displayed next to the label.
+        custom_id: Unique custom ID for this button
+        url:
+            URL to open when the user presses the button, this cannot be used
+            together with a custom ID.
+        disabled: Whether the button should appear greyed out for the user.
+    """
 
     style: ButtonStyle
     label: Optional[str]
@@ -32,8 +42,6 @@ class Button(Component):
     url: Optional[str]
 
     disabled: bool
-
-    callback: Optional[Callable[['ComponentInteraction'], Awaitable[None]]]
 
     __slots__ = ('style', 'label', 'emoji', 'custom_id', 'url', 'disabled')
 
@@ -45,7 +53,8 @@ class Button(Component):
         custom_id: str,
         label: Optional[str] = None,
         emoji: Optional[Union[ComponentEmoji, str]] = None,
-        disabled: bool = False
+        disabled: bool = False,
+        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
     ) -> None:
         ...
 
@@ -90,6 +99,7 @@ class Button(Component):
         self.disabled = disabled
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the button into a dict that can be serialized to JSON."""
         data = {
             'type': 2,
             'style': self.style.value,

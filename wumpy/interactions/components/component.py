@@ -39,7 +39,10 @@ class Result(Generic[RT]):
 
 
 class Component:
-    """Base component that allows waiting until an interaction has been received for it."""
+    """Implementation for awaiting components until they are called.
+
+    All components inherit from this base class.
+    """
 
     callback: Optional[Callable[['ComponentInteraction'], Coroutine]]
 
@@ -72,6 +75,7 @@ class Component:
             return await event.wait()
 
     def handle_interaction(self, interaction: 'ComponentInteraction', *, tg: TaskGroup) -> None:
+        """Handle the interaction and wake up any waiters."""
         if self.callback is not None:
             tg.start_soon(self.callback, interaction)
 
@@ -81,11 +85,20 @@ class Component:
                 self.waiters.pop(index)
 
     def to_dict(self) -> Union[List[Any], Dict[str, Any]]:
+        """Method meant to be implemented by subclasses."""
         raise NotImplementedError()
 
 
 class ComponentEmoji:
-    """Emoji sent with components to Discord."""
+    """Emoji sent with components to Discord.
+
+    Attributes:
+        animated: Whether the emoji is animated
+        name: The name of the emoji (may be an unicode character)
+        id:
+            The ID of the emoji, for default emojis in Discord this is set to
+            a fake ID created from the Discord epoch timestamp.
+    """
 
     REGEX = re.compile(r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?')
 
@@ -118,6 +131,7 @@ class ComponentEmoji:
 
     @classmethod
     def from_string(cls, value: str) -> 'ComponentEmoji':
+        """Create an instance from a string."""
         match = cls.REGEX.match(value)
         if match:
             return cls(
@@ -130,6 +144,7 @@ class ComponentEmoji:
         return cls(name=value)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the emoji into data meant to be sent to Discord."""
         data = {
             'name': self.name,
             'id': self.id,

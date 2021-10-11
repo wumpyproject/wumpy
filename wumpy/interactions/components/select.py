@@ -12,7 +12,14 @@ __all__ = ('SelectOption', 'SelectMenu')
 
 
 class SelectOption:
-    """Option for an interactive select menu."""
+    """Option for an interactive select menu.
+
+    Attributes:
+        label: The label disabled to the user.
+        value: Value of the label for the bots.
+        emoji: An emoji displayed next to the label.
+        default: Whether this is the default option.
+    """
 
     label: str
     value: str
@@ -39,7 +46,8 @@ class SelectOption:
         self.description = description
         self.default = default
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
+        """Turn the option into a dictionary to send to Discord."""
         data = {
             'label': self.label,
             'value': self.value,
@@ -51,7 +59,18 @@ class SelectOption:
 
 
 class SelectMenu(Component):
-    """Interactive drop-down select menu on messages."""
+    """Interactive drop-down select menu on messages.
+
+    Attributes:
+        options: List of options in this menu.
+        custom_id: Unique custom id of the select menu.
+        placeholder: Placeholder value if no option was picked.
+        min: Minimum amount of options to pick.
+        max: Maximum amount of options the user can pick.
+        disabled:
+            Whether the menu will be displayed as greyed out and the user
+            cannot interact with it anymore.
+        """
 
     options: List[SelectOption]
     custom_id: str
@@ -87,10 +106,11 @@ class SelectMenu(Component):
         self.disabled = disabled
 
     def to_dict(self) -> Dict[str, Any]:
+        """Turn the select menu into data to send to Discord."""
         data = {
             'type': 3,
             'custom_id': self.custom_id,
-            'options': [option.to_json() for option in self.options],
+            'options': [option.to_dict() for option in self.options],
             'placeholder': self.placeholder,
             'min_values': self.min,
             'max_values': self.max,
