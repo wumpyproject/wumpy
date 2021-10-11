@@ -7,6 +7,8 @@ from typing import (
 import anyio
 from anyio.abc import TaskGroup
 
+from ...models import DISCORD_EPOCH
+
 if TYPE_CHECKING:
     from ..base import ComponentInteraction
 
@@ -48,6 +50,8 @@ class Component:
         ]
     ]
 
+    __slots__ = ('callback', 'waiters')
+
     def __init__(
         self,
         callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None,
@@ -85,10 +89,32 @@ class ComponentEmoji:
 
     REGEX = re.compile(r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?')
 
-    def __init__(self, *, name: str, animated: bool = False, id: Optional[int] = None) -> None:
+    __slots__ = ('animated', 'name', 'id')
+
+    def __init__(
+        self,
+        *,
+        name: str,
+        animated: bool = False,
+        # In the case of unicode Discord emojis these were created when Discord
+        # was created.
+        id: int = DISCORD_EPOCH << 22
+    ) -> None:
         self.animated = animated
         self.name = name
         self.id = id
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, int):
+            return self.id == other
+        elif isinstance(other, str):
+            return self.name == other
+        elif isinstance(other, self.__class__):
+            return self.id == other.id and \
+                self.name == other.name and \
+                self.animated == other.animated
+        else:
+            return NotImplemented
 
     @classmethod
     def from_string(cls, value: str) -> 'ComponentEmoji':

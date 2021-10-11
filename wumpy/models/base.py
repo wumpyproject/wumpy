@@ -25,7 +25,7 @@ SOFTWARE.
 from datetime import datetime, timezone
 from typing import Any, Type, TypeVar
 
-__all__ = ('Object', 'Snowflake')
+__all__ = ('DISCORD_EPOCH', 'Object', 'Snowflake')
 
 
 DISCORD_EPOCH = 1420070400000
