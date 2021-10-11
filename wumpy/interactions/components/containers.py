@@ -8,15 +8,11 @@ if TYPE_CHECKING:
     from ..base import ComponentInteraction
 
 
-__all__ = ('ComponentList',)
+__all__ = ('ComponentList', 'ActionRow')
 
 
 class ComponentList(Component):
-    """A ComponentList is a mix between a list and a dict.
-
-    It needs to behave similarly to a list, but still get O(1) lookup by
-    custom_id as Discord's component interactions only contain custom ids.
-    """
+    """A ComponentList is a overarching container for components."""
 
     children: List[Component]
 
@@ -30,4 +26,16 @@ class ComponentList(Component):
         self.children = list(children)
 
     def to_dict(self) -> List[Union[List[Any], Dict[str, Any]]]:
+        """Create a list of JSON serializable data to send to Discord."""
         return [item.to_dict() for item in self.children]
+
+
+class ActionRow(ComponentList):
+    """Non-interactive container component for other components."""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Turn the action row into data to send to Discord."""
+        return {
+            'type': 1,
+            'components': [item.to_dict() for item in self.children]
+        }

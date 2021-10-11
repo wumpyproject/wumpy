@@ -1,9 +1,8 @@
 from typing import TYPE_CHECKING, Callable, Coroutine, Optional, Union
 
-from .actionrow import *
 from .button import *
 from .component import *
-from .componentlist import *
+from .containers import *
 from .handler import *
 from .select import *
 
