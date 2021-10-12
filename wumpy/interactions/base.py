@@ -164,9 +164,12 @@ class Interaction(Object):
         embeds: List[Dict[str, Any]] = MISSING,
         allowed_mentions: AllowedMentions = MISSING,
         ephemeral: bool = MISSING,
-        components: Any = MISSING,
+        components: Union[List, ComponentList] = MISSING,
     ) -> None:
         """Directly respond to the interaction with a message."""
+        if isinstance(components, list):
+            components = ComponentList(*components)
+
         data = {
             'content': content,
             'tts': tts,
@@ -287,9 +290,12 @@ class ComponentInteraction(Interaction):
         embeds: List[Dict[str, Any]] = MISSING,
         allowed_mentions: AllowedMentions = MISSING,
         ephemeral: bool = MISSING,
-        components: Any = MISSING,
+        components: Union[List, ComponentList] = MISSING,
     ) -> None:
         """Update the original message this component is attached to."""
+        if isinstance(components, list):
+            components = ComponentList(*components)
+
         data = {
             'content': content,
             'tts': tts,
