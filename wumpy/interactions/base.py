@@ -1,18 +1,18 @@
 import enum
 import json
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
-from wumpy.models.flags import AllowedMentions
-
-from ..models import InteractionChannel, InteractionUser, Object
+from ..models import (
+    AllowedMentions, InteractionChannel, InteractionUser, Object
+)
 from ..utils import MISSING
+from .components import ComponentList
 from .rest import InteractionRequester
 
 __all__ = (
     'InteractionType', 'ComponentType', 'ApplicationCommandOption',
     'ResolvedInteractionData', 'CommandInteractionOption', 'Interaction',
     'CommandInteraction', 'ComponentInteraction', 'SelectInteractionValue',
-    'SelectMenuInteraction'
 )
 
 
@@ -85,6 +85,26 @@ class CommandInteractionOption:
 
         self.value = data.get('value')
         self.options = [CommandInteractionOption(option) for option in data.get('options', [])]
+
+
+class SelectInteractionValue:
+    """One of the values for a select option."""
+
+    label: str
+    value: str
+    description: Optional[str]
+    emoji: Optional[Dict[str, Any]]
+    default: Optional[bool]
+
+    __slots__ = ('label', 'value', 'description', 'emoji', 'default')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.label = data['label']
+        self.value = data['value']
+
+        self.description = data.get('description')
+        self.emoji = data.get('emoji')
+        self.emoji = data.get('default')
 
 
 class Interaction(Object):
@@ -224,7 +244,9 @@ class ComponentInteraction(Interaction):
     custom_id: str
     component_type: ComponentType
 
-    __slots__ = ('message', 'custom_id', 'component_type')
+    values: List[SelectInteractionValue]
+
+    __slots__ = ('message', 'custom_id', 'component_type', 'values')
 
     def __init__(
         self,
@@ -239,6 +261,8 @@ class ComponentInteraction(Interaction):
 
         self.custom_id = data['data']['custom_id']
         self.component_type = ComponentType(data['data']['component_type'])
+
+        self.values = [SelectInteractionValue(value) for value in data['data'].get('values', [])]
 
     async def defer_update(self) -> None:
         """Defer the update/edit of the original response.
@@ -287,42 +311,3 @@ class ComponentInteraction(Interaction):
             'type': 'http.response.body',
             'body': json.dumps({'type': 7, 'data': data}).encode()
         })
-
-
-class SelectInteractionValue:
-    """One of the values for a select option."""
-
-    label: str
-    value: str
-    description: Optional[str]
-    emoji: Optional[Dict[str, Any]]
-    default: Optional[bool]
-
-    __slots__ = ('label', 'value', 'description', 'emoji', 'default')
-
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.label = data['label']
-        self.value = data['value']
-
-        self.description = data.get('description')
-        self.emoji = data.get('emoji')
-        self.emoji = data.get('default')
-
-
-class SelectMenuInteraction(ComponentInteraction):
-    """Interaction for a selection menu message component."""
-
-    values: List[SelectInteractionValue]
-
-    __slots__ = ('values',)
-
-    def __init__(
-        self,
-        app: Any,
-        send: Callable[[Dict[str, Any]], Awaitable[None]],
-        rest: InteractionRequester,
-        data: Dict[str, Any]
-    ) -> None:
-        super().__init__(app, send, rest, data)
-
-        self.values = [SelectInteractionValue(value) for value in data['data']['values']]
