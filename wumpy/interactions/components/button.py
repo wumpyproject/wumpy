@@ -62,7 +62,6 @@ class Button(Component):
     def __init__(
         self,
         *,
-        style: ButtonStyle,
         url: str,
         label: Optional[str] = None,
         emoji: Optional[Union[ComponentEmoji, str]] = None,
@@ -73,7 +72,7 @@ class Button(Component):
     def __init__(
         self,
         *,
-        style: ButtonStyle,
+        style: ButtonStyle = ButtonStyle.link,
         label: Optional[str] = None,
         emoji: Optional[Union[ComponentEmoji, str]] = None,
         custom_id: Optional[str] = None,
@@ -85,6 +84,12 @@ class Button(Component):
 
         if custom_id is not None and url is not None:
             raise TypeError("cannot pass 'custom_id' and 'url' at the same time")
+
+        elif style is ButtonStyle.link and custom_id is not None:
+            raise TypeError("__init__() missing keyword-only argument: 'style'")
+
+        elif style is not ButtonStyle.link and url is not None:
+            raise ValueError('Only link buttons can be link button styled')
 
         self.style = style
         self.label = label
