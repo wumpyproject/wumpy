@@ -1,9 +1,12 @@
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 
 import anyio.abc
 
-from ..base import ComponentInteraction
 from .component import Component
+
+if TYPE_CHECKING:
+    from ..base import ComponentInteraction
+
 
 __all__ = ('ComponentHandler',)
 
@@ -27,7 +30,7 @@ class ComponentHandler:
 
     def handle_component(
         self,
-        interaction: ComponentInteraction,
+        interaction: 'ComponentInteraction',
         *,
         tg: anyio.abc.TaskGroup
     ) -> None:
