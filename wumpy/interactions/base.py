@@ -48,9 +48,9 @@ class ResolvedInteractionData:
     members: Dict[int, Dict[str, Any]]
 
     roles: Dict[int, Dict[str, Any]]
-    channels: Dict[int, Dict[str, Any]]
+    channels: Dict[int, InteractionChannel]
 
-    messages: Dict[int, InteractionChannel]
+    messages: Dict[int, Dict[str, Any]]
 
     __slots__ = ('users', 'members', 'roles', 'channels', 'messages')
 
