@@ -1,7 +1,7 @@
 import inspect
 from enum import Enum
 from typing import (
-    Any, AnyStr, ClassVar, Dict, List, Literal, Optional, Type, Union,
+    Any, AnyStr, ClassVar, Dict, List, Literal, Optional, Tuple, Type, Union,
     get_args, get_origin
 )
 
@@ -114,6 +114,35 @@ class OptionClass:
         if type is not MISSING:
             self.determine_type(type)
 
+    def determine_union(self, origin: Type[Union], args: Tuple[Any, ...]) -> bool:
+        """Determine the option type for a union.
+
+        This is called by `determine_type` when it receives a union type
+        because of the extra logic involved.
+
+        Args:
+            origin: The origin for the annotation (will always be Union).
+            args: The arguments that the Union was given.
+
+        Returns:
+            Whether the method could determine a type from the union.
+        """
+        # Optional[X] becomes Union[X, NoneType]. Flake8 thinks we should use
+        # isinstance() but that won't work (hence the noqa)
+        if len(args) == 2 and args[-1] == type(None):  # noqa: E721
+            self.required = False if self.required is MISSING else self.required
+
+            # Find the typing of X in Optional[X]
+            return self.determine_type(args[0])
+
+        elif len(args) == 2 and int in args and float in args:
+            # A union with int and float can just be interpreted as a float
+            # because a float doesn't need decimals.
+            self.type = ApplicationCommandOption.number
+            return True
+
+        return False
+
     def determine_type(self, annotation: Any) -> bool:
         """Determine the application command option type from an annotation.
 
@@ -163,13 +192,10 @@ class OptionClass:
         origin = get_origin(annotation)
         args = get_args(annotation)
 
-        # Optional[X] becomes Union[X, NoneType]. Flake8 thinks we should use
-        # isinstance() but that won't work (hence the noqa)
-        if origin is Union and len(args) == 2 and args[-1] == type(None):  # noqa: E721
-            self.required = False if self.required is MISSING else self.required
-
-            # Find the typing of X in Optional[X]
-            return self.determine_type(args[0])
+        if origin is Union:
+            # The union type has a lot of different and special behaviour
+            # that has been seperated into another method for readability.
+            return self.determine_union(origin, args)
 
         elif origin is Annotated:
             # Attempt to convert each argument until it is successful,
