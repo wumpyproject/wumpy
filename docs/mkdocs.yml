@@ -53,6 +53,7 @@ nav:
 
   - Reference:
     - Application commands: reference/interactions/commands.md
+    - Utils: reference/utils.md
 
 plugins:
   - search: {}

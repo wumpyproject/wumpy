@@ -79,11 +79,25 @@ class File:
 
 
 class Event:
-    """Subclass for events, meant to be read from annotations."""
+    """Parent class for events, meant to be read from annotations.
 
-    _name: ClassVar[str]
+    Subclasses should set the `name` class variable which is used when
+    dispatching and emitting events.
 
-    def __init__(self, data: Any) -> None:
+    To start using the event all you need to do is annotate a listener with
+    your subclass and it will automatically be registered with the name
+    specified in the class variable.
+
+    All arguments passed into the dispatch method will be forwarded to the
+    your subclass' `__init__()`.
+    """
+
+    name: ClassVar[str]
+
+    __slots__ = ()  # If subclasses want to use it
+
+    def __init__(self, *args: Any) -> None:
+        """Initializer called with arguments passed to the dispatch method."""
         raise NotImplementedError()
 
 
@@ -91,7 +105,13 @@ C = TypeVar('C', bound='Callable[[Event], Coroutine]')
 
 
 class EventDispatcher:
-    """Mixin to be able to dispatch events."""
+    """Mixin to be able to dispatch events.
+
+    Attributes:
+        listeners:
+            A dictionary of event names to a pair of event types and callback
+            associated with it
+    """
 
     listeners: Dict[str, List[Tuple[Type[Event], Callable[[Event], Coroutine]]]]
 
@@ -115,6 +135,13 @@ class EventDispatcher:
             tg.start_soon(callback, initializer(*args))
 
     def add_listener(self, callback: Callable[[Event], Coroutine]) -> None:
+        """Register and add a listener callback.
+
+        The event it listens for will be read from the callback's arguments.
+
+        Parameters:
+            callback: The callback to register as a listener
+        """
         signature = inspect.signature(callback)
 
         if len(signature.parameters) != 1:
@@ -127,20 +154,32 @@ class EventDispatcher:
         if not issubclass(annotation, Event):
             raise TypeError('Listener argument annotation should be a subclass of Event')
 
-        if annotation._name in self.listeners:
-            self.listeners[annotation._name].append((annotation, callback))
+        if annotation.name in self.listeners:
+            self.listeners[annotation.name].append((annotation, callback))
         else:
-            self.listeners[annotation._name] = [(annotation, callback)]
+            self.listeners[annotation.name] = [(annotation, callback)]
 
     @overload
-    def listener(self, func: C, /) -> C:
+    def listener(self, callback: C) -> C:
         ...
 
     @overload
     def listener(self) -> Callable[[C], C]:
         ...
 
-    def listener(self, callback: Optional[C] = None, /) -> Union[Callable[[C], C], C]:
+    def listener(self, callback: Optional[C] = None) -> Union[Callable[[C], C], C]:
+        """Decorator to register a listener.
+
+        This decorator works both with and without parenthesis.
+
+        Examples:
+
+            ```python
+            @app.listener()
+            async def event_listener(event: Event) -> None:
+                ...
+            ```
+        """
         def decorator(func: C) -> C:
             self.add_listener(func)
             return func
