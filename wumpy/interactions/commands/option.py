@@ -207,8 +207,6 @@ class OptionClass:
             self.choices = {str(value): value for value in args}
             return True
 
-        # This does not yet handle ForwardRefs, because it requires eval() with
-        # locals() and globals() of the function
         return False
 
     def update(self, param: inspect.Parameter) -> None:

@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import inspect
+import functools
 from typing import (
     Any, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional,
     Tuple, Type, TypeVar, Union, overload
@@ -32,6 +32,47 @@ import anyio.abc
 from typing_extensions import Final, final
 
 __all__ = ('MISSING', 'File', 'Event', 'EventDispatcher')
+
+
+def _eval_annotations(obj: Callable) -> Dict[str, Any]:
+    """Eval a callable's annotations.
+
+    This is primarily a backport of Python 3.10's `get_annotations()`
+    method implemented by Larry Hastings:
+    https://github.com/python/cpython/commit/74613a46fc79cacc88d3eae4105b12691cd4ba20
+
+    Parameters:
+        obj: The received callable to evaluate
+
+    Returns:
+        A dictionary of parameter name to its annotation.
+    """
+    unwrapped = obj
+    while True:
+        if hasattr(unwrapped, '__wrapped__'):
+            unwrapped = unwrapped.__wrapped__
+            continue
+        if isinstance(unwrapped, functools.partial):
+            unwrapped = unwrapped.func
+            continue
+        break
+
+    annotations = getattr(unwrapped, '__annotations__', None)
+    eval_globals = getattr(unwrapped, '__globals__', None)
+
+    if annotations is None or not annotations:
+        return {}
+
+    if not isinstance(annotations, dict):
+        raise ValueError(f'{unwrapped!r}.__annotations__ is neither a dict nor None')
+
+    try:
+        return {
+            key: value if not isinstance(value, str) else eval(value, eval_globals)
+            for key, value in annotations.items()
+        }
+    except (NameError, SyntaxError) as e:
+        raise ValueError(f'Could not evaluate the annotations of {unwrapped!r}') from e
 
 
 @final
@@ -142,14 +183,14 @@ class EventDispatcher:
         Parameters:
             callback: The callback to register as a listener
         """
-        signature = inspect.signature(callback)
+        annotations = _eval_annotations(callback)
 
-        if len(signature.parameters) != 1:
-            raise TypeError(f'Listener callback should have one argument, not {signature}')
+        if len(annotations) != 1:
+            raise TypeError(f'Listener callback should have one argument, not {len(annotations)}')
 
         # There should be one argument in the parameters, which means it is
         # safe for us to convert it to a list and grab the first item.
-        annotation = list(signature.parameters.values())[0].annotation
+        annotation = list(annotations.values())[0].annotation
 
         if not issubclass(annotation, Event):
             raise TypeError('Listener argument annotation should be a subclass of Event')

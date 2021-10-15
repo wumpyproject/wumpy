@@ -8,7 +8,7 @@ import anyio.abc
 from typing_extensions import ParamSpec
 
 from ...errors import CommandNotFound, CommandSetupError
-from ...utils import MISSING
+from ...utils import MISSING, _eval_annotations
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
@@ -61,6 +61,7 @@ class Subcommand(CommandCallback[P, RT]):
             self.description = doc
 
         signature = inspect.signature(function)
+        annotations = _eval_annotations(function)
 
         for param in signature.parameters.values():
             if issubclass(param.annotation, CommandInteraction):
@@ -72,7 +73,13 @@ class Subcommand(CommandCallback[P, RT]):
                 option = OptionClass()
 
             # Make the option aware of the parameter it is defined in
-            option.update(param)
+            option.update(
+                # The annotations dictionary may contain an evaluated version
+                # of the annotation as opposed to a string or ForwardRef
+                param.replace(
+                    annotation=annotations.get(param.name, param.annotation)
+                )
+            )
 
             self.options[option.name] = option
 
