@@ -22,7 +22,7 @@ def Option(
     required: bool = MISSING,
     choices: Dict[str, Union[str, int, float]] = MISSING,
     type: Type[Any] = MISSING,
-    cls: Type[Any] = MISSING
+    cls: Type[Any] = __option.OptionClass
 ) -> Any:
     """Interaction option, should be set as a default to a parameter.
 
@@ -51,10 +51,6 @@ def Option(
         `typing.Any`. This way this function can be used as a default without
         violating static type checkers.
     """
-    # Defaulting cls to a class doesn't render nicely in docs.
-    if cls is MISSING:
-        cls = __option.OptionClass
-
     return cls(
         default, name=name, description=description,
         required=required, choices=choices, type=type
