@@ -114,14 +114,13 @@ class OptionClass:
         if type is not MISSING:
             self.determine_type(type)
 
-    def determine_union(self, origin: Type[Union], args: Tuple[Any, ...]) -> bool:
+    def determine_union(self, args: Tuple[Any, ...]) -> bool:
         """Determine the option type for a union.
 
         This is called by `determine_type` when it receives a union type
         because of the extra logic involved.
 
         Args:
-            origin: The origin for the annotation (will always be Union).
             args: The arguments that the Union was given.
 
         Returns:
@@ -195,7 +194,7 @@ class OptionClass:
         if origin is Union:
             # The union type has a lot of different and special behaviour
             # that has been seperated into another method for readability.
-            return self.determine_union(origin, args)
+            return self.determine_union(args)
 
         elif origin is Annotated:
             # Attempt to convert each argument until it is successful,
