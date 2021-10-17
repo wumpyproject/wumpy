@@ -202,10 +202,22 @@ class OptionClass:
             # excluding the first argument (which is meant for editors).
             return any(self.determine_type(attempt) for attempt in args[1:])
 
-        elif origin is Literal and self.choices is MISSING:
-            # Discord wants a name and a value, for Literal we simply have to
-            # use the arguments for both
-            self.choices = {str(value): value for value in args}
+        elif origin is Literal and args:  # Make sure it isn't empty
+            if self.type is MISSING:
+                type_ = type(args[0])
+                for value in args:
+                    if not isinstance(value, type_):
+                        raise ValueError(
+                            f"Literal contains mixed types; expected '{type_}' not '{type(value)}'"
+                        )
+
+                self.determine_type(type_)
+
+            if self.choices is MISSING:
+                # Discord wants a name and a value, for Literal we simply have
+                # to use the arguments for both
+                self.choices = {str(value): value for value in args}
+
             return True
 
         return False
