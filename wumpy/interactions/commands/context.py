@@ -6,7 +6,7 @@ import anyio.abc
 from typing_extensions import ParamSpec
 
 from ...errors import CommandSetupError
-from ...models import InteractionUser
+from ...models import InteractionMember, InteractionUser
 from ...utils import MISSING
 from ..base import CommandInteraction
 from .base import Callback, CommandCallback
@@ -133,6 +133,8 @@ class UserCommand(ContextMenuCommand[P, RT]):
         # of differentiating between InteractionUser and InteractionMember
         if isinstance(self.argument, InteractionUser):
             target = interaction.resolved.users.get(interaction.target_id)
+        elif isinstance(self.argument, InteractionMember):
+            target = interaction.resolved.members.get(interaction.target_id)
         else:
             raise CommandSetupError("User command's second argument incorrectly annotated")
 

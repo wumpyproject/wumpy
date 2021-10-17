@@ -8,7 +8,7 @@ from typing import (
 from typing_extensions import Annotated
 
 from ...errors import CommandSetupError
-from ...models import InteractionChannel, InteractionUser
+from ...models import InteractionChannel, InteractionMember, InteractionUser
 from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
@@ -75,6 +75,7 @@ class OptionClass:
         float: ApplicationCommandOption.number,
         InteractionUser: ApplicationCommandOption.user,
         InteractionChannel: ApplicationCommandOption.channel,
+        InteractionMember: ApplicationCommandOption.user,
     }
 
     def __init__(
@@ -290,6 +291,8 @@ class OptionClass:
             value = interaction.resolved.users.get(int(value))
         elif self.type is ApplicationCommandOption.channel:
             value = interaction.resolved.channels.get(int(value))
+        elif self.type is ApplicationCommandOption.user:
+            value = interaction.resolved.members.get(int(value))
 
         # At this point `value` may be None from our lookups of the resolved
         # data

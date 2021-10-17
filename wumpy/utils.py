@@ -24,8 +24,8 @@ SOFTWARE.
 
 import functools
 from typing import (
-    Any, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional,
-    Tuple, Type, TypeVar, Union, overload
+    Any, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
+    Type, TypeVar, Union, overload
 )
 
 import anyio.abc

@@ -3,7 +3,8 @@ import json
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
 from ..models import (
-    AllowedMentions, InteractionChannel, InteractionUser, Object
+    AllowedMentions, InteractionChannel, InteractionMember, InteractionUser,
+    Object
 )
 from ..utils import MISSING
 from .components import ComponentList
@@ -45,7 +46,7 @@ class ResolvedInteractionData:
     """Asynchronously resolved data from Discord."""
 
     users: Dict[int, InteractionUser]
-    members: Dict[int, Dict[str, Any]]
+    members: Dict[int, InteractionMember]
 
     roles: Dict[int, Dict[str, Any]]
     channels: Dict[int, InteractionChannel]
@@ -55,8 +56,17 @@ class ResolvedInteractionData:
     __slots__ = ('users', 'members', 'roles', 'channels', 'messages')
 
     def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
-        self.users = {int(k): InteractionUser(rest, v) for k, v in data.get('users', {}).items()}
-        self.members = {int(k): v for k, v in data.get('members', {}).items()}
+        self.users = {}
+        self.members = {}
+
+        for id_, user in data.get('users', {}).items():
+            self.users[id_] = InteractionUser(rest, user)
+            member = data.get('members', {}).get(id_)
+            if member:
+                # Discord doesn't repeat the member information inside the
+                # member so we need to modify the dictionary (hence this loop)
+                member['user'] = user
+                self.members[id_] = InteractionMember(rest, 123, member)
 
         self.roles = {int(k): v for k, v in data.get('roles', {}).items()}
         self.channels = {int(k): InteractionChannel(v) for k, v in data.get('channels', {}).items()}
