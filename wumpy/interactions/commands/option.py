@@ -23,6 +23,53 @@ class CommandType(Enum):
     message = 3
 
 
+class OptionType:
+    """Base class for all option types.
+
+    Instances of this class hold no special behaviour and the value is just
+    passed through.
+
+    Attributes:
+        enum: The ApplicationCommandOption value of this type.
+    """
+
+    __slots__ = ('enum',)
+
+    def __init__(self, enum: ApplicationCommandOption) -> None:
+        self.enum = enum
+
+
+class MemberUserUnion(OptionType):
+    """Option type marker for Union[InteractionUser, InteractionMember].
+
+    This is used to mark special behaviour that will first attempt to grab the
+    member object, if not found it will grab the user object.
+    """
+
+    enum = ApplicationCommandOption.user
+
+    __slots__ = ()
+
+    def __init__(self) -> None:
+        return
+
+
+class FloatType(OptionType):
+    """Strict float type.
+
+    This is because Discord's equivalent `number` type includes both integers
+    and floats, which can cause unexpected user behaviour when just `float` is
+    used.
+    """
+
+    enum = ApplicationCommandOption.number
+
+    __slots__ = ()
+
+    def __init__(self) -> None:
+        return
+
+
 class OptionClass:
     """A user-constructed option to an application command.
 
@@ -48,7 +95,7 @@ class OptionClass:
             `determine_type()` when the parameter annotation is read.
     """
 
-    type: ApplicationCommandOption
+    type: OptionType
 
     name: str
     description: str
@@ -138,7 +185,11 @@ class OptionClass:
         elif len(args) == 2 and int in args and float in args:
             # A union with int and float can just be interpreted as a float
             # because a float doesn't need decimals.
-            self.type = ApplicationCommandOption.number
+            self.type = OptionType(ApplicationCommandOption.number)
+            return True
+
+        elif len(args) == 2 and InteractionUser in args and InteractionMember in args:
+            self.type = MemberUserUnion()
             return True
 
         return False
@@ -157,11 +208,11 @@ class OptionClass:
             Whether an application command type was able to be determined.
         """
         if isinstance(annotation, ApplicationCommandOption):
-            self.type = annotation
+            self.type = OptionType(annotation)
             return True
 
         try:
-            self.type = self.type_mapping[annotation]
+            self.type = OptionType(self.type_mapping[annotation])
             return True
         except KeyError:
             # It wasn't a primitive type we have in the mapping, continue down
@@ -176,8 +227,8 @@ class OptionClass:
                     if not issubclass(annotation, primitive):
                         continue
 
-                    self.type = self.type_mapping[primitive]
-                    break
+                    # The enum is a subclass of some other type
+                    self.determine_type(primitive)
 
             # We can use an enum's members as choices.
             if self.choices is MISSING:
@@ -273,12 +324,12 @@ class OptionClass:
         if data is None:
             if self.default is MISSING:
                 raise CommandSetupError(
-                    "Missing data for option '{self.param}' of command '{interaction.name}'"
+                    f"Missing data for option '{self.param}' of command '{interaction.name}'"
                 )
 
             return self.default
 
-        if data.type is not self.type:
+        if data.type is not self.type.enum:
             raise CommandSetupError(
                 f"'{self.param}' of '{interaction.name}' received option with wrong type"
             )
@@ -296,12 +347,25 @@ class OptionClass:
             except Exception as exc:
                 raise CommandSetupError('Could not convert argument:', value) from exc
 
+        if isinstance(self.type, FloatType):
+            # We need to make sure it really is a float
+            value = float(value)
+
         # Some options only pass IDs because Discord asynchronously resolves
         # the data for them, these are then passed in a special `resolved`
         # field that we need to look them up by.
-        if self.type is ApplicationCommandOption.user:
+        elif isinstance(self.type, MemberUserUnion):
+            # This has some special behaviour, we want to attempt to first get
+            # a member and fall back to a user.
+            resolved = interaction.resolved.members.get(int(value))
+            if not resolved:
+                resolved = interaction.resolved.users.get(int(value))
+
+            value = resolved
+
+        elif self.type.enum is ApplicationCommandOption.user:
             value = interaction.resolved.users.get(int(value))
-        elif self.type is ApplicationCommandOption.channel:
+        elif self.type.enum is ApplicationCommandOption.channel:
             value = interaction.resolved.channels.get(int(value))
         elif self.type is ApplicationCommandOption.user:
             value = interaction.resolved.members.get(int(value))
@@ -319,7 +383,7 @@ class OptionClass:
         """Turn the option into a dictionary to send to Discord."""
         data = {
             'name': self.name,
-            'type': self.type.value,
+            'type': self.type.enum.value,
             'description': self.description,
             'required': self.required,
         }
