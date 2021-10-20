@@ -21,6 +21,8 @@ def Option(
     description: str = MISSING,
     required: bool = MISSING,
     choices: Dict[str, Union[str, int, float]] = MISSING,
+    min: int = MISSING,
+    max: int = MISSING,
     type: Type[Any] = MISSING,
     cls: Type[Any] = __option.OptionClass
 ) -> Any:
@@ -41,6 +43,8 @@ def Option(
             Whether the option can be omitted. If a default is passed this is
             automatically set implicitly.
         choices: Set choices that the user can pick from in the Discord client.
+        min: Smallest number that can be entered for number types.
+        max: Biggest number that can be entered for number types.
         type:
             The type of the option, overriding the annotation. This can be
             a `ApplicationCommandOption` value or any type.
@@ -65,6 +69,8 @@ def option(
     description: str = MISSING,
     required: bool = MISSING,
     choices: Dict[str, Union[str, int, float]] = MISSING,
+    min: int = MISSING,
+    max: int = MISSING,
     type: Type[Any] = MISSING
 ) -> Callable[[T], T]:
     """Option decorator for updating an option.
@@ -77,6 +83,8 @@ def option(
         description: The new description of the option.
         required: Whether the option should be able to be omitted.
         choices: Set choices that the user needs to pick from.
+        min: Smallest number that can be entered for number types.
+        max: Biggest number that can be entered for number types.
         type: New type of the option, overriding the annotation.
 
     Exceptions:
@@ -92,7 +100,7 @@ def option(
 
         command.update_option(
             param, name=name, description=description,
-            required=required, choices=choices, type=type
+            required=required, choices=choices, min=min, max=max, type=type
         )
 
         # Return the command again for chaining.

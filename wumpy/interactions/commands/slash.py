@@ -121,6 +121,8 @@ class Subcommand(CommandCallback[P, RT]):
         description: str = MISSING,
         required: bool = MISSING,
         choices: Dict[str, Union[str, int, float]] = MISSING,
+        min: int = MISSING,
+        max: int = MISSING,
         type: ApplicationCommandOption = MISSING
     ) -> None:
         """Update values of a slash command's options.
@@ -133,6 +135,8 @@ class Subcommand(CommandCallback[P, RT]):
             description: The new description of the option.
             required: Whether the option can be omitted.
             choices: Strict set of choices that the user needs to pick from.
+            min: Smallest number that can be entered for number types
+            max: Biggest number that can be entered for number types
             type: New application command option type to use.
 
         Exceptions:
@@ -159,6 +163,12 @@ class Subcommand(CommandCallback[P, RT]):
 
         if choices is not MISSING:
             option.choices = choices
+
+        if min is not MISSING:
+            option.min = min
+
+        if max is not MISSING:
+            option.max = max
 
     def to_dict(self) -> Dict[str, Any]:
         """Turn the subcommand into a payload to send to Discord."""

@@ -85,6 +85,8 @@ class OptionClass:
         description: A description of the option.
         required: Whether the option can be omitted.
         choices: Strict choices that the user can pick from.
+        min: Smallest number that can be entered for number types
+        max: Biggest number that can be entered for number types
         default: Default the library will use when the option is omitted.
         converter: Simple callable mainly used for enums.
         param: The name of the parameter in the callback.
@@ -102,6 +104,9 @@ class OptionClass:
     required: bool
     choices: Dict[str, Union[str, int, float]]  # Name of the choice to the value
 
+    min: int
+    max: int
+
     default: Any
     converter: Any  # Simple callable, used for enums to convert the argument
 
@@ -110,7 +115,8 @@ class OptionClass:
 
     __slots__ = (
         'default', 'name', 'description', 'required',
-        'choices', 'type', 'converter', 'param', 'kind'
+        'choices', 'type', 'converter', 'param', 'kind',
+        'min', 'max'
     )
 
     # Mapping of primitive types to their equivalent ApplicationCommandOption
@@ -135,6 +141,8 @@ class OptionClass:
         # This isn't very readable, but it means a list or dictionary of
         # strings, integers or floats.
         choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
+        min: int = MISSING,
+        max: int = MISSING,
         type: Type[Any] = MISSING
     ) -> None:
         self.name = name
@@ -151,6 +159,9 @@ class OptionClass:
             choices = {str(value): value for value in choices}
 
         self.choices = choices
+
+        self.min = min
+        self.max = max
 
         self.default = default
         self.converter = MISSING
@@ -394,5 +405,11 @@ class OptionClass:
             # keys so we need to convert it.
             choices = [{'name': k, 'value': v} for k, v in self.choices.items()]
             data['choices'] = choices
+
+        if self.min is not MISSING:
+            data['min_value'] = self.min
+
+        if self.max is not MISSING:
+            data['max_value'] = self.max
 
         return data
