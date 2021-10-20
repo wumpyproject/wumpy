@@ -13,7 +13,7 @@ from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
 from .base import Callback, CommandCallback
-from .option import CommandType, OptionClass
+from .option import CommandType, OptionClass, OptionType
 
 __all__ = ('Subcommand', 'SubcommandGroup', 'SlashCommand')
 
@@ -150,7 +150,7 @@ class Subcommand(CommandCallback[P, RT]):
         option = found[0]
 
         if type is not MISSING:
-            option.type = type
+            option.type = OptionType(type)
 
         if name is not MISSING:
             option.name = name
