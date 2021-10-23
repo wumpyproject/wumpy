@@ -111,21 +111,6 @@ class ConnectionClosed(WumpyException):
     pass
 
 
-class ReconnectWebsocket(ConnectionClosed):
-    """Exception raised when the WebSocket was closed and should be reconnected.
-
-    `resume` is an attribute indicating whether to RESUME or IDENTIFY after the
-    reconnection.
-    """
-
-    resume: bool
-
-    def __init__(self, resume: bool, *args) -> None:
-        super().__init__(*args)
-
-        self.resume = resume
-
-
 class CommandException(WumpyException):
     """Parent for all exceptions raised regarding command handlers."""
     pass

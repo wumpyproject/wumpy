@@ -1,36 +1,15 @@
-import enum
-import json
-import zlib
+from collections import deque
+from contextlib import asynccontextmanager
 from sys import platform
-from typing import Any, Callable, Dict, Literal, Optional, SupportsInt
+from typing import Any, AsyncGenerator, Dict, Literal, Optional, Tuple
 
-import aiohttp
 import anyio
-from typing_extensions import Protocol
+import anyio.streams.tls
+from discord_gateway import DiscordConnection, CloseDiscordConnection, ConnectionRejected
 
-from ..errors import ConnectionClosed, ReconnectWebsocket
+from ..errors import ConnectionClosed
 
-__all__ = ('IdentifyLock', 'Connection', 'Shard')
-
-
-class ZlibDecompressor(Protocol):
-    def __init__(self) -> None: ...
-
-    def decompress(self, data: bytes, max_length=0) -> bytes: ...
-
-
-class Opcode(enum.IntEnum):
-    DISPATCH = 0
-    HEARTBEAT = 1
-    IDENTIFY = 2
-    PRESENCE_UPDATE = 3
-    VOICE_STATE_UPDATE = 4
-    RESUME = 6
-    RECONNECT = 7
-    REQUEST_GUILD_MEMBERS = 8
-    INVALID_SESSION = 9
-    HELLO = 10
-    HEARTBEAT_ACK = 11
+__all__ = ('IdentifyLock', 'DiscordGateway')
 
 
 class IdentifyLock(anyio.Semaphore):
@@ -52,231 +31,135 @@ class IdentifyLock(anyio.Semaphore):
         return  # We release the lock automatically
 
 
-class Connection:
-    """WebSocket connection to Discord."""
+class DiscordGateway:
+    """Default implementation of the Discord gateway.
 
-    token: str
-    intents: int
+    Behind the scenes this uses `discord-gateway` to handle the protocol.
+    """
 
-    ws: Optional[aiohttp.ClientWebSocketResponse]
-    heartbeater: Optional[asyncio.Task]
+    def __init__(self, conn: DiscordConnection, sock: anyio.streams.tls.TLSStream) -> None:
+        self._conn = conn
+        self._sock = sock
 
-    decompressor: ZlibDecompressor
-    identify_semaphore: Optional[asyncio.Semaphore]
+        self.events = deque()
 
-    session_id: str
-    heartbeat_interval: int
-    sequence: int
+    def __aiter__(self) -> 'DiscordGateway':
+        return self
 
-    __slots__ = (
-        'token', 'intents', 'ws', 'heartbeater', 'buffer',
-        'decompressor', 'identify_lock', 'session_id', 'heartbeat_interval',
-        'heartbeat_ack', 'sequence'
-    )
-
-    def __init__(
-        self,
-        token: str,
-        intents: SupportsInt,
-        identify_lock: IdentifyLock,
+    @classmethod
+    async def _connect_websocket(
+        cls,
+        uri: str,
+        token: Optional[str] = None,
+        intents: Optional[int] = None,
         *,
-        zlib_decompressor: Callable[[], ZlibDecompressor] = zlib.decompressobj
-    ) -> None:
-        self.token = token
-        self.intents = int(intents)
+        conn: Optional[DiscordConnection] = None
+    ) -> Tuple[DiscordConnection, anyio.streams.tls.TLSStream]:
+        """Connect and completely initialize the connection to Discord.
 
-        self.ws = None
-        self.heartbeater = None
+        This method is also used when needing to reconnect after having
+        disconnected.
 
-        self.buffer = bytearray()
-        self.decompressor = zlib_decompressor()
-        self.identify_lock = identify_lock
+        Parameters:
+            uri: The URI to connect to.
+            conn: The (potentially) old connection to reconnect.
 
-        self.session_id = ''
-        self.heartbeat_interval = -1
-        self.heartbeat_ack = True
-        self.sequence = 0
-
-    async def send(self, data: Dict[str, Any]) -> None:
-        """Send data to the Discord gateway, respecting rate limits."""
-        if self.ws is None:
-            raise RuntimeError("WebSocket not yet running")
-
-        return await self.ws.send_json(data)
-
-    async def receive(self, *, timeout: Optional[float] = None) -> Dict[str, Any]:
-        """Wait to receive a message from the WebSocket."""
-        if self.ws is None:
-            raise RuntimeError("WebSocket not yet running")
-
-        while True:
-            # Loop until we resolve a complete message
-            msg = await self.ws.receive(timeout=timeout)
-            if msg.type is aiohttp.WSMsgType.BINARY:
-                self.buffer.extend(msg.data)
-
-                # Check if this the end of the ZLIB event
-                if len(msg.data) < 4 or msg.data[-4:] != b'\x00\x00\xff\xff':
-                    continue
-
-                data = self.decompressor.decompress(self.buffer)
-                self.buffer = bytearray()
-                return json.loads(data)
-
-            elif msg.type is aiohttp.WSMsgType.TEXT:
-                return json.loads(msg.data)
-
-            elif msg.type is aiohttp.WSMsgType.ERROR:
-                raise ConnectionClosed(
-                    f"WebSocket closed with an error: {msg.data}"
-                )
-
-            else:
-                # msg.type is CLOSE, CLOSING, or CLOSED
-                raise ReconnectWebsocket(False)
-
-    async def heartbeat(self) -> None:
-        """Send a heartbeat to the Discord gateway."""
-        await self.send({'op': Opcode.HEARTBEAT, 'd': self.sequence})
-        self.sequence += 1
-
-    async def start_heartbeating(self) -> None:
-        """Start a loop sending heartbeat requests."""
-        if not self.ws:
-            raise RuntimeError("WebSocket not yet running")
-
-        while True:
-            if not self.heartbeat_ack:
-                # Our last heartbeat wasn't acknowledged
-                await self.ws.close(code=1006)  # Abnormal closure
-                raise ReconnectWebsocket(True)
-
-            await self.heartbeat()
-            await anyio.sleep(self.heartbeat_interval)
-
-    async def identify(self, extra: Dict[str, Any] = {}) -> None:
-        """Identify to the Discord gateway.
-
-        `extra` is a dict that will be called with `dict.update()`.
+        Raises:
+            ConnectionRejected:
+                Raised by discord_gateway if Discord rejects the connection.
         """
-        if self.identify_lock is None:
-            raise RuntimeError("'identify()' called before WebSocket was connected")
+        if conn is None:
+            conn = DiscordConnection(uri, encoding='json', compress='zlib-stream')
 
-        async with self.identify_lock:
-            data = {
-                'token': self.token,
-                'properties': {
+        sock = await anyio.connect_tcp(*conn.destination, tls=True)
+
+        # Upgrade the connection to a WebSocket connection using a formatted
+        # HTTP 1.1 request
+        await sock.send(conn.connect())
+
+        # Loop until we get the first HELLO event from Discord, we don't
+        # want this event to be dispatched and we need to manually IDENTIFY
+        # afterwards.
+        event = None
+        while event is None:
+            for event in conn.events():
+                # This won't run at all if there are no events, what ends
+                # up happening is that we let the code below communicate
+                # until we get a complete HELLO event.
+                break
+
+            try:
+                for send in conn.receive(await sock.receive()):
+                    await sock.send(send)
+            except ConnectionRejected as err:
+                raise ConnectionClosed('Discord rejected the WebSocket connection') from err
+            except anyio.EndOfStream:
+                # We haven't even received a HELLO event and sent a RESUME or
+                # IDENTIFY command yet, odd.
+                raise ConnectionClosed('Discord unexpectedly closed the socket')
+
+        if conn.should_resume:
+            await sock.send(conn.resume())
+        else:
+            await sock.send(conn.identify(
+                token=token,
+                intents=intents,
+                proporties={
                     '$os': platform,
                     '$browser': 'Wumpy',
                     '$device': 'Wumpy'
                 },
-                'intents': self.intents
-            }
-            data.update(extra)
+            ))
 
-            await self.send({'op': Opcode.IDENTIFY, 'd': data})
+        return conn, sock
 
-    async def resume(self) -> None:
-        """Attempt to resume the connection to Discord.
+    async def __anext__(self) -> Dict[str, Any]:
+        while True:
+            # The order here matters, first we want to check if there is an
+            # event in the "buffer" so that we don't wait for data if we
+            # already have it. The reason for this is because of the loop
+            # necessary below, where multiple events can get added into this
+            # "buffer" and cause desync issues.
+            if self.events:
+                return self.events.popleft()
 
-        This will then cause the gateway to replay all the events missed since
-        the last heartbeat exchanged and finish with a RESUMED opcode.
-        """
-        await self.send({
-            'op': Opcode.RESUME,
-            'd': {
-                'token': self.token,
-                'session_id': self.session_id,
-                'seq': self.sequence
-            }
-        })
+            try:
+                for send in self._conn.receive(await self._sock.receive()):
+                    await self._sock.send(send)
+            except CloseDiscordConnection as err:
+                # There are a few reasons why discord-gateway wants us to
+                # reconnect, either Discord sent an event telling us to do it
+                # or they didn't acknowledge a heartbeat
+                await self._sock.send(err.data)
+                await self._sock.aclose()
 
-    async def connect(self, response: aiohttp.ClientWebSocketResponse) -> None:
-        """Start the WebSocket and make the initial handshake.
-
-        This consists of waiting for an HELLO opcode, starting the heartbeater
-        and then sending an IDENTIFY request.
-        """
-        self.ws = response
-
-        hello = await self.receive()
-
-        if hello['op'] != Opcode.HELLO:
-            raise RuntimeError(f"Expected opcode HELLO ({Opcode.HELLO}) received {hello}")
-
-        # Discord sends the interval in ms
-        self.heartbeat_interval = hello['d']['heartbeat_interval'] / 1000
-        self.heartbeater = asyncio.get_running_loop().create_task(self.start_heartbeating())
-
-        await self.identify()
-
-    async def poll_gateway(self) -> Dict[str, Any]:
-        """Poll the gateway for another event.
-
-        This will wait up to 60 seconds per packet (in the case that the
-        event is split over multiple).
-        """
-        if self.ws is None or self.heartbeater is None:
-            raise RuntimeError("attempted to poll gateway before WebSocket started")
-
-        try:
-            while True:
-                event = await self.receive(timeout=60)
-                if event is None:
-                    return event
-
-                if event['op'] == Opcode.HEARTBEAT_ACK:
-                    self.heartbeat_ack = True
-                    continue
-
-                elif event['op'] == Opcode.HEARTBEAT:
-                    await self.heartbeat()
-                    continue
-
-                elif event['op'] == Opcode.DISPATCH and event['t'] == 'READY':
-                    self.session_id = event['d']['session_id']
-                    # No continue as we still want to return the event
-
-                return event
-
-        except asyncio.TimeoutError:
-            # The receive() call timed out, this means that Discord did not
-            # even send a HEARTBEAT_ACK within sufficient time. The Discord
-            # documentation recommend terminating the connection, reconnecting
-            # and sending a RESUME command.
-            self.heartbeater.cancel()
-            await self.ws.close(code=1006)  # Abnormal closure
-
-            if self.ws.close_code in {1000, 4004, 4010, 4011, 4012, 4013, 4014}:
-                raise ConnectionClosed(
-                    f'WebSocket closed with error code {self.ws.close_code}'
+                self._conn, self._sock = await self._connect_websocket(
+                    self._conn.uri, conn=self._conn
                 )
 
-            raise ReconnectWebsocket(True)
+            except anyio.EndOfStream:
+                # This should not happen, generally the case above will happen
+                # and we then respond to the closure. This error means that the
+                # socket was closed without actually closing the WebSocket..
+                # either way we can handle this normally
+                await self._sock.aclose()
 
+                self._conn, self._sock = await self._connect_websocket(
+                    self._conn.uri, conn=self._conn
+                )
 
-class Shard(Connection):
-    """Shard connection to the Discord gateway.
+            for event in self._conn.events():
+                self.events.append(event)
 
-    This is not much different from a Connection, it just simply passes
-    the necessary `shard` property when sending the IDENTIFY command.
-    """
-
-    def __init__(
-        self,
+    @classmethod
+    @asynccontextmanager
+    async def connect(
+        cls,
+        uri: str,
         token: str,
-        intents: SupportsInt,
-        identify_lock: IdentifyLock,
-        shard: int,
-        num_shards: int,
-        *,
-        zlib_decompressor: Callable[[], ZlibDecompressor] = zlib.decompressobj
-    ) -> None:
-        super().__init__(token, intents, identify_lock, zlib_decompressor=zlib_decompressor)
-
-        self.shard_id = [shard, num_shards]
-
-    async def identify(self, extra: Dict[str, Any] = {}) -> None:
-        data = {'shard': self.shard_id}
-        data.update(extra)
-        await super().identify(data)
+        intents: int
+    ) -> AsyncGenerator['DiscordGateway', None]:
+        # We don't use the ability to have this as a context manager because
+        # we need to fluently reconnect the socket, but it is part of the
+        # specification for those who want to and need it.
+        yield cls(*await cls._connect_websocket(uri, token, intents))
