@@ -31,7 +31,24 @@ from typing import (
 import anyio.abc
 from typing_extensions import Final, final
 
-__all__ = ('MISSING', 'File', 'Event', 'EventDispatcher')
+__all__ = ('dump_json', 'load_json', 'MISSING', 'File', 'Event', 'EventDispatcher')
+
+
+try:
+    import orjson
+
+    def orjson_dump(obj: Any) -> str:
+        # orjson returns bytes but aiohttp expects a string
+        return orjson.dumps(obj).decode('utf-8')
+
+    dump_json = orjson_dump
+    load_json = orjson.loads
+
+except ImportError:
+    import json
+
+    dump_json = json.dumps
+    load_json = json.loads
 
 
 def _eval_annotations(obj: Callable) -> Dict[str, Any]:

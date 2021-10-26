@@ -34,27 +34,13 @@ import anyio
 from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
 )
-from ..utils import MISSING
+from ..utils import MISSING, load_json, dump_json
 from .locks import RateLimit
 from .ratelimiter import DictRateLimiter, RateLimiter, Route
 
-try:
-    import orjson
-
-    def orjson_dump(obj: Any) -> str:
-        # orjson returns bytes but aiohttp expects a string
-        return orjson.dumps(obj).decode('utf-8')
-
-    dump = orjson_dump
-    load = orjson.loads
-
-except ImportError:
-    import json
-
-    dump = json.dumps
-    load = json.loads
-
 __all__ = ('build_user_agent', 'Requester')
+
+
 
 
 def build_user_agent() -> str:
