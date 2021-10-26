@@ -163,7 +163,7 @@ class DictRateLimiter:
         """Get `key` from the mapping, if it isn't found initialize a RateLimit in its place."""
         lock = mapping.get(key)
         if not lock:
-            lock = RateLimit(self.global_event)
+            lock = RateLimit()
             mapping[key] = lock
 
         return lock
