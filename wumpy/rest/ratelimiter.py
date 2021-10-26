@@ -28,7 +28,6 @@ from typing import Dict, MutableMapping, Optional, Union
 from urllib.parse import quote as urlquote
 from weakref import WeakValueDictionary
 
-import anyio
 from typing_extensions import Protocol
 
 from ..models.base import Snowflake
