@@ -96,13 +96,16 @@ class RateLimiter(Protocol):
 
     def __init__(self) -> None: ...
 
-    def get(self, route: Route) -> RateLimit:
+    async def get(self, route: Route) -> RateLimit:
         """Get a lock by the route about to be made a request towards.
 
         The implementation of this function should handle several endpoints
         having the same X-RateLimit-Bucket, after the request is made the
         `update()` method will be called with the X-RateLimit-Bucket header so
         that the ratelimiter has a chance to fill this cache.
+
+        The reason this method is asynchronous is that it should also handle
+        the global rate limit.
         """
         ...
 
@@ -168,8 +171,10 @@ class DictRateLimiter:
 
         return lock
 
-    def get(self, route: Route) -> RateLimit:
+    async def get(self, route: Route) -> RateLimit:
         """Get a lock by the route about to be made a request towards."""
+        await self.global_event.wait()
+
         bucket = self.buckets.get(route.endpoint)
         if not bucket:
             # Fallback until we get X-RateLimit-Bucket information in update()
