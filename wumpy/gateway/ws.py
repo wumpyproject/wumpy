@@ -4,6 +4,7 @@ from sys import platform
 from typing import Any, AsyncGenerator, Dict, Literal, Optional, Tuple
 
 import anyio
+import anyio.abc
 import anyio.streams.tls
 from discord_gateway import DiscordConnection, CloseDiscordConnection, ConnectionRejected
 
@@ -40,6 +41,7 @@ class DiscordGateway:
     def __init__(self, conn: DiscordConnection, sock: anyio.streams.tls.TLSStream) -> None:
         self._conn = conn
         self._sock = sock
+        self._write_lock = anyio.Lock()
 
         self.events = deque()
 
@@ -124,32 +126,56 @@ class DiscordGateway:
                 return self.events.popleft()
 
             try:
-                for send in self._conn.receive(await self._sock.receive()):
-                    await self._sock.send(send)
-            except CloseDiscordConnection as err:
-                # There are a few reasons why discord-gateway wants us to
-                # reconnect, either Discord sent an event telling us to do it
-                # or they didn't acknowledge a heartbeat
-                await self._sock.send(err.data)
-                await self._sock.aclose()
-
-                self._conn, self._sock = await self._connect_websocket(
-                    self._conn.uri, conn=self._conn
-                )
-
+                data = await self._sock.receive()
             except anyio.EndOfStream:
-                # This should not happen, generally the case above will happen
+                # This should not happen, generally discord-gateway will raise
                 # and we then respond to the closure. This error means that the
                 # socket was closed without actually closing the WebSocket..
                 # either way we can handle this normally
-                await self._sock.aclose()
 
-                self._conn, self._sock = await self._connect_websocket(
-                    self._conn.uri, conn=self._conn
-                )
+                # Hold the lock while reconnecting so that the heartbeater
+                # doesn't attempt to heartbeat while this is happening
+                async with self._write_lock:
+                    await self._sock.aclose()
+
+                    self._conn, self._sock = await self._connect_websocket(
+                        self._conn.uri, conn=self._conn
+                    )
+                    # The data variable isn't defined so we can't run the code
+                    # below, skip to the top of the loop and try again.
+                    continue
+
+            # The write lock is held during the entire sending and potential
+            # reconnecting so that there isn't a race condition where the
+            # heartbeater grabs the lock between sending and reconnecting.
+            async with self._write_lock:
+                try:
+                    for send in self._conn.receive(data):
+                        await self._sock.send(send)
+                except CloseDiscordConnection as err:
+                    # There are a few reasons why discord-gateway wants us to
+                    # reconnect, either Discord sent an event telling us to do
+                    # it or they didn't acknowledge a heartbeat
+
+                    await self._sock.send(err.data)
+                    await self._sock.aclose()
+
+                    self._conn, self._sock = await self._connect_websocket(
+                        self._conn.uri, conn=self._conn
+                    )
 
             for event in self._conn.events():
                 self.events.append(event)
+
+    async def run_heartbeater(self):
+        """Run the heartbeater periodically sending commands to Discord."""
+        while True:
+            # Attempt to acquire the write lock, this is held when reconnecting
+            # so that there are no race conditions
+            async with self._write_lock:
+                await self._sock.send(self._conn.heartbeat())
+
+            await anyio.sleep(self._conn.heartbeat_interval)
 
     @classmethod
     @asynccontextmanager
@@ -159,7 +185,13 @@ class DiscordGateway:
         token: str,
         intents: int
     ) -> AsyncGenerator['DiscordGateway', None]:
-        # We don't use the ability to have this as a context manager because
-        # we need to fluently reconnect the socket, but it is part of the
-        # specification for those who want to and need it.
-        yield cls(*await cls._connect_websocket(uri, token, intents))
+        async with anyio.create_task_group() as tg:
+            self = cls(*await cls._connect_websocket(uri, token, intents))
+            tg.start_soon(self.run_heartbeater)
+
+            yield self
+
+            # For some reason we are now exiting the context manager
+            # so we need to cancel the heartbeater or else it will block
+            # forever since it is an infinite loop.
+            tg.cancel_scope.cancel()
