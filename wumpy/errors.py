@@ -24,7 +24,7 @@ SOFTWARE.
 
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
-from aiohttp import ClientResponse
+from httpx import Response
 
 if TYPE_CHECKING:
     from .interactions.base import CommandInteraction
@@ -56,17 +56,17 @@ class HTTPException(WumpyException):
     pass
 
 
-class RequestException(WumpyException):
+class RequestException(HTTPException):
     """Exception subclassed by exceptions relating to failed requests."""
 
-    response: ClientResponse
+    response: Response
     data: Union[str, Dict, None]
 
     errors: Optional[Dict[str, Any]]
     message: str
     code: int
 
-    def __init__(self, response: ClientResponse, data: Union[str, Dict, None] = None) -> None:
+    def __init__(self, response: Response, data: Union[str, Dict, None] = None) -> None:
         if isinstance(data, dict):
             message = data.get('message', '')
             code = data.get('code', 0)
@@ -85,8 +85,8 @@ class RequestException(WumpyException):
         self.code = code
 
         super().__init__(
-            '{0.status} {0.reason} (Discord error code: {1})'.format(
-                self.response, self.code
+            '{0.status_code} {0.reason_phrase} (Discord error code: {1}) {2}'.format(
+                self.response, self.code, self.message
             )
         )
 

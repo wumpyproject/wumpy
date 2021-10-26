@@ -22,14 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import asyncio
 import sys
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from types import TracebackType
+from typing import Any, Callable, Coroutine, Dict, Optional, Type, TypeVar, Union
 from urllib.parse import quote as urlquote
 
-import aiohttp
+import httpx
 import anyio
+import anyio.abc
 
 from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
@@ -41,6 +42,7 @@ from .ratelimiter import DictRateLimiter, RateLimiter, Route
 __all__ = ('build_user_agent', 'Requester')
 
 
+SELF = TypeVar('SELF', bound='Requester')
 
 
 def build_user_agent() -> str:
@@ -51,6 +53,20 @@ def build_user_agent() -> str:
     agent += f' Python/{sys.version_info[0]}.{sys.version_info[1]}'
 
     return agent
+
+
+def releaser(delay: Union[int, float], callback: Callable) -> Callable[[], Coroutine]:
+    """Coroutine function factory for sleeping and then call the callback."""
+    async def inner(task_status: anyio.abc.TaskStatus = anyio.TASK_STATUS_IGNORED):
+        task_status.started()
+        try:
+            await anyio.sleep(delay)
+        finally:
+            # The sleep could be cancelled and raise an exception, no matter
+            # what we should call the callback and cleanup as to not leave
+            # things in an invalid state.
+            callback()
+    return inner
 
 
 class Requester:
@@ -64,9 +80,9 @@ class Requester:
 
     ratelimiter: RateLimiter
 
-    _session: aiohttp.ClientSession
+    _session: httpx.AsyncClient
 
-    __slots__ = ('headers', 'ratelimiter', '_session')
+    __slots__ = ('headers', 'ratelimiter', '_session', '_tasks')
 
     def __init__(self, ratelimiter=DictRateLimiter, *, headers: Dict[str, str] = {}) -> None:
         # Headers global to the requester
@@ -77,7 +93,27 @@ class Requester:
         }
 
         self.ratelimiter = ratelimiter()
-        self._session = aiohttp.ClientSession(headers=self.headers, json_serialize=dump)
+
+    async def __aenter__(self: SELF) -> SELF:
+        self._tasks = await anyio.create_task_group().__aenter__()
+        self._session = await httpx.AsyncClient(http2=True).__aenter__()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        traceback: Optional[TracebackType]
+    ) -> None:
+        await self._session.__aexit__(exc_type, exc_val, traceback)
+        await self._tasks.__aexit__(exc_type, exc_val, traceback)
+
+    @property
+    def session(self) -> httpx.AsyncClient:
+        if not hasattr(self, '_session'):
+            raise RuntimeError("'session' attribute accessed before connection opened")
+
+        return self._session
 
     @staticmethod
     def _clean_dict(mapping: Dict[Any, Any]) -> Dict[Any, Any]:
@@ -107,67 +143,78 @@ class Requester:
         headers: Dict[str, str],
         ratelimit: RateLimit,
         attempt: int,
-        **params: Any
+        *,
+        json: Optional[Any] = None,
+        data: Optional[Dict] = None,
     ) -> Optional[Any]:
         """Attempt to actually make the request.
 
         None is returned if the request got a bad response which was handled
         and the function should be called again to retry.
         """
-        async with self._session.request(route.method, route.url, headers=headers, **params) as res:
-            text = await res.text(encoding='utf-8')
-            if res.headers.get('Content-Type') == 'application/json':
-                # Parse the response
-                data = load(text)
-            else:
-                data = text
+        content = dump_json(json) if json is not None else None
 
-            # Update rate limit information if we have received it
-            self.ratelimiter.update(route, res.headers.get('X-RateLimit-Bucket'))
+        res = await self.session.request(
+            route.method, route.url,
+            headers={'Content-Type': 'application/json', **headers},
+            content=content, data=data
+        )
 
-            if res.headers.get('X-RateLimit-Remaining') == '0':
-                ratelimit.defer()
+        # Update rate limit information if we have received it
+        self.ratelimiter.update(route, res.headers.get('X-RateLimit-Bucket'))
 
-                reset = datetime.fromtimestamp(float(res.headers['X-Ratelimit-Reset']), timezone.utc)
-                # Release later when the ratelimit reset
-                asyncio.get_running_loop().call_later(
-                    (reset - datetime.now(timezone.utc)).total_seconds(),
-                    ratelimit.release
-                )
+        if res.headers.get('X-RateLimit-Remaining') == '0':
+            ratelimit.defer()
 
-            # Successful request
-            if 300 > res.status >= 200:
-                return data
+            reset = datetime.fromtimestamp(float(res.headers['X-Ratelimit-Reset']), timezone.utc)
+            # Release later when the ratelimit resets
+            self._tasks.start_soon(releaser(
+                (reset - datetime.now(timezone.utc)).total_seconds(),
+                ratelimit.release
+            ))
 
-            # In all of the following error cases the response should be JSON,
-            # this if-statement is if that isn't the case
-            if not isinstance(data, dict):
-                raise HTTPException(f'Unknwon response {res.status} {res.reason}:', data)
+        # No need to read the body for the following responses
+        if res.status_code in {500, 502, 504}:
+            await anyio.sleep(1 + attempt * 2)
+            return None
 
-            # We're being ratelimited by Discord
-            if res.status == 429:
-                # Returning None will cause the function to try again
-                return await self._handle_ratelimit(data)
+        elif res.status_code == 403:
+            raise Forbidden(res, data)
+        elif res.status_code == 404:
+            raise NotFound(res, data)
+        elif res.status_code == 503:
+            raise ServerException(res, data)
 
-            elif res.status in {500, 502, 504}:
-                # Unconditionally sleep and retry
-                await anyio.sleep(1 + attempt * 2)
-                return None
+        # The status code is now either 300> or >= 200 or 429
+        text = (await res.aread()).decode(encoding='utf-8')
 
-            elif res.status == 403:
-                raise Forbidden(res, data)
-            elif res.status == 404:
-                raise NotFound(res, data)
-            elif res.status == 503:
-                raise ServerException(res, data)
-            else:
-                raise RequestException(res, data)
+        if res.headers.get('Content-Type') == 'application/json':
+            body = load_json(text)
+        else:
+            body = text
+
+        # Successful request
+        if 300 > res.status_code >= 200:
+            return body
+
+        # Discord should be responding with a JSON body on a 429 response
+        if not isinstance(data, dict):
+            raise HTTPException(
+                f'Unknown response {res.status_code} {res.reason_phrase}:', data
+            )
+
+        # We're being ratelimited by Discord
+        if res.status_code == 429:
+            # Returning None will cause the function to try again
+            return await self._handle_ratelimit(data)
+
+        raise RequestException(res, data)
 
     async def request(self, route: Route, *, reason: str = MISSING, **kwargs: Any) -> Any:
         """Make a request to the Discord API, respecting rate limits.
 
         If the `json` keyword-argument contains values that are MISSING,
-        they will be removed before being passed to aiohttp.
+        they will be removed before being passed to HTTPx.
 
         This function returns a deserialized JSON object if Content-Type is
         `application/json`, otherwise a string. Commonly it is known by the
@@ -222,25 +269,19 @@ class Requester:
         Commonly to a CDN endpoint, that does not have ratelimits and needs to
         read the bytes.
         """
-        async with self._session.request(method, url, *args, **kwargs) as res:
-            if res.status == 200:
-                return await res.read()
+        res = await self.session.request(method, url, **kwargs)
 
-            data = json.loads(await res.text())
+        if 300 > res.status_code >= 200:
+            return await res.aread()
 
-            if res.status == 403:
-                raise Forbidden(res, data)
-            elif res.status == 404:
-                raise NotFound(res, data)
-            elif res.status == 503:
-                raise ServerException(res, data)
-            else:
-                raise RequestException(res, data)
-
-    async def _ws_connect(self, url: str) -> aiohttp.ClientWebSocketResponse:
-        """Connect a WebSocket to the specified URL with the formatted query params."""
-
-        return await self._session.ws_connect(url)
+        if res.status_code == 403:
+            raise Forbidden(res)
+        elif res.status_code == 404:
+            raise NotFound(res)
+        elif res.status_code == 503:
+            raise ServerException(res)
+        else:
+            raise RequestException(res)
 
     # Asset endpoint
 
