@@ -217,6 +217,48 @@ class EventDispatcher:
         else:
             self.listeners[annotation.name] = [(annotation, callback)]
 
+    def remove_listener(
+        self,
+        callback: Callable[[Event], Coroutine],
+        *,
+        event: Union[str, Type[Event], None] = None
+    ) -> None:
+        """Remove a particular listener callback.
+
+        It is heavily encouraged to pass `event` if it is known to improve
+        the performance, omitting it means all listeners for all events need to
+        be checked.
+
+        Parameters:
+            callback: The registered callback to remove.
+            event: The event that this callback is registered under.
+        """
+        if event is None:
+            # We have two options, either do the evaluation again or loop
+            # through all listeners for the correct one. Neither is ideal..
+            for container in self.listeners.values():
+                for i, (_, listener) in enumerate(container):
+                    if listener == callback:
+                        container.pop(i)
+                        return
+
+        else:
+            if isinstance(event, str):
+                container = self.listeners[event]
+            elif issubclass(event, Event):
+                container = self.listeners[event.name]
+            else:
+                raise TypeError(f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'")
+
+            for i, (_, listener) in enumerate(container):
+                if listener == callback:
+                    container.pop(i)
+                    return
+
+        # If we reach here we didn't return, which means the callback couldn't
+        # be found in by the listeners.
+        raise ValueError(f"{callback} isn't a registered callback")
+
     @overload
     def listener(self, callback: C) -> C:
         ...
