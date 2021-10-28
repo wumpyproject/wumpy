@@ -23,6 +23,7 @@ SOFTWARE.
 """
 
 import functools
+import inspect
 from typing import (
     Any, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
     Type, TypeVar, Union, overload
@@ -159,7 +160,49 @@ class Event:
         raise NotImplementedError()
 
 
-C = TypeVar('C', bound='Callable[[Event], Coroutine]')
+def _extract_event(callback: Callable[..., Coroutine]) -> Type[Event]:
+    """Extract the event from the callback.
+
+    This function also ensures that the callback is an acceptable listener
+    and will raise TypeError otherwise.
+
+    Because of how EventDispatcher is a mixin, in an attempt to not clutter
+    its subclasses this is placed globally in the file.
+    """
+    if not inspect.iscoroutinefunction(callback):
+        raise TypeError("'callback' has to be a coroutine function")
+
+    signature = inspect.signature(callback)
+
+    if len(signature.parameters) == 0:
+        raise TypeError("'callback' has to have at least one parameter")
+
+    defaulted = [
+        # Find all parameters that have a default
+        param for param in signature.parameters.values()
+        if param.default != param.empty
+    ]
+    if len(signature.parameters) - len(defaulted) > 1:
+        raise TypeError("'callback' cannot have more than one non-default parameter")
+
+    # Grab the first parameter which *should* be the parameter that has the
+    # event annotation.
+    param = list(signature.parameters.values())[0]
+
+    if param.kind is param.kind.KEYWORD_ONLY:
+        raise TypeError("The first parameter of 'callback' cannot be keyword-only")
+
+    annotation = _eval_annotations(callback).get(param.name)
+
+    if annotation is None or not issubclass(annotation, Event):
+        raise TypeError(
+            "The first parameter of 'callback' has to be annotated with an 'Event' subclass"
+        )
+
+    return annotation
+
+
+C = TypeVar('C', bound='Callable[..., Coroutine]')
 
 
 class EventDispatcher:
@@ -171,7 +214,7 @@ class EventDispatcher:
             associated with it
     """
 
-    listeners: Dict[str, List[Tuple[Type[Event], Callable[[Event], Coroutine]]]]
+    listeners: Dict[str, List[Tuple[Type[Event], Callable[..., Coroutine]]]]
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -192,7 +235,7 @@ class EventDispatcher:
         for initializer, callback in self.listeners.get(event, []):
             tg.start_soon(callback, initializer(*args))
 
-    def add_listener(self, callback: Callable[[Event], Coroutine]) -> None:
+    def add_listener(self, callback: Callable[..., Coroutine]) -> None:
         """Register and add a listener callback.
 
         The event it listens for will be read from the callback's arguments.
@@ -200,17 +243,7 @@ class EventDispatcher:
         Parameters:
             callback: The callback to register as a listener
         """
-        annotations = _eval_annotations(callback)
-
-        if len(annotations) != 1:
-            raise TypeError(f'Listener callback should have one argument, not {len(annotations)}')
-
-        # There should be one argument in the parameters, which means it is
-        # safe for us to convert it to a list and grab the first item.
-        annotation = list(annotations.values())[0].annotation
-
-        if not issubclass(annotation, Event):
-            raise TypeError('Listener argument annotation should be a subclass of Event')
+        annotation = _extract_event(callback)
 
         if annotation.name in self.listeners:
             self.listeners[annotation.name].append((annotation, callback))
@@ -219,7 +252,7 @@ class EventDispatcher:
 
     def remove_listener(
         self,
-        callback: Callable[[Event], Coroutine],
+        callback: Callable[..., Coroutine],
         *,
         event: Union[str, Type[Event], None] = None
     ) -> None:
@@ -234,30 +267,22 @@ class EventDispatcher:
             event: The event that this callback is registered under.
         """
         if event is None:
-            # We have two options, either do the evaluation again or loop
-            # through all listeners for the correct one. Neither is ideal..
-            for container in self.listeners.values():
-                for i, (_, listener) in enumerate(container):
-                    if listener == callback:
-                        container.pop(i)
-                        return
+            event = _extract_event(callback)
 
+        if isinstance(event, str):
+            name = event
+        elif isinstance(event, type) and issubclass(event, Event):
+            name = event.name
         else:
-            if isinstance(event, str):
-                container = self.listeners[event]
-            elif issubclass(event, Event):
-                container = self.listeners[event.name]
-            else:
-                raise TypeError(f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'")
+            raise TypeError(f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'")
 
-            for i, (_, listener) in enumerate(container):
-                if listener == callback:
-                    container.pop(i)
-                    return
+        container = self.listeners.get(name, [])
+        for i, (_, listener) in enumerate(container):
+            if listener == callback:
+                container.pop(i)
+                return
 
-        # If we reach here we didn't return, which means the callback couldn't
-        # be found in by the listeners.
-        raise ValueError(f"{callback} isn't a registered callback")
+        raise ValueError(f"{callback} isn't a registered callback under {event}")
 
     @overload
     def listener(self, callback: C) -> C:
