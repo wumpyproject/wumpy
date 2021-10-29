@@ -110,7 +110,7 @@ class DiscordGateway:
             await sock.send(conn.identify(
                 token=token,
                 intents=intents,
-                proporties={
+                properties={
                     '$os': platform,
                     '$browser': 'Wumpy',
                     '$device': 'Wumpy'
