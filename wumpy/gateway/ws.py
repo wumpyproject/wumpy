@@ -173,6 +173,9 @@ class DiscordGateway:
 
     async def run_heartbeater(self):
         """Run the heartbeater periodically sending commands to Discord."""
+        if self._conn.heartbeat_interval is None:
+            raise RuntimeError('Heartbeater started before connected')
+
         while True:
             # Attempt to acquire the write lock, this is held when reconnecting
             # so that there are no race conditions
