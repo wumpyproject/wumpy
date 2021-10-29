@@ -88,12 +88,6 @@ class DiscordGateway:
         # afterwards.
         event = None
         while event is None:
-            for event in conn.events():
-                # This won't run at all if there are no events, what ends
-                # up happening is that we let the code below communicate
-                # until we get a complete HELLO event.
-                break
-
             try:
                 for send in conn.receive(await sock.receive()):
                     await sock.send(send)
@@ -103,6 +97,12 @@ class DiscordGateway:
                 # We haven't even received a HELLO event and sent a RESUME or
                 # IDENTIFY command yet, odd.
                 raise ConnectionClosed('Discord unexpectedly closed the socket')
+
+            for event in conn.events():
+                # This won't run at all if there are no events, what ends
+                # up happening is that we let the code above communicate
+                # until we get a complete HELLO event.
+                break
 
         if conn.should_resume:
             await sock.send(conn.resume())
