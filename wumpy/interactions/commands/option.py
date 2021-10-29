@@ -230,7 +230,7 @@ class OptionClass:
             # and try resolving the type
             pass
 
-        if issubclass(annotation, Enum):
+        if isinstance(annotation, type) and issubclass(annotation, Enum):
             # If the enum is a subclass of another type, such as an IntEnum we
             # can infer the type from that.
             if self.type is MISSING:

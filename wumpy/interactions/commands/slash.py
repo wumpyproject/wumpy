@@ -64,7 +64,12 @@ class Subcommand(CommandCallback[P, RT]):
         annotations = _eval_annotations(function)
 
         for param in signature.parameters.values():
-            if issubclass(param.annotation, CommandInteraction):
+            if (
+                # issubclass() raises a TypeError if all arguments aren't types
+                # and classes are all instances of 'type'
+                isinstance(param.annotation, type) and
+                issubclass(param.annotation, CommandInteraction)
+            ):
                 continue
 
             if isinstance(param.default, OptionClass):
