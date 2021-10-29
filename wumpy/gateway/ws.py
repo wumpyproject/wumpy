@@ -164,7 +164,9 @@ class DiscordGateway:
                     # reconnect, either Discord sent an event telling us to do
                     # it or they didn't acknowledge a heartbeat
 
-                    await self._sock.send(err.data)
+                    if err.data is not None:
+                        await self._sock.send(err.data)
+
                     await self._sock.aclose()
 
                     self._conn, self._sock = await self._connect_websocket(
