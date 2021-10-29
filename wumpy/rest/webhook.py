@@ -154,7 +154,7 @@ class WebhookRequester(Requester):
         }
         json = self._clean_dict(json)
 
-        # This will cause aiohttp to use multipart/form-data
+        # This will cause HTTPx to use multipart/form-data
         data: Dict[str, Any] = {}
         data['payload_json'] = json
 

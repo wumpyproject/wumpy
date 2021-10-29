@@ -25,7 +25,7 @@ SOFTWARE.
 import sys
 from datetime import datetime, timezone
 from types import TracebackType
-from typing import Any, Callable, Coroutine, Dict, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Type, TypeVar, Union
 from urllib.parse import quote as urlquote
 
 import httpx
@@ -146,6 +146,7 @@ class Requester:
         *,
         json: Optional[Any] = None,
         data: Optional[Dict] = None,
+        auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None
     ) -> Optional[Any]:
         """Attempt to actually make the request.
 
@@ -157,7 +158,7 @@ class Requester:
         res = await self.session.request(
             route.method, route.url,
             headers={'Content-Type': 'application/json', **headers},
-            content=content, data=data
+            content=content, data=data, auth=auth
         )
 
         # Update rate limit information if we have received it

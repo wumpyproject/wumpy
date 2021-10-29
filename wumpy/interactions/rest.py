@@ -25,8 +25,6 @@ SOFTWARE.
 import datetime
 from typing import Any, Dict, List, Optional, Sequence, SupportsInt
 
-import aiohttp
-
 from ..models import AllowedMentions
 from ..rest import Route, WebhookRequester
 from ..utils import MISSING, File
@@ -65,7 +63,7 @@ class InteractionRequester(WebhookRequester):
         data = await self.request(
             Route('POST', '/oauth2/token'),
             data={'grant_type': 'client_credentials', 'scope': 'applications.commands.update'},
-            auth=aiohttp.BasicAuth(str(self.application), self.secret)
+            auth=(str(self.application), self.secret)
         )
 
         expires_in = datetime.timedelta(seconds=float(data['expires_in']))
@@ -243,7 +241,7 @@ class InteractionRequester(WebhookRequester):
         }
         json = self._clean_dict(json)
 
-        # This will cause aiohttp to use multipart/form-data
+        # This will cause HTTPx to use multipart/form-data
         data: Dict[str, Any] = {}
         data['payload_json'] = json
 
@@ -326,7 +324,7 @@ class InteractionRequester(WebhookRequester):
         }
         json = self._clean_dict(json)
 
-        # This will cause aiohttp to use multipart/form-data
+        # This will cause HTTPx to use multipart/form-data
         data: Dict[str, Any] = {}
         data['payload_json'] = json
 

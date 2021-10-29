@@ -38,11 +38,7 @@ __all__ = ('dump_json', 'load_json', 'MISSING', 'File', 'Event', 'EventDispatche
 try:
     import orjson
 
-    def orjson_dump(obj: Any) -> str:
-        # orjson returns bytes but aiohttp expects a string
-        return orjson.dumps(obj).decode('utf-8')
-
-    dump_json = orjson_dump
+    dump_json = orjson.dumps
     load_json = orjson.loads
 
 except ImportError:
