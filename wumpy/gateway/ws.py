@@ -71,7 +71,11 @@ class DiscordGateway:
                 Raised by discord_gateway if Discord rejects the connection.
         """
         if conn is None:
-            conn = DiscordConnection(uri, encoding='json', compress='zlib-stream')
+            conn = DiscordConnection(uri, encoding='json')
+        else:
+            # Reset the internal state of the connection to prepare for a new
+            # WebSocket connection.
+            conn.reconnect()
 
         sock = await anyio.connect_tcp(*conn.destination, tls=True)
 
