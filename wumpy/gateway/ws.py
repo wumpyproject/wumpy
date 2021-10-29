@@ -140,6 +140,9 @@ class DiscordGateway:
                 # Hold the lock while reconnecting so that the heartbeater
                 # doesn't attempt to heartbeat while this is happening
                 async with self._write_lock:
+                    for send in self._conn.receive(None):
+                        await self._sock.send(send)
+
                     await self._sock.aclose()
 
                     self._conn, self._sock = await self._connect_websocket(
