@@ -71,7 +71,7 @@ class DiscordGateway:
                 Raised by discord_gateway if Discord rejects the connection.
         """
         if conn is None:
-            conn = DiscordConnection(uri, encoding='json')
+            conn = DiscordConnection(uri, encoding='json', compress='zlib-stream')
         else:
             # Reset the internal state of the connection to prepare for a new
             # WebSocket connection.
