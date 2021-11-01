@@ -17,7 +17,7 @@ Imports should be ordered according to the rules of
 
 ### Building the documentation
 
-Because of how [Read the Docs](readthedocs.org) builds our documentation from
+Because of how [Read the Docs](https://readthedocs.org/) builds our documentation from
 the root of our project that means that files and folders have to be configured
 from that origin.
 
