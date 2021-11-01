@@ -86,7 +86,12 @@ class DiscordGateway:
             # WebSocket connection.
             conn.reconnect()
 
-        sock = await anyio.connect_tcp(*conn.destination, tls=True)
+        sock = await anyio.connect_tcp(
+            *conn.destination, tls=True,
+            # HTTP connections (which a WebSocket relies on) don't usually
+            # perform the closing TLS handshake
+            tls_standard_compatible=False
+        )
 
         # Upgrade the connection to a WebSocket connection using a formatted
         # HTTP 1.1 request
