@@ -45,10 +45,24 @@ class BaseFlags:
         self.value = value
 
     def __eq__(self, other: Any) -> bool:
-        return isinstance(other, self.__class__) and self.value == other.value
+        if isinstance(other, self.__class__):
+            value = other.value
+        elif isinstance(other, int):
+            value = other
+        else:
+            return NotImplemented
+
+        return self.value == value
 
     def __ne__(self, other: Any) -> bool:
-        return not isinstance(other, self.__class__) or self.value != other.value
+        if isinstance(other, self.__class__):
+            value = other.value
+        elif isinstance(other, int):
+            value = other
+        else:
+            return NotImplemented
+
+        return self.value != value
 
     def __int__(self) -> int:
         return self.value
