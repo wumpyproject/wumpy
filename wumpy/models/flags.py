@@ -103,9 +103,6 @@ class BaseFlags:
 
         return self.__class__(self.value | value)
 
-    def __invert__(self) -> 'BaseFlags':
-        return self.__class__(~self.value)
-
 
 class BitMask:
     """Representing one bit of a bitfield, using discriptors.
