@@ -38,10 +38,19 @@ class DiscordGateway:
     Behind the scenes this uses `discord-gateway` to handle the protocol.
     """
 
-    def __init__(self, conn: DiscordConnection, sock: anyio.streams.tls.TLSStream) -> None:
+    def __init__(
+        self,
+        conn: DiscordConnection,
+        sock: anyio.streams.tls.TLSStream,
+        token: str,
+        intents: int
+    ) -> None:
         self._conn = conn
         self._sock = sock
         self._write_lock = anyio.Lock()
+
+        self.token = token
+        self.intents = intents
 
         self.events = deque()
 
@@ -52,8 +61,8 @@ class DiscordGateway:
     async def _connect_websocket(
         cls,
         uri: str,
-        token: Optional[str] = None,
-        intents: Optional[int] = None,
+        token: str,
+        intents: int,
         *,
         conn: Optional[DiscordConnection] = None
     ) -> Tuple[DiscordConnection, anyio.streams.tls.TLSStream]:
@@ -105,7 +114,7 @@ class DiscordGateway:
                 break
 
         if conn.should_resume:
-            await sock.send(conn.resume())
+            await sock.send(conn.resume(token))
         else:
             await sock.send(conn.identify(
                 token=token,
@@ -146,7 +155,8 @@ class DiscordGateway:
                     await self._sock.aclose()
 
                     self._conn, self._sock = await self._connect_websocket(
-                        self._conn.uri, conn=self._conn
+                        self._conn.uri, self.token, self.intents,
+                        conn=self._conn
                     )
                     # The data variable isn't defined so we can't run the code
                     # below, skip to the top of the loop and try again.
@@ -170,7 +180,8 @@ class DiscordGateway:
                     await self._sock.aclose()
 
                     self._conn, self._sock = await self._connect_websocket(
-                        self._conn.uri, conn=self._conn
+                        self._conn.uri, self.token, self.intents,
+                        conn=self._conn
                     )
 
             for event in self._conn.events():
@@ -198,7 +209,7 @@ class DiscordGateway:
         intents: int
     ) -> AsyncGenerator['DiscordGateway', None]:
         async with anyio.create_task_group() as tg:
-            self = cls(*await cls._connect_websocket(uri, token, intents))
+            self = cls(*await cls._connect_websocket(uri, token, intents), token, intents)
             tg.start_soon(self.run_heartbeater)
 
             yield self
