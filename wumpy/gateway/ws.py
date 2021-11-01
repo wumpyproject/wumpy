@@ -192,6 +192,22 @@ class DiscordGateway:
             for event in self._conn.events():
                 self.events.append(event)
 
+    async def aclose(self):
+        async with self._write_lock:
+            await self._sock.send(self._conn.close())
+
+            try:
+                while True:
+                    # Receive the acknowledgement of the closing per the
+                    # WebSocket protocol
+                    for data in self._conn.receive(await self._sock.receive()):
+                        await self._sock.send(data)
+            except CloseDiscordConnection as err:
+                if err.data is not None:
+                    await self._sock.send(err.data)
+
+                await self._sock.aclose()
+
     async def run_heartbeater(self):
         """Run the heartbeater periodically sending commands to Discord."""
         if self._conn.heartbeat_interval is None:
@@ -217,9 +233,13 @@ class DiscordGateway:
             self = cls(*await cls._connect_websocket(uri, token, intents), token, intents)
             tg.start_soon(self.run_heartbeater)
 
-            yield self
+            try:
+                yield self
+            finally:
+                # For some reason we are now exiting the context manager
+                # so we need to cancel the heartbeater or else it will block
+                # forever since it is an infinite loop.
+                tg.cancel_scope.cancel()
 
-            # For some reason we are now exiting the context manager
-            # so we need to cancel the heartbeater or else it will block
-            # forever since it is an infinite loop.
-            tg.cancel_scope.cancel()
+                # Close the WebSocket and socket before exiting
+                await self.aclose()
