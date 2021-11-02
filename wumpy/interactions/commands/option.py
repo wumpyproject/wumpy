@@ -38,6 +38,14 @@ class OptionType:
     def __init__(self, enum: ApplicationCommandOption) -> None:
         self.enum = enum
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, ApplicationCommandOption):
+            return self.enum == other
+        elif isinstance(other, self.__class__):
+            return self.enum == other.enum
+
+        return False
+
 
 class MemberUserUnion(OptionType):
     """Option type marker for Union[InteractionUser, InteractionMember].
