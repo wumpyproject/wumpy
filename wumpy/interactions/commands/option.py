@@ -137,7 +137,7 @@ class OptionClass:
         *,
         name: str = MISSING,
         description: str = MISSING,
-        required: bool = True,
+        required: bool = MISSING,
         # This isn't very readable, but it means a list or dictionary of
         # strings, integers or floats.
         choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
@@ -153,7 +153,7 @@ class OptionClass:
             # should assume the user wants the option to be optional
             required = False
 
-        self.required = True if required is MISSING else required
+        self.required = required
 
         if isinstance(choices, list):
             choices = {str(value): value for value in choices}
@@ -396,7 +396,7 @@ class OptionClass:
             'name': self.name,
             'type': self.type.enum.value,
             'description': self.description,
-            'required': self.required,
+            'required': True if self.required is MISSING else self.required,
         }
 
         if self.choices is not MISSING:
