@@ -195,6 +195,11 @@ def _extract_event(callback: Callable[..., Coroutine]) -> Type[Event]:
             "The first parameter of 'callback' has to be annotated with an 'Event' subclass"
         )
 
+    if annotation == Event:
+        # It should be a subclass of Event
+        raise TypeError(
+            "The first parameter of 'callback' cannot be annotated with 'Event' directly"
+        )
     return annotation
 
 
