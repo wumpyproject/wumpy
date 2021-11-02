@@ -269,7 +269,7 @@ class OptionClass:
                 type_ = type(args[0])
                 for value in args:
                     if not isinstance(value, type_):
-                        raise ValueError(
+                        raise TypeError(
                             f"Literal contains mixed types; expected '{type_}' not '{type(value)}'"
                         )
 
