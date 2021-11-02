@@ -4,6 +4,7 @@ from ...utils import MISSING
 from . import option as __option
 from .base import *
 from .context import *
+from .option import CommandType
 from .registrar import *
 from .slash import *
 
