@@ -210,6 +210,14 @@ class TestRemoveListener:
         with pytest.raises(ValueError):
             dispatcher.remove_listener(callback)
 
+    def test_bare_event(self, cls):
+        dispatcher = cls()
+
+        async def callback(event: Event): ...
+
+        with pytest.raises(TypeError):
+            dispatcher.add_listener(callback)
+
 
 @pytest.mark.anyio
 class TestDispatch:
