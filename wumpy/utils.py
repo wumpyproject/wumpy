@@ -281,6 +281,12 @@ class EventDispatcher:
         for i, (_, listener) in enumerate(container):
             if listener == callback:
                 container.pop(i)
+
+                if not container:
+                    # The container is now empty so we can remove it from the
+                    # dictionary
+                    del self.listeners[name]
+
                 return
 
         raise ValueError(f"{callback} isn't a registered callback under {event}")
