@@ -204,8 +204,11 @@ class TestRemoveListener:
     def test_not_registered(self, cls):
         dispatcher = cls()
 
-        async def callback(event: DummyEvent):
-            ...
+        @dispatcher.listener
+        async def registered(event: DummyEvent): ...
+
+        # This one on the other hand isn't registered
+        async def callback(event: DummyEvent): ...
 
         with pytest.raises(ValueError):
             dispatcher.remove_listener(callback)
