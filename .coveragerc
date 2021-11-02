@@ -2,3 +2,4 @@
 exclude_lines = 
     pragma: not covered
     @overload
+    if TYPE_CHECKING:
