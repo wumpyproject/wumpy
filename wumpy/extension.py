@@ -4,6 +4,7 @@ import sys
 from typing import Any, Callable, Dict, Optional, Union
 
 from .interactions import CommandRegistrar
+from .errors import ExtensionFailure
 from .utils import EventDispatcher
 
 __all__ = ('Extension', 'ExtensionLoader')
@@ -108,6 +109,10 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             if _is_submodule(command.callback.__module__, module):
                 self.unregister_command(command)
 
+    def _clean_sys_modules(self, module: str) -> None:
+        """Clean sys.modules from the module passed."""
+        ...
+
     def load_extension(self, path: str, package: Optional[str] = None, **kwargs: Any) -> None:
         """Load an extension at `path`.
 
@@ -123,6 +128,12 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             package:
                 Needs to be specified if `path` is relative, should be
                 `__name__` for the majority of uses.
+
+        Raises:
+            TypeError: `package` wasn't passed when `path` is relative.
+            ValueError: `path` is already loaded or invalid.
+            ExtensionFailure: Failed to execute the module or call the loader.
+            ValueError: The variable name of the loader is incorrect.
         """
         name, var = path.split(':', maxsplit=1)
 
@@ -131,54 +142,53 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
         except ImportError:
             # 'package' is None but 'path' is a relative import, or 'path' is
             # trying to go too many parent directories far
-            raise  # TODO
+            raise TypeError("'package' is a required argument when 'path' is relative")
 
         if resolved in self.extensions:
-            raise ValueError('Extension already loaded')
+            raise ValueError("'path' cannot be a path to an already loaded extension")
 
         spec = importlib.util.find_spec(resolved, package)
         if spec is None:
-            raise ValueError('Could not find that extension')
+            raise ValueError("'path' is not a path to a valid Python file")
 
         ext = importlib.util.module_from_spec(spec)
-        # This isn't actually done automatically
-        sys.modules[resolved] = ext
+        sys.modules[resolved] = ext  # This isn't actually done automatically
 
         try:
             # module_from_spec() relies on and has code that attempts to
             # override the 'loader' attribute unless that raises
-            # AttrributeError at which point someone probably has messed around
+            # AttributeError at which point someone probably has messed around
             # with importer hooks and can only blame themselves. It should be
             # safe to assume spec's loader attribute is not None
             spec.loader.exec_module(ext)  # type: ignore
-        except Exception:
+        except Exception as err:
             del sys.modules[resolved]
-            raise  # TODO
+            raise ExtensionFailure(f"Failed to execute extension '{resolved}'") from err
 
         # Attempt to load the extension by retrieving the loader
         try:
             loader = getattr(ext, var)
         except AttributeError:
             del sys.modules[resolved]
-            raise ValueError(f'Could not find {var} load callback')
+            raise ValueError(
+                f"Could not find variable '{var}' of '{resolved}' to load the extension"
+            )
 
         if not callable(loader):
-            raise ValueError('Loader is not callable')
+            del sys.modules[resolved]
+            raise ExtensionFailure(
+                f"Failed to load extension: '{type(loader).__name__}' is not callable"
+            )
 
         try:
             unloader = loader(self, kwargs)
-        except Exception:
+        except Exception as err:
             # This is actually very bad because this method is supposed to
             # return the callback that unloads the listeners and commands.
             # There is a potential that some listeners and commands were loaded
             # before running into the error meaning that we might not be able
             # to cleanup!
             del sys.modules[resolved]
-
-            # We may have loaded a folder that added other files to sys.modules
-            for module in list(sys.modules):
-                if _is_submodule(module, resolved):
-                    del sys.modules[module]
 
             if isinstance(loader, Extension):
                 # There could be potential cleanup code the user put in the
@@ -189,7 +199,7 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             # by the user or other code that was ran.
             self._remove_module(resolved)
 
-            raise
+            raise ExtensionFailure(f"Failed call loader '{var}' of '{resolved}'") from err
 
         # After all places where things can go wrong, it looks like we actually
         # successfully loaded a module!
@@ -201,32 +211,34 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
         Parameters:
             path: The path to the extension, does not require a `:`.
             package: Required if `path` is relative, see `load_extension()`.
+
+        Raises:
+            TypeError: `package` wasn't passed when `path` is relative.
+            ValueError: `path` isn't an already loaded extension.
+            ExtensionFailure: The unloader callback raised an exception.
         """
         name, _ = path.split(':', maxsplit=1)
 
         try:
             resolved = importlib.util.resolve_name(name, package)
         except ImportError:
-            # 'package' is None but 'path' is a relative import, or 'path' is
-            # trying to go too many parent directories far
-            raise  # TODO
+            raise TypeError("'package' is a required argument when 'path' is relative")
 
         if resolved not in self.extensions:
-            raise ValueError('That is not a loaded extension')
+            raise ValueError(f"'{path}' is not an already loaded extension")
 
         try:
             self.extensions[resolved](self)
-        except Exception:
+        except Exception as err:
             # This is *also* very bad, something stopped the extension from
             # finalizing and cleaning up. We can do our best to clean up on the
             # library's part though.
             self._remove_module(resolved)
-            raise
+            raise ExtensionFailure(
+                'Failed to unload extension because unloader for '
+                f"extension '{resolved}' raised an exception"
+            ) from err
 
         finally:
             # Clean up sys.modules
             del sys.modules[resolved]
-
-            for module in list(sys.modules):
-                if _is_submodule(module, resolved):
-                    del sys.modules[module]

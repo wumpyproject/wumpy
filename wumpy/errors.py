@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     'WumpyException', 'HTTPException', 'Forbidden',
-    'NotFound', 'ServerException'
+    'NotFound', 'ServerException', 'ExtensionFailure'
 )
 
 
@@ -136,3 +136,8 @@ class CommandNotFound(CommandSetupError):
 
         self.interaction = interaction
         self.command = command
+
+
+class ExtensionFailure(WumpyException):
+    """Exception related to loading or unloading of extensions."""
+    pass
