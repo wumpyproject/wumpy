@@ -189,11 +189,6 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             # to cleanup!
             del sys.modules[resolved]
 
-            if isinstance(loader, Extension):
-                # There could be potential cleanup code the user put in the
-                # unload() so it's best to call it if possible..
-                loader.unload(self)
-
             # We can try our best to recover but this can't fix attributes set
             # by the user or other code that was ran.
             self._remove_module(resolved)
