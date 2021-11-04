@@ -147,7 +147,7 @@ class Event:
     your subclass' `__init__()`.
     """
 
-    name: ClassVar[str]
+    NAME: ClassVar[str]
 
     __slots__ = ()  # If subclasses want to use it
 
@@ -246,10 +246,10 @@ class EventDispatcher:
         """
         annotation = _extract_event(callback)
 
-        if annotation.name in self.listeners:
-            self.listeners[annotation.name].append((annotation, callback))
+        if annotation.NAME in self.listeners:
+            self.listeners[annotation.NAME].append((annotation, callback))
         else:
-            self.listeners[annotation.name] = [(annotation, callback)]
+            self.listeners[annotation.NAME] = [(annotation, callback)]
 
     def remove_listener(
         self,
@@ -273,7 +273,7 @@ class EventDispatcher:
         if isinstance(event, str):
             name = event
         elif isinstance(event, type) and issubclass(event, Event):
-            name = event.name
+            name = event.NAME
         else:
             raise TypeError(f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'")
 
