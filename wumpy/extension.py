@@ -109,10 +109,6 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             if _is_submodule(command.callback.__module__, module):
                 self.unregister_command(command)
 
-    def _clean_sys_modules(self, module: str) -> None:
-        """Clean sys.modules from the module passed."""
-        ...
-
     def load_extension(self, path: str, package: Optional[str] = None, **kwargs: Any) -> None:
         """Load an extension at `path`.
 
