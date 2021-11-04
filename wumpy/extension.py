@@ -139,10 +139,13 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
 
         try:
             resolved = importlib.util.resolve_name(name, package)
-        except ImportError:
-            # 'package' is None but 'path' is a relative import, or 'path' is
-            # trying to go too many parent directories far
-            raise TypeError("'package' is a required argument when 'path' is relative")
+        except ImportError as err:
+            if not package:
+                raise TypeError(
+                    "'package' is a required argument when 'path' is relative"
+                ) from err
+            else:
+                raise ValueError("'path' walks too many parent directories") from err
 
         if resolved in self.extensions:
             raise ValueError("'path' cannot be a path to an already loaded extension")
@@ -221,8 +224,13 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
 
         try:
             resolved = importlib.util.resolve_name(name, package)
-        except ImportError:
-            raise TypeError("'package' is a required argument when 'path' is relative")
+        except ImportError as err:
+            if not package:
+                raise TypeError(
+                    "'package' is a required argument when 'path' is relative"
+                ) from err
+            else:
+                raise ValueError("'path' walks too many parent directories") from err
 
         if resolved not in self.extensions:
             raise ValueError(f"'{path}' is not an already loaded extension")
