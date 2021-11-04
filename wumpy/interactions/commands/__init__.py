@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Type, TypeVar, Union
 
 from ...utils import MISSING
 from . import option as __option
@@ -21,7 +21,7 @@ def Option(
     name: str = MISSING,
     description: str = MISSING,
     required: bool = MISSING,
-    choices: Dict[str, Union[str, int, float]] = MISSING,
+    choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
     min: int = MISSING,
     max: int = MISSING,
     type: Type[Any] = MISSING,
@@ -110,5 +110,5 @@ def option(
 
 
 # Clean up as we don't want users importing these from here
-del Any, Callable, Dict, T, Type, Union
+del Any, Callable, Dict, List, T, Type, Union
 del MISSING, __option
