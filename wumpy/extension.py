@@ -216,7 +216,12 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             ValueError: `path` isn't an already loaded extension.
             ExtensionFailure: The unloader callback raised an exception.
         """
-        name, _ = path.split(':', maxsplit=1)
+        try:
+            name, _ = path.split(':', maxsplit=1)
+        except ValueError:
+            # 'path' doesn't contain an ':' character and so it can't be
+            # unpacked to a tuple with two elements.
+            name = path
 
         try:
             resolved = importlib.util.resolve_name(name, package)
