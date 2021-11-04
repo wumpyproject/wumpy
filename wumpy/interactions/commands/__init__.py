@@ -58,7 +58,8 @@ def Option(
     """
     return cls(
         default, name=name, description=description,
-        required=required, choices=choices, type=type
+        required=required, choices=choices,
+        min=min, max=max, type=type
     )
 
 
