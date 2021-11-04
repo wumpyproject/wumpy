@@ -63,6 +63,26 @@ class CommandRegistrar:
         """
         self.commands[command.name] = command
 
+    def unregister_command(self, command: Command) -> None:
+        """Unregister a command from the internal dictionary.
+
+        This will raise a ValueError if the command passed isn't loaded where
+        it is supposed to or if it was never registered in the first place.
+
+        Parameters:
+            command: The command to unregister from the dictionary.
+
+        Raises:
+            ValueError: The command couldn't be found where it's supposed to
+        """
+        if self.commands.get(command.name) != command:
+            raise ValueError(
+                "'command' has not been registered previously or another"
+                "command is registered in its place"
+            )
+
+        del self.commands[command.name]
+
     def group(
         self,
         *,
