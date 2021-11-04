@@ -23,7 +23,7 @@ SOFTWARE.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Type, TypeVar
+from typing import Any, SupportsInt, Type, TypeVar
 
 __all__ = ('DISCORD_EPOCH', 'Object', 'Snowflake')
 
@@ -111,6 +111,9 @@ class Snowflake(Object):
     """
 
     __slots__ = ()
+
+    def __init__(self, id: SupportsInt) -> None:
+        super().__init__(int(id))
 
     def __repr__(self) -> str:
         return f'<Snowflake id={self.id}>'
