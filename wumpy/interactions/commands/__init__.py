@@ -95,7 +95,7 @@ def option(
     # available when this function is created.
     def decorator(command: 'T') -> 'T':
         if not isinstance(command, Subcommand):
-            raise ValueError(
+            raise TypeError(
                 "The 'option' decorator can only be used on commands."
             )
 
