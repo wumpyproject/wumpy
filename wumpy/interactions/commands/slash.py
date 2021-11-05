@@ -172,7 +172,7 @@ class Subcommand(CommandCallback[P, RT]):
             **super().to_dict(),
             'description': self.description,
             'type': ApplicationCommandOption.subcommand.value,
-            'optio  ns': [option.to_dict() for option in self.options.values()]
+            'options': [option.to_dict() for option in self.options.values()]
         }
 
 
