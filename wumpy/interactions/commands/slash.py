@@ -7,7 +7,7 @@ from typing import (
 import anyio.abc
 from typing_extensions import ParamSpec
 
-from ...errors import CommandNotFound, CommandSetupError
+from ...errors import CommandSetupError
 from ...utils import MISSING, _eval_annotations
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
@@ -234,7 +234,7 @@ class SubcommandGroup:
         command = self.commands.get(found[0].name)
         if not command:
             raise CommandSetupError(
-                "Could not find subcommand '{found[0].name}' of '{self.name}'"
+                f"Could not find subcommand '{found[0].name}' of '{self.name}'"
             )
 
         return command.handle_interaction(interaction, found[0].options, tg=tg)
@@ -353,7 +353,9 @@ class SlashCommand(Subcommand[P, RT]):
 
         command = self.commands.get(option.name)
         if not command:
-            raise CommandNotFound(interaction, f'{self.full_name} {command}')
+            raise CommandSetupError(
+                f"Could not find subcommand '{option.name}' of '{self.name}'"
+            )
 
         return command.handle_interaction(interaction, option.options, tg=tg)
 
