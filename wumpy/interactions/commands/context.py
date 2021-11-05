@@ -36,18 +36,28 @@ class ContextMenuCommand(CommandCallback[P, RT]):
 
         self.argument = MISSING
 
+    def _verify_annotation(self, annotation: Any) -> None:
+        # The point of this method is to raise TypeErrors if something is wrong
+        # about the annotation.
+        raise NotImplementedError
+
     def _set_callback(self, function: Callback[P, RT]) -> None:
         super()._set_callback(function)
 
+        if not inspect.iscoroutinefunction(function):
+            raise TypeError("'callback' has to be a coroutine function")
+
         signature = inspect.signature(function)
 
-        for param in signature.parameters.values():
-            if isinstance(param.annotation, CommandInteraction):
-                continue
+        if len(signature.parameters) != 2:
+            raise TypeError("'callback' has to have two parameters")
 
-            # This should be the second argument
-            self.argument = param.annotation
-            break
+        for param in signature.parameters.values():
+            if param.kind is param.kind.KEYWORD_ONLY:
+                raise TypeError("The parameters of 'callback' cannot be keyword-only")
+
+            if param.annotation is not param.empty:
+                self._verify_annotation(param.annotation)
 
     def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
         """Resolve the single value for the interaction.
@@ -82,6 +92,9 @@ class MessageCommand(ContextMenuCommand[P, RT]):
             by MessageCommand.
     """
 
+    def _verify_annotation(self, annotation: Any) -> None:
+        ...  # TODO: Implement this once there is an InteractionMessage object
+
     def resolve_value(self, interaction: CommandInteraction) -> Any:
         """Resolve the message to pass to the callback.
 
@@ -114,6 +127,12 @@ class UserCommand(ContextMenuCommand[P, RT]):
             The parameter annotation on the callback. This is used to figure
             out whether a member or user object should be passed.
     """
+
+    def _verify_annotation(self, annotation: Any) -> None:
+        if annotation in {CommandInteraction, InteractionUser, InteractionMember}:
+            return
+
+        raise TypeError(f"Invalid parameter annotation '{annotation}'")
 
     def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
         """Resolve the user or member to pass to the callback.
