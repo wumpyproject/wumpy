@@ -125,7 +125,10 @@ class Subcommand(CommandCallback[P, RT]):
         name: str = MISSING,
         description: str = MISSING,
         required: bool = MISSING,
-        choices: Dict[str, Union[str, int, float]] = MISSING,
+        choices: Union[
+            List[Union[str, int, float]],
+            Dict[str, Union[str, int, float]]
+        ] = MISSING,
         min: int = MISSING,
         max: int = MISSING,
         type: ApplicationCommandOption = MISSING
