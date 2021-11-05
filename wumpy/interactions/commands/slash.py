@@ -13,7 +13,7 @@ from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
 from .base import Callback, CommandCallback
-from .option import CommandType, OptionClass, OptionType
+from .option import CommandType, OptionClass
 
 __all__ = ('Subcommand', 'SubcommandGroup', 'SlashCommand')
 
@@ -154,26 +154,17 @@ class Subcommand(CommandCallback[P, RT]):
 
         option = found[0]
 
-        if type is not MISSING:
-            option.type = OptionType(type)
-
         if name is not MISSING:
-            option.name = name
+            # We have to update the internal dictionary where the option is
+            # stored so that it can be found correctly when receiving an
+            # interaction from Discord.
+            del self.options[option.name]
+            self.options[name] = option
 
-        if description is not MISSING:
-            option.description = description
-
-        if required is not MISSING:
-            option.required = required
-
-        if choices is not MISSING:
-            option.choices = choices
-
-        if min is not MISSING:
-            option.min = min
-
-        if max is not MISSING:
-            option.max = max
+        option._update_values(
+            name=name, description=description, required=required,
+            choices=choices, min=min, max=max, type=type
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Turn the subcommand into a payload to send to Discord."""

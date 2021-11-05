@@ -318,6 +318,49 @@ class OptionClass:
         if param.annotation is not param.empty and self.type is MISSING:
             self.determine_type(param.annotation)
 
+    def _update_values(
+        self,
+        name: str = MISSING,
+        description: str = MISSING,
+        required: bool = MISSING,
+        choices: Union[
+            List[Union[str, int, float]],
+            Dict[str, Union[str, int, float]]
+        ] = MISSING,
+        min: int = MISSING,
+        max: int = MISSING,
+        type: Any = MISSING
+    ) -> None:
+        """Update internal values of the option.
+
+        This is different from `update()`, which is only meant to let the
+        OptionClass instance aware of the parameter is has been defined in.
+        """
+
+        if type is not MISSING:
+            self.determine_type(type)
+
+        if name is not MISSING:
+            self.name = name
+
+        if description is not MISSING:
+            self.description = description
+
+        if required is not MISSING:
+            self.required = required
+
+        if choices is not MISSING:
+            if isinstance(choices, list):
+                choices = {str(value): value for value in choices}
+
+            self.choices = choices
+
+        if min is not MISSING:
+            self.min = min
+
+        if max is not MISSING:
+            self.max = max
+
     def resolve(
         self,
         interaction: CommandInteraction,
