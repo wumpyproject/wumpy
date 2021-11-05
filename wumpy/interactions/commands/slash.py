@@ -153,7 +153,7 @@ class Subcommand(CommandCallback[P, RT]):
         # It is okay if this is O(n) to keep it O(1) when the app is running
         found = [option for option in self.options.values() if option.param == param]
         if not found:
-            raise ValueError("Could not find parameter with name '{param}'")
+            raise ValueError(f"Could not find parameter with name '{param}'")
 
         option = found[0]
 
