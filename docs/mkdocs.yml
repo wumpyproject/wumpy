@@ -51,6 +51,10 @@ nav:
     - Enum options: tutorial/choices-with-enums.md
     - Advanced options: tutorial/advanced-options.md
     - Link buttons: tutorial/link-buttons.md
+    - Extensions:
+      - Extensions FAQ: tutorial/extensions/extensions-faq.md
+      - Getting started: tutorial/extensions/simple-example.md
+      - Advanced usage: tutorial/extensions/advanced-usage.md
 
   - Reference:
     - Application commands: reference/interactions/commands.md
