@@ -63,13 +63,27 @@ class Subcommand(CommandCallback[P, RT]):
         signature = inspect.signature(function)
         annotations = _eval_annotations(function)
 
-        for param in signature.parameters.values():
-            if (
-                # issubclass() raises a TypeError if all arguments aren't types
-                # and classes are all instances of 'type'
-                isinstance(param.annotation, type) and
-                issubclass(param.annotation, CommandInteraction)
-            ):
+        for i, param in enumerate(signature.parameters.values()):
+            annotation = annotations.get(param.name, param.annotation)
+
+            if param.annotation is not param.empty and not isinstance(annotation, type):
+                raise TypeError(f"'{param.name}' of 'callback' is not a valid annotation")
+
+            if i == 0:
+                if (
+                    # issubclass() raises a TypeError if not all arguments are
+                    # instances of 'type'
+                    annotation is not param.empty and
+                    not issubclass(annotation, CommandInteraction)
+                ):
+                    raise TypeError(
+                        "The first paramer of 'callback' has to be annotated "
+                        "with 'CommandInteraction'"
+                    )
+
+                # The CommandInteraction parameter doesn't get an OptionClass
+                # instance since it shouldn't be passed when creating a command
+                # on Discord's side.
                 continue
 
             if isinstance(param.default, OptionClass):
@@ -81,9 +95,7 @@ class Subcommand(CommandCallback[P, RT]):
             option.update(
                 # The annotations dictionary may contain an evaluated version
                 # of the annotation as opposed to a string or ForwardRef
-                param.replace(
-                    annotation=annotations.get(param.name, param.annotation)
-                )
+                param.replace(annotation=annotation)
             )
 
             self.options[option.name] = option
@@ -322,9 +334,7 @@ class SlashCommand(Subcommand[P, RT]):
     ) -> None:
         super().__init__(callback, name=name, description=description)
 
-    @property
-    def full_name(self) -> str:
-        return self.name
+        self.commands = {}
 
     def handle_interaction(
         self,
@@ -455,5 +465,5 @@ class SlashCommand(Subcommand[P, RT]):
             'name': self.name,
             'type': CommandType.chat_input.value,
             'description': self.description,
-            'options': [option.to_dict() for option in self.options.values()]
+            'options': [option.to_dict() for option in (self.options or self.commands).values()]
         }
