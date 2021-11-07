@@ -1,0 +1,86 @@
+<head>
+  {# Set some variables so that we don't need to repeat them #}
+  {% if page and page.meta and page.meta.description %}
+    {% set meta_description = page.meta.description %}
+  {% elif config.site_description %}
+    {% set meta_description = config.site_description %}
+  {% endif %}
+
+  {% if page and page.title %}
+    {% set meta_title = page.title + " · " + config.site_name %}
+  {% else %}
+    {% set meta_title = config.site_name %}
+  {% endif %}
+
+  {# Typical HTML meta tags #}
+  {% block metadata %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    {% if meta_description %}
+      <meta name="description" content="{{ meta_description }}" />
+    {% endif %}
+
+    {% if page and page.canonical_url %}
+      <link rel="canonical" href="{{ page.canonical_url }}" />
+    {% endif %}
+  {% endblock metadata %}
+
+  {% block title %}
+    <title>{{ meta_title }}</title>
+  {% endblock title %}
+
+  {# Discord uses the Open Graph protocol to create embeds from the links. #}
+  {% block opengraph %}
+    <meta property="og:title" content="{{ meta_title }}" />
+    <meta property="og:type" content="article" />
+
+    {% if page and page.canonical_url %}
+      <meta property="og:url" content="{{ page.canonical_url }}" />
+    {% endif %}
+
+    <meta property="og:site_name" content="{{ config.site_name }}" />
+
+    {% if meta_description %}
+      <meta property="og:description" content="{{ meta_description }}" />
+    {% endif %}
+
+    <meta property="og:locale" content="en_US" />
+
+    {# We can't tell when the article was published, this is good enough #}
+    <meta property="article:modified_time" content="{{ build_date_utc.isoformat() }}" />
+
+    {% if config.site_author %}
+      <meta property="article:author" content="{{ config.site_author }}" />
+    {% endif %}
+  {% endblock opengraph %}
+
+  {# Schema.org microdata similar to Open Graph above #}
+  {% block microdata %}
+    <meta itemprop="name" content="{{ meta_title }}" />
+
+    {% if meta_description %}
+      <meta itemprop="description" content="{{ meta_description }}" />
+    {% endif %}
+
+    <meta itemprop="dateModified" content="{{ build_date_utc.isoformat() }}" />
+  {% endblock microdata %}
+
+  {# Twitter has yet another system for metadata #}
+  {% block twitter %}
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="{{ meta_title }}" />
+
+    {% if meta_description %}
+      <meta name="twitter:description" content="{{ meta_description }}" />
+    {% endif %}
+
+    {% if page and page.canonical_url %}
+      <meta name="twitter:url" content="{{ page.canonical_url }}" />
+    {% endif %}
+  {% endblock twitter %}
+
+  {% block styles %}
+    <link rel="stylesheet" href="{{ 'stylesheet.css' | url }}" />
+  {% endblock styles %}
+</head>

@@ -9,7 +9,8 @@ edit_uri: tree/main/docs
 docs_dir: 'source'
 
 theme:
-  name: material
+  name: null
+  custom_dir: 'theme/'
   palette:
     scheme: discord  # Custom scheme
     primary: blurple
