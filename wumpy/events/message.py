@@ -1,12 +1,47 @@
 from typing import Any, Dict, Optional
 
 from ..models import Snowflake
-from ..utils import Event
+from ..utils import Event, _get_as_snowflake
 
 __all__ = (
+    'MessageDeleteEvent', 'BulkMessageDeleteEvent',
     'ReactionAddEvent', 'ReactionRemoveEvent',
     'ReactionClearEvent', 'ReactionEmojiClearEvent'
 )
+
+
+class MessageDeleteEvent(Event):
+    """Dispatched when a message is deleted."""
+
+    message_id: Snowflake
+    channel_id: Snowflake
+    guild_id: Optional[Snowflake]
+
+    NAME = "MESSAGE_DELETE"
+
+    __slots__ = ('message_id', 'channel_id', 'guild_id')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.message_id = Snowflake(data['id'])
+        self.channel_id = Snowflake(data['channel_id'])
+        self.guild_id = _get_as_snowflake(data, 'guild_id')
+
+
+class BulkMessageDeleteEvent(Event):
+    """Dispatched when multiple messages are deleted at once."""
+
+    message_ids: list[Snowflake]
+    channel_id: Snowflake
+    guild_id: Optional[Snowflake]
+
+    NAME = "MESSAGE_DELETE_BULK"
+
+    __slots__ = ('message_ids', 'channel_id', 'guild_id')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.message_ids = [Snowflake(id_) for id_ in data['ids']]
+        self.channel_id = Snowflake(data['channel_id'])
+        self.guild_id = _get_as_snowflake(data, 'guild_id')
 
 
 class ReactionAddEvent(Event):
