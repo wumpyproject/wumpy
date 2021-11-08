@@ -66,9 +66,6 @@ class Subcommand(CommandCallback[P, RT]):
         for i, param in enumerate(signature.parameters.values()):
             annotation = annotations.get(param.name, param.annotation)
 
-            if param.annotation is not param.empty and not isinstance(annotation, type):
-                raise TypeError(f"'{param.name}' of 'callback' is not a valid annotation")
-
             if i == 0:
                 if (
                     # issubclass() raises a TypeError if not all arguments are

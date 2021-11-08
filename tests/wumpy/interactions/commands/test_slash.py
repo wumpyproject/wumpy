@@ -1,6 +1,8 @@
 import pytest
 
-from wumpy.interactions import ApplicationCommandOption, CommandInteraction, CommandRegistrar, Option
+from wumpy.interactions import (
+    ApplicationCommandOption, CommandInteraction, CommandRegistrar, Option
+)
 
 
 class TestSlashcommandInit:
@@ -72,17 +74,6 @@ class TestSlashcommandInit:
         with pytest.raises(TypeError):
             @registrar.command()
             async def command(interaction: int):
-                ...
-
-    def test_weird_annotation(self):
-        # Because the library evaluates annotations, it means that you can
-        # bypass what Python normally disallows inside type annotations.
-
-        registrar = CommandRegistrar()
-
-        with pytest.raises(TypeError):
-            @registrar.command()
-            async def command(interaction, option: "'abc' + 'xyz'"):  # type: ignore  # noqa
                 ...
 
 
