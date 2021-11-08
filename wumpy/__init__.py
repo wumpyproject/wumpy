@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from . import interactions, models
 from .errors import *
 from .models import Object, Snowflake  # Reveal under the wumpy namespace
 from .rest import Webhook
