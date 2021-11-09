@@ -1,12 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from ..utils import _get_as_snowflake
 from .asset import Asset
 from .base import Snowflake
 from .permissions import Permissions
 from .user import InteractionUser
 
-__all__ = ('InteractionMember',)
+__all__ = ('InteractionMember', 'ThreadMember')
 
 
 class InteractionMember(InteractionUser):
@@ -46,3 +47,35 @@ class InteractionMember(InteractionUser):
         self.pending = data.get('pending', False)
 
         self.permissions = Permissions(data['permissions'])
+
+
+class ThreadMember:
+    """State of a member in a thread.
+
+    The ThreadMember object is used to indicate whether a user has joined a
+    thread or not, it has details about how long a member has been in a thread.
+
+    Attributes:
+        thread_id:
+            The thread the member is in, None when constructed from
+            the GUILD_CREATE event.
+        user_id:
+            The user ID of the member, None when constructed from
+            the GUILD_CREATE event.
+        joined_at: Timestamp that the member joined the thread.
+        flags: User thread settings (currently only used for notifications).
+    """
+
+    thread_id: Optional[Snowflake]
+    user_id: Optional[Snowflake]
+    joined_at: datetime
+    flags: int
+
+    __slots__ = ('thread_id', 'user_id', 'joined_at', 'flags')
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.thread_id = _get_as_snowflake(data, 'id')
+        self.user_id = _get_as_snowflake(data, 'user_id')
+
+        self.joined_at = datetime.fromtimestamp(data['join_timestamp'], tz=timezone.utc)
+        self.flags = data['flags']
