@@ -1,6 +1,7 @@
 from .asset import *
 from .base import *
 from .channels import *
+from .emoji import *
 from .flags import *
 from .member import *
 from .permissions import *
