@@ -33,24 +33,55 @@ from .flags import AllowedMentions
 from .permissions import PermissionOverwrite, Permissions, PermissionTarget
 
 if TYPE_CHECKING:
-    from ..state import Cache, RESTClient
+    from ..gateway import Cache, RESTClient
     from .user import User
 
 
-class InteractionChannel(Object):
-    """Discord channel received from an interaction."""
+__all__ = (
+    'PartialChannel', 'InteractionChannel', 'ChannelHistory',
+    'DMChannel', 'VoiceChannel', 'TextChannel', 'NewsChannel',
+)
+
+
+class PartialChannel(Object):
+    """Channel with only a handful of fields.
+
+    This is passed in interactions and invites. The `permissions` attribute
+    defaults a Permission object with no fields set.
+
+    Attributes:
+        name: The name of the channel.
+        type: The type of the channel.
+    """
 
     name: str
-    type: ...
-    permissions: Permissions
+    type: int
 
-    __slots__ = ('name', 'type', 'permissions')
+    __slots__ = ('name', 'type')
 
     def __init__(self, data: Dict[str, Any]) -> None:
         super().__init__(int(data['id']))
 
         self.name = data['name']
         self.type = data['type']
+
+
+class InteractionChannel(PartialChannel):
+    """Channel with only a handful of fields.
+
+    This is passed in interactions and invites. The `permissions` attribute
+    defaults a Permission object with no fields set.
+
+    Attributes:
+        permissions: The permissions for the user who invoked the interaction.
+    """
+
+    permissions: Permissions
+
+    __slots__ = ('permissions',)
+
+    def __init__(self, data: Dict[str, Any]) -> None:
+        super().__init__(data)
 
         self.permissions = Permissions(int(data.get('permissions', 0)))
 
