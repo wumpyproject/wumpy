@@ -4,6 +4,7 @@ from .channels import *
 from .emoji import *
 from .flags import *
 from .guild import *
+from .integrations import *
 from .invite import *
 from .member import *
 from .permissions import *
