@@ -33,7 +33,7 @@ from .flags import AllowedMentions
 from .permissions import PermissionOverwrite, Permissions, PermissionTarget
 
 if TYPE_CHECKING:
-    from ..gateway import Cache, RESTClient
+    from ..gateway import RESTClient
     from .user import User
 
 
@@ -46,8 +46,7 @@ __all__ = (
 class PartialChannel(Object):
     """Channel with only a handful of fields.
 
-    This is passed in interactions and invites. The `permissions` attribute
-    defaults a Permission object with no fields set.
+    This is passed in interactions and invites.
 
     Attributes:
         name: The name of the channel.
@@ -69,8 +68,8 @@ class PartialChannel(Object):
 class InteractionChannel(PartialChannel):
     """Channel with only a handful of fields.
 
-    This is passed in interactions and invites. The `permissions` attribute
-    defaults a Permission object with no fields set.
+    An instance of this class is passed in interactions. The `permissions`
+    attribute defaults a Permission object with no fields set.
 
     Attributes:
         permissions: The permissions for the user who invoked the interaction.
@@ -179,7 +178,6 @@ class SendableChannel:
     """
 
     id: int  # Resolved by classes inherting the mixin
-    _rest: 'RESTClient'
 
     __slots__ = ()
 
@@ -199,6 +197,10 @@ class SendableChannel:
         stickers: Sequence[SupportsInt] = MISSING
     ) -> Dict[str, Any]:
         """Send a message to channel."""
+        # All Discord objects should first be wrapped in models before making
+        # them stateful.
+        raise NotImplementedError  # TODO
+
         return await self._rest.send_message(
             self, content=content, tts=tts, embeds=embeds,
             allowed_mentions=allowed_mentions, file=file, stickers=stickers
@@ -206,10 +208,14 @@ class SendableChannel:
 
     async def trigger_typing(self) -> None:
         """Trigger a typing indicator in the channel."""
+        raise NotImplementedError  # TODO
+
         await self._rest.trigger_typing(self.id)
 
     async def fetch_message(self, id: int) -> Dict[str, Any]:
         """Fetch a single message from the channel."""
+        raise NotImplementedError  # TODO
+
         return await self._rest.fetch_message(self, id)
 
     async def edit_message(
@@ -223,6 +229,8 @@ class SendableChannel:
         attachments: Optional[Dict[str, Any]] = MISSING
     ) -> Dict[str, Any]:
         """Edit a message the bot sent in a message."""
+        raise NotImplementedError  # TODO
+
         return await self._rest.edit_message(
             self, id,
             content=content, embeds=embeds, file=file,
@@ -231,10 +239,14 @@ class SendableChannel:
 
     async def delete_message(self, id: int, *, reason: str = MISSING) -> None:
         """Delete a message sent in the channel."""
+        raise NotImplementedError  # TODO
+
         await self._rest.delete_message(self, id, reason=reason)
 
     async def bulk_delete_messages(self, messages: List[SupportsInt], *, reason: str = MISSING) -> None:
         """Bulk delete several messages in the channel."""
+        raise NotImplementedError  # TODO
+
         await self._rest.bulk_delete_messages(self, messages, reason=reason)
 
     @overload
@@ -267,6 +279,8 @@ class SendableChannel:
         ChannelHistory object that can be awaited, or used with `async for`.
         If `limit` is set to None then all messages will be iterated through.
         """
+        raise NotImplementedError  # TODO
+
         if around and (limit is None or limit > 100):
             raise TypeError("'limit' cannot be over 100 or None when 'around' is set")
 
@@ -277,28 +291,26 @@ class SendableChannel:
 
     async def fetch_pins(self) -> List[Dict[str, Any]]:
         """Fetch all pinned messages in a channel."""
+        raise NotImplementedError  # TODO
+
         return await self._rest.fetch_pins(self)
 
     async def delete(self, *, reason: str = MISSING) -> None:
         """Delete the channel."""
+        raise NotImplementedError  # TODO
+
         await self._rest.delete_channel(self, reason=reason)
 
 
 class DMChannel(Object, SendableChannel):
     """Discord DM channel object with a user."""
 
-    _rest: 'RESTClient'
-    _cache: Optional['Cache']
-
     last_message_id: Snowflake
     recipient: 'User'
 
-    __slots__ = ('_rest', '_cache', 'last_message_id', 'recipient')
+    __slots__ = ('last_message_id', 'recipient')
 
-    def __init__(self, rest: 'RESTClient', cache: Optional['Cache'], data: Dict[str, Any]) -> None:
-        self._rest = rest
-        self._cache = cache
-
+    def __init__(self, data: Dict[str, Any]) -> None:
         self._update(data)
 
     def _update(self, data: Dict) -> None:
@@ -307,11 +319,8 @@ class DMChannel(Object, SendableChannel):
         # Even though Discord sends an array of user object, bots cannot
         # participate in group DMs so it will only have 1 item
         user_data = data['recipients'][0]
-        if self._cache:
-            recipient = self._cache.store_user(user_data)
-        else:
-            from .user import User  # Circular imports
-            recipient = User(self._rest, user_data)
+        from .user import User  # Circular imports
+        recipient = User(user_data)
 
         self.recipient = recipient
 
@@ -319,14 +328,10 @@ class DMChannel(Object, SendableChannel):
 class GuildChannel(Object):
     """Channel attached to a guild."""
 
-    _rest: 'RESTClient'
+    __slots__ = ()
 
-    __slots__ = ('_rest',)
-
-    def __init__(self, rest: 'RESTClient', data: Dict[str, Any]) -> None:
+    def __init__(self, data: Dict[str, Any]) -> None:
         super().__init__(int(data['id']))
-
-        self._rest = rest
 
     async def set_permission(
         self,
@@ -336,6 +341,9 @@ class GuildChannel(Object):
         reason: str = MISSING
     ) -> None:
         """Edit a permission overwrite."""
+        # The plan is to wrap all objects, then make them stateful.
+        raise NotImplementedError  # TODO
+
         if type is None and overwrite.type is None:
             raise TypeError("'type' not set in PermissionOverwrite object or arguments")
 
@@ -349,6 +357,8 @@ class GuildChannel(Object):
 
     async def delete_permission(self, target: SupportsInt, *, reason: str = MISSING) -> None:
         """Delete a channel permission overwrite."""
+        raise NotImplementedError  # TODO
+
         await self._rest.delete_permission(self, target, reason=reason)
 
 
@@ -364,7 +374,4 @@ class TextChannel(GuildChannel, SendableChannel):
 
 class NewsChannel(GuildChannel, SendableChannel):
     """Discord News channel."""
-
-    async def follow(self, target: SupportsInt) -> None:
-        """Follow the channel in the target so that messages are posted there."""
-        await self._rest.follow_channel(self, target)
+    pass

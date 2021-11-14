@@ -159,9 +159,9 @@ class Interaction(Object):
 
         member = data.get('member')
         if member:
-            self.user = InteractionUser(rest, member['user'])
+            self.user = InteractionUser(member['user'])
         else:
-            self.user = InteractionUser(rest, data['user'])
+            self.user = InteractionUser(data['user'])
 
         self.token = data['token']
         self.version = data['version']

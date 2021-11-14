@@ -22,17 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, SupportsInt
+from typing import Any, Dict, Optional
 
-from ..rest import Requester
-from ..utils import MISSING, File
-from .asset import Asset
 from .base import Object
-from .channels import DMChannel
-from .flags import AllowedMentions, UserFlags
-
-if TYPE_CHECKING:
-    from ..state import RESTClient
+from .flags import UserFlags
 
 __all__ = ('InteractionUser', 'BotUser', 'User')
 
@@ -40,15 +33,13 @@ __all__ = ('InteractionUser', 'BotUser', 'User')
 class _BaseUser(Object):
     """The base for all user objects.
 
-    The reason that this is seperated from User is because we don't want BotUser
-    to inherit certain methods, you cannot DM yourself for example.
+    The reason that this is seperated from User is because we don't want
+    BotUser to inherit certain methods, you cannot DM yourself for example.
     """
 
-    _rest: 'Requester'
-
-    username: str
+    name: str
     discriminator: int
-    avatar: Optional[Asset]
+    avatar: Optional[str]
 
     public_flags: UserFlags
 
@@ -56,13 +47,11 @@ class _BaseUser(Object):
     system: Optional[bool]
 
     __slots__ = (
-        '_rest', 'username', 'discriminator',
-        'avatar', 'public_flags', 'bot', 'system'
+        'name', 'discriminator', 'avatar', 'public_flags', 'bot', 'system'
     )
 
-    def __init__(self, rest: 'Requester', data: Dict) -> None:
+    def __init__(self, data: Dict[str, Any]) -> None:
         super().__init__(int(data['id']))
-        self._rest = rest
 
         self.bot = None
         self.system = None
@@ -72,11 +61,10 @@ class _BaseUser(Object):
         self._update(data)
 
     def _update(self, data: Dict) -> None:
-        self.username = data['username']
+        self.name = data['username']
         self.discriminator = int(data['discriminator'])
 
-        avatar = data['avatar']
-        self.avatar = Asset(self._rest, f'avatars/{self.id}/{avatar}') if avatar else self.avatar
+        self.avatar = data['avatar']
 
         self.public_flags = UserFlags(data['public_flags'])
 
@@ -84,14 +72,14 @@ class _BaseUser(Object):
         self.system = data.get('system', self.system)
 
     @property
-    def mention(self):
+    def mention(self) -> str:
         return f'<@{self.id}>'
 
     @property
-    def default_avatar(self):
+    def default_avatar(self) -> int:
         # It is unneccessary to keep the default asset for each user in
         # memory, we create them when asked for.
-        return Asset(self._rest, f'embed/avatars/{self.discriminator % 5}')
+        return self.discriminator % 5
 
 
 class InteractionUser(_BaseUser):
@@ -102,8 +90,6 @@ class InteractionUser(_BaseUser):
 class BotUser(_BaseUser):
     """User object attached to an application; the bot application's user account."""
 
-    _rest: 'RESTClient'
-
     bio: str
     locale: str
     mfa_enabled: bool
@@ -111,9 +97,8 @@ class BotUser(_BaseUser):
 
     __slots__ = ('bio', 'locale', 'mfa_enabled', 'verified')
 
-    def __init__(self, rest: 'RESTClient', data: Dict) -> None:
-        super().__init__(rest, data)
-        self._rest = rest
+    def __init__(self, data: Dict) -> None:
+        super().__init__(data)
 
         # We may need to update this object again, so if we seperate it
         # into another method we can call again
@@ -132,53 +117,8 @@ class BotUser(_BaseUser):
     def flags(self):
         return self.public_flags
 
-    async def edit(self, *, username: str = MISSING, avatar: str = MISSING) -> None:
-        """Edit the bot user account."""
-        data = await self._rest.edit_my_user(username=username, avatar=avatar)
-        self._update(data)
-
 
 class User(_BaseUser):
     """Discord User object."""
 
-    _rest: 'RESTClient'
-
-    channel: Optional[DMChannel]
-
-    __slots__ = ('channel',)
-
-    def __init__(self, rest: 'RESTClient', data: Dict) -> None:
-        super().__init__(rest, data)
-
-        self.channel = None
-
-    async def create_dm(self) -> DMChannel:
-        """Create a DM with the user, returning the DM channel."""
-        self.channel = await self._rest.create_dm(self)
-        return self.channel
-
-    async def send(
-        self,
-        content: str = MISSING,
-        *,
-        tts: bool = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        file: File = MISSING,
-        stickers: Sequence[SupportsInt] = MISSING
-    ) -> Dict[str, Any]:
-        """Send a message to the user.
-
-        This requires knowing the channel, for that `create_dm()` is used.
-        That means that this function may require two API calls, the library
-        will call `create_dm()` if needed.
-        """
-        if not self.channel:
-            # Even though create_dm() sets self.channel, the static
-            # type checker doesn't know it does
-            self.channel = await self.create_dm()
-
-        return await self.channel.send(
-            content, tts=tts, embeds=embeds,
-            allowed_mentions=allowed_mentions, file=file, stickers=stickers
-        )
+    __slots__ = ()
