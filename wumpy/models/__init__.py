@@ -7,4 +7,5 @@ from .guild import *
 from .invite import *
 from .member import *
 from .permissions import *
+from .role import *
 from .user import *
