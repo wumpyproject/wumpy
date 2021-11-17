@@ -193,20 +193,30 @@ class DiscordGateway:
                 self.events.append(event)
 
     async def aclose(self):
-        async with self._write_lock:
-            await self._sock.send(self._conn.close())
+        try:
+            async with self._write_lock:
+                await self._sock.send(self._conn.close())
 
-            try:
-                while True:
-                    # Receive the acknowledgement of the closing per the
-                    # WebSocket protocol
-                    for data in self._conn.receive(await self._sock.receive()):
-                        await self._sock.send(data)
-            except CloseDiscordConnection as err:
-                if err.data is not None:
-                    await self._sock.send(err.data)
-
-                await self._sock.aclose()
+                try:
+                    while True:
+                        # Receive the acknowledgement of the closing per the
+                        # WebSocket protocol
+                        for data in self._conn.receive(await self._sock.receive()):
+                            await self._sock.send(data)
+                except anyio.EndOfStream:
+                    # According to the WebSocket protocol we should've gotten a
+                    # closing frame but it's not a big deal - we're closing the
+                    # socket either way. Just close the socket as usual in the
+                    # 'finally' block below.
+                    pass
+                except CloseDiscordConnection as err:
+                    if err.data is not None:
+                        await self._sock.send(err.data)
+        finally:
+            # No matter what happened - whether we completed the closing
+            # handshake or was potentially cancelled (perhaps even before we
+            # acquired the lock) - clean up the socket correctly.
+            await self._sock.aclose()
 
     async def run_heartbeater(self):
         """Run the heartbeater periodically sending commands to Discord."""
