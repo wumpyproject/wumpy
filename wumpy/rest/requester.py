@@ -1,3 +1,4 @@
+import contextlib
 import sys
 from datetime import datetime, timezone
 from types import TracebackType
@@ -33,8 +34,7 @@ def build_user_agent() -> str:
 
 def releaser(delay: Union[int, float], callback: Callable) -> Callable[[], Coroutine]:
     """Coroutine function factory for sleeping and then call the callback."""
-    async def inner(task_status: anyio.abc.TaskStatus = anyio.TASK_STATUS_IGNORED):
-        task_status.started()
+    async def inner():
         try:
             await anyio.sleep(delay)
         finally:
@@ -58,7 +58,7 @@ class Requester:
 
     _session: httpx.AsyncClient
 
-    __slots__ = ('headers', 'ratelimiter', '_session', '_tasks')
+    __slots__ = ('headers', 'ratelimiter', '_session', '_tasks', '_stack')
 
     def __init__(self, ratelimiter=DictRateLimiter, *, headers: Dict[str, str] = {}) -> None:
         # Headers global to the requester
@@ -71,8 +71,14 @@ class Requester:
         self.ratelimiter = ratelimiter()
 
     async def __aenter__(self: SELF) -> SELF:
-        self._tasks = await anyio.create_task_group().__aenter__()
-        self._session = await httpx.AsyncClient(http2=True).__aenter__()
+        if hasattr(self, '_stack'):
+            raise RuntimeError("Cannot enter already opened requester")
+
+        self._stack = contextlib.AsyncExitStack()
+
+        self._tasks = await self._stack.enter_async_context(anyio.create_task_group())
+        self._session = await self._stack.enter_async_context(httpx.AsyncClient(http2=True))
+
         return self
 
     async def __aexit__(
@@ -81,8 +87,7 @@ class Requester:
         exc_val: Optional[BaseException],
         traceback: Optional[TracebackType]
     ) -> None:
-        await self._session.__aexit__(exc_type, exc_val, traceback)
-        await self._tasks.__aexit__(exc_type, exc_val, traceback)
+        await self._stack.__aexit__(exc_type, exc_val, traceback)
 
     @property
     def session(self) -> httpx.AsyncClient:

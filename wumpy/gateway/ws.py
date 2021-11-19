@@ -1,35 +1,18 @@
 from collections import deque
 from contextlib import asynccontextmanager
 from sys import platform
-from typing import Any, AsyncGenerator, Dict, Literal, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, Optional, Tuple
 
 import anyio
 import anyio.abc
 import anyio.streams.tls
-from discord_gateway import DiscordConnection, CloseDiscordConnection, ConnectionRejected
+from discord_gateway import (
+    CloseDiscordConnection, ConnectionRejected, DiscordConnection
+)
 
 from ..errors import ConnectionClosed
 
-__all__ = ('IdentifyLock', 'DiscordGateway')
-
-
-class IdentifyLock(anyio.Semaphore):
-    """Simple lock that schedules releases after an amount of time."""
-
-    def __init__(self, rate: int, per: int) -> None:
-        super().__init__(per)
-
-        self._rate = rate
-
-    async def acquire(self) -> Literal[True]:
-        """Acquire the lock, scheduling a release `rate` seconds later."""
-        await super().acquire()
-
-        asyncio.get_running_loop().call_later(self._rate, self.release)
-        return True
-
-    async def __aexit__(self, *_: Any) -> None:
-        return  # We release the lock automatically
+__all__ = ('DiscordGateway',)
 
 
 class DiscordGateway:
@@ -92,44 +75,51 @@ class DiscordGateway:
             # perform the closing TLS handshake
             tls_standard_compatible=False
         )
+        try:
+            # Upgrade the connection to a WebSocket connection using a
+            # formatted HTTP 1.1 request
+            await sock.send(conn.connect())
 
-        # Upgrade the connection to a WebSocket connection using a formatted
-        # HTTP 1.1 request
-        await sock.send(conn.connect())
+            # Loop until we get the first HELLO event from Discord, we don't
+            # want this event to be dispatched and we need to manually IDENTIFY
+            # afterwards.
+            event = None
+            while event is None:
+                try:
+                    for send in conn.receive(await sock.receive()):
+                        await sock.send(send)
+                except ConnectionRejected as err:
+                    raise ConnectionClosed(
+                        'Discord rejected the WebSocket connection'
+                    ) from err
+                except anyio.EndOfStream:
+                    # We haven't even received a HELLO event and sent a RESUME
+                    # or IDENTIFY command yet, odd.
+                    raise ConnectionClosed('Discord unexpectedly closed the socket')
 
-        # Loop until we get the first HELLO event from Discord, we don't
-        # want this event to be dispatched and we need to manually IDENTIFY
-        # afterwards.
-        event = None
-        while event is None:
-            try:
-                for send in conn.receive(await sock.receive()):
-                    await sock.send(send)
-            except ConnectionRejected as err:
-                raise ConnectionClosed('Discord rejected the WebSocket connection') from err
-            except anyio.EndOfStream:
-                # We haven't even received a HELLO event and sent a RESUME or
-                # IDENTIFY command yet, odd.
-                raise ConnectionClosed('Discord unexpectedly closed the socket')
+                for event in conn.events():
+                    # This won't run at all if there are no events, what ends
+                    # up happening is that we let the code above communicate
+                    # until we get a complete HELLO event.
+                    break
 
-            for event in conn.events():
-                # This won't run at all if there are no events, what ends
-                # up happening is that we let the code above communicate
-                # until we get a complete HELLO event.
-                break
-
-        if conn.should_resume:
-            await sock.send(conn.resume(token))
-        else:
-            await sock.send(conn.identify(
-                token=token,
-                intents=intents,
-                properties={
-                    '$os': platform,
-                    '$browser': 'Wumpy',
-                    '$device': 'Wumpy'
-                },
-            ))
+            if conn.should_resume:
+                await sock.send(conn.resume(token))
+            else:
+                await sock.send(conn.identify(
+                    token=token,
+                    intents=intents,
+                    properties={
+                        '$os': platform,
+                        '$browser': 'Wumpy',
+                        '$device': 'Wumpy'
+                    },
+                ))
+        except:
+            # The bare except is on purpose, we want to catch *any* error that
+            # happened including cancellation errors.
+            await sock.aclose()
+            raise
 
         return conn, sock
 
