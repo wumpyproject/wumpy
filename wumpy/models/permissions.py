@@ -64,7 +64,7 @@ class Permissions(BaseFlags):
 
     @flag
     def priority_speaker(_) -> int:
-        """Whether the permission allows using priority speaker in a voce channel."""
+        """Whether the permission allows using priority speaker in a voice channel."""
         return 1 << 8
 
     @flag
