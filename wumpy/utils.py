@@ -1,16 +1,21 @@
 import functools
 import inspect
+from types import FunctionType, LambdaType
 from typing import (
-    Any, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
+    Any, Awaitable, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
     Type, TypeVar, Union, overload
 )
 
 import anyio.abc
 from typing_extensions import Final, final
 
+from .errors import CommandSetupError
 from .models import Snowflake
 
-__all__ = ('dump_json', 'load_json', 'MISSING', 'File', 'Event', 'EventDispatcher')
+__all__ = (
+    'dump_json', 'load_json', 'MISSING', 'File',
+    'ErrorHandlerMixin', 'Event', 'EventDispatcher'
+)
 
 
 try:
@@ -194,6 +199,102 @@ def _extract_event(callback: Callable[..., Coroutine]) -> Type[Event]:
 
 
 C = TypeVar('C', bound='Callable[..., Coroutine]')
+
+
+class ErrorHandlerMixin:
+    """Mixin that allows registering error handlers.
+
+    This being a mixin means that it takes no arguments in its `__init__`
+    and any passed will be forwarded to `super()`.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.error_handlers = []
+
+    async def handle_error(
+        self,
+        context: Any,
+        raised: Exception,
+        *,
+        callback: Optional[Callable[..., Awaitable]] = None
+    ) -> None:
+        """Handle an error that occured - calling registered handlers.
+
+        Following the sorted order of error handlers this will call them by
+        how "broad" the error is considered - so that subclasses are called
+        before their parents.
+
+        The way an error handler marks an error as handled is by returning
+        `True`, any other value is discarded.
+
+        If no handler handled the error the `callback` argument is called, this
+        allows chaining error handlers on levels.
+
+        Parameters:
+            context: The one argument to pass onto the handler.
+            raised: The `Exception` subclass that was raised.
+            callback: Callback used if no handler handled the error.
+
+        Raises:
+            Exception: The `Exception` subclass that was passed in.
+        """
+        for error, handler in self.error_handlers:
+            if not isinstance(raised, error):
+                continue
+
+            if await handler(context, raised) is True:
+                break
+        else:
+            if callback is None:
+                return
+
+            # No handler at our level handled the error, propagate it up to a
+            # level above or similar uses.
+            await callback(context, raised)
+
+    def register_error_handler(
+        self,
+        callback: Callable,
+        *,
+        exception: Type[Exception] = Exception
+    ) -> None:
+        self.error_handlers.append((exception, callback))
+
+        # First sort the error handlers by name (this makes the result
+        # determinable no matter what the order is) and then by the length of
+        # its __mro__. The more parents the class has the longer its __mro__
+        # will be and the more "narrow" it will be considered.
+        self.error_handlers.sort(key=lambda item: str(item[0]))
+        self.error_handlers.sort(key=lambda item: len(item[0].__mro__), reverse=True)
+
+    @overload
+    def error(self, *, type: Type[Exception]) -> Callable[[C], C]:
+        ...
+
+    @overload
+    def error(self, callback: C) -> C:
+        ...
+
+    def error(
+        self,
+        callback: Optional[C] = None,
+        *,
+        type: Optional[Type[Exception]] = None
+    ) -> Union[Callable[[C], C], C]:
+        """Decorator to register an error handler.
+
+        This decorator is designed to be called with and without parenthesis.
+        """
+        def decorator(func: C) -> C:
+            self.register_error_handler(func, exception=type or Exception)
+            return func
+
+        if callback is not None:
+            return decorator(callback)
+
+        return decorator
 
 
 class EventDispatcher:
