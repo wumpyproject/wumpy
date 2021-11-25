@@ -3,12 +3,12 @@ import anyio
 from ..models import Intents
 
 from ..utils import EventDispatcher
-from .rest import RESTClient
-from .ws import DiscordGateway
+from ..rest import RESTClient
+from .shard import Shard
 
 
 class GatewayClient(EventDispatcher):
-    ws: DiscordGateway
+    ws: Shard
     api: RESTClient
 
     def __init__(self, token: str, *, intents: Intents) -> None:
@@ -17,11 +17,11 @@ class GatewayClient(EventDispatcher):
         self.token = token
         self.intents = intents
 
-    async def start(self, gateway=DiscordGateway) -> int:
+    async def start(self, gateway=Shard.connect) -> int:
         async with anyio.create_task_group() as tg:
-            async with RESTClient(None, token=self.token) as self.api:
+            async with RESTClient(token=self.token) as self.api:
                 uri = await self.api.fetch_gateway()
-                async with gateway.connect(uri, self.token, int(self.intents)) as self.ws:
+                async with gateway(uri, self.token, int(self.intents)) as self.ws:
                     async for data in self.ws:
                         self.dispatch(data['t'], data, tg=tg)
 
