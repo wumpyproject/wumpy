@@ -1,10 +1,11 @@
 from collections import deque
 from contextlib import asynccontextmanager
 from sys import platform
-from typing import Any, AsyncGenerator, Dict, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, NoReturn, Optional, Tuple
 
 import anyio
 import anyio.abc
+import anyio.lowlevel
 import anyio.streams.tls
 from discord_gateway import (
     CloseDiscordConnection, ConnectionRejected, DiscordConnection
@@ -12,14 +13,59 @@ from discord_gateway import (
 
 from ..errors import ConnectionClosed
 
-__all__ = ('DiscordGateway',)
+__all__ = ('Shard',)
 
 
-class DiscordGateway:
-    """Default implementation of the Discord gateway.
+class Shard:
+    """Simple implementation of the Discord gateway.
 
-    Behind the scenes this uses `discord-gateway` to handle the protocol.
+    To get started, use the `connect()` classmethod in an asynchronous
+    context manager - passing the URI, token and intents to connect with:
+
+    ```python
+    async with Shard.connect('wss://gateway.discord.gg/', 'ABC.XYZ', 1) as conn:
+        ...
+    ```
+
+    This way, the shard will ensure the connection is successfully closed once
+    you're done. The shard also uses this opportunity to launch a task that
+    indefinitely sends heartbeat commands and keeps the connection alive.
+
+    The next part is to start receiving events, this is done using the
+    instance that `Shard.connect()` yields. All you have to do is iterate
+    through it:
+
+    ```python
+    async with Shard.connect('wss://gateway.discord.gg/', 'ABC.XYZ', 1) as conn:
+        async for event in conn:
+            ...
+    ```
+
+    This is an endless loop that should never terminate because
+    reconnecting and keeping the connection alive is all handled. `event` is
+    the deserialized JSON that Discord sent over the gateway.
+
+    Examples:
+
+        ```python
+        import asyncio
+
+        from wumpy.gateway import Shard
+
+        async def handle_event(payload):
+            print(f"Received {payload['t']}:", payload['d'])
+
+        async def main():
+            # Replace the ... with the uri, token and intents to use
+            async with Shard.connect(...) as ws:
+                async for event in ws:
+                    await handle_event(event)
+
+        asyncio.run(main)
+        ```
     """
+
+    events: deque
 
     def __init__(
         self,
@@ -37,11 +83,43 @@ class DiscordGateway:
 
         self.events = deque()
 
-    def __aiter__(self) -> 'DiscordGateway':
+    def __aiter__(self) -> 'Shard':
         return self
 
     @classmethod
-    async def _connect_websocket(
+    @asynccontextmanager
+    async def connect(
+        cls,
+        uri: str,
+        token: str,
+        intents: int
+    ) -> AsyncGenerator['Shard', None]:
+        """Connect and initialize the connection to Discord.
+
+        This returns an asynchronous context manager that yields a connected
+        shard instance and will correctly close and cleanup the connection
+        when exiting.
+
+        This method also takes the opportunity to start a task that sends
+        heartbeat commands which keep the connection alive.
+        """
+        async with anyio.create_task_group() as tg:
+            self = cls(*await cls.create_connection(uri, token, intents), token, intents)
+            tg.start_soon(self.run_heartbeater)
+
+            try:
+                yield self
+            finally:
+                # For some reason we are now exiting the context manager
+                # so we need to cancel the heartbeater or else it will block
+                # forever since it is an infinite loop.
+                tg.cancel_scope.cancel()
+
+                # Close the WebSocket and socket before exiting
+                await self.aclose()
+
+    @classmethod
+    async def create_connection(
         cls,
         uri: str,
         token: str,
@@ -49,18 +127,24 @@ class DiscordGateway:
         *,
         conn: Optional[DiscordConnection] = None
     ) -> Tuple[DiscordConnection, anyio.streams.tls.TLSStream]:
-        """Connect and completely initialize the connection to Discord.
+        """Create and initialize the connection to Discord.
 
-        This method is also used when needing to reconnect after having
-        disconnected.
+        Consider using the shorthand `connect()` classmethod before looking at
+        this method.
+
+        This is used to (re)create the underlying socket and protocol
+        implementation, returning them in a tuple possible to unpack into
+        `__init__()` with the token and intents again.
 
         Parameters:
             uri: The URI to connect to.
+            token: The token to identify with.
+            intents: Intents to identify with.
             conn: The (potentially) old connection to reconnect.
 
         Raises:
-            ConnectionRejected:
-                Raised by discord_gateway if Discord rejects the connection.
+            ConnectionClosed:
+                Discord rejected or unexpectedly closed the underlying socket.
         """
         if conn is None:
             conn = DiscordConnection(uri, encoding='json', compress='zlib-stream')
@@ -114,6 +198,11 @@ class DiscordGateway:
                         '$browser': 'Wumpy',
                         '$device': 'Wumpy'
                     },
+                    presence={
+                        'activities': [],
+                        'status': 'offline',
+                        'afk': True
+                    }
                 ))
         except:
             # The bare except is on purpose, we want to catch *any* error that
@@ -124,6 +213,18 @@ class DiscordGateway:
         return conn, sock
 
     async def __anext__(self) -> Dict[str, Any]:
+        """Receive the next event, waiting if there is none.
+
+        This method contains almost all of the active logic that takes care
+        of the WebSocket protocol and reconnecting when necessary.
+
+        If used directly, it is important to close the socket if the task is
+        cancelled. This is designed to sit under the `connect()` classmethod
+        which handles cancellation.
+
+        Returns:
+            The full payload received from Discord.
+        """
         while True:
             # The order here matters, first we want to check if there is an
             # event in the "buffer" so that we don't wait for data if we
@@ -131,7 +232,16 @@ class DiscordGateway:
             # necessary below, where multiple events can get added into this
             # "buffer" and cause desync issues.
             if self.events:
-                return self.events.popleft()
+                event = self.events.popleft()
+
+                # Normally this codepath wouldn't yield to the event loop
+                # because we don't await anything, this is confusing from the
+                # user's perspective and in general considered bad design.
+                await anyio.lowlevel.checkpoint()
+
+                # We popped the event before yielding, otherwise it may have
+                # been popped by another task.
+                return event
 
             try:
                 data = await self._sock.receive()
@@ -149,7 +259,7 @@ class DiscordGateway:
 
                     await self._sock.aclose()
 
-                    self._conn, self._sock = await self._connect_websocket(
+                    self._conn, self._sock = await self.create_connection(
                         self._conn.uri, self.token, self.intents,
                         conn=self._conn
                     )
@@ -174,7 +284,7 @@ class DiscordGateway:
 
                     await self._sock.aclose()
 
-                    self._conn, self._sock = await self._connect_websocket(
+                    self._conn, self._sock = await self.create_connection(
                         self._conn.uri, self.token, self.intents,
                         conn=self._conn
                     )
@@ -182,7 +292,15 @@ class DiscordGateway:
             for event in self._conn.events():
                 self.events.append(event)
 
-    async def aclose(self):
+    async def aclose(self) -> None:
+        """Close and cleanup the connection to Discord.
+
+        As with most methods this is automatically called with `connect()` and
+        should generally not be used directly.
+
+        This is safe to called in a `finally` block - even when cancelled - and
+        will correctly cleanup the underlying socket.
+        """
         try:
             async with self._write_lock:
                 await self._sock.send(self._conn.close())
@@ -208,8 +326,20 @@ class DiscordGateway:
             # acquired the lock) - clean up the socket correctly.
             await self._sock.aclose()
 
-    async def run_heartbeater(self):
-        """Run the heartbeater periodically sending commands to Discord."""
+    async def run_heartbeater(self) -> NoReturn:
+        """Run the heartbeater periodically sending commands to Discord.
+
+        This method is automatically started as a task by the `connect()`
+        classmethod in the asynchronous context manager so there is not much of
+        a need to use this directly.
+
+        Raises:
+            RuntimeError: This method is called before being connected.
+
+        Returns:
+            This method is meant to never run and loops infinitely, it is only
+            stopped by being cancelled.
+        """
         if self._conn.heartbeat_interval is None:
             raise RuntimeError('Heartbeater started before connected')
 
@@ -220,26 +350,3 @@ class DiscordGateway:
                 await self._sock.send(self._conn.heartbeat())
 
             await anyio.sleep(self._conn.heartbeat_interval)
-
-    @classmethod
-    @asynccontextmanager
-    async def connect(
-        cls,
-        uri: str,
-        token: str,
-        intents: int
-    ) -> AsyncGenerator['DiscordGateway', None]:
-        async with anyio.create_task_group() as tg:
-            self = cls(*await cls._connect_websocket(uri, token, intents), token, intents)
-            tg.start_soon(self.run_heartbeater)
-
-            try:
-                yield self
-            finally:
-                # For some reason we are now exiting the context manager
-                # so we need to cancel the heartbeater or else it will block
-                # forever since it is an infinite loop.
-                tg.cancel_scope.cancel()
-
-                # Close the WebSocket and socket before exiting
-                await self.aclose()
