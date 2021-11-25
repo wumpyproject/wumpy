@@ -1,6 +1,5 @@
 from typing import (
-    TYPE_CHECKING, Any, Dict, List, Literal, Optional, Sequence, SupportsInt,
-    Union, overload
+    Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union, overload
 )
 from urllib.parse import quote as urlquote
 
@@ -10,24 +9,16 @@ from ..models import AllowedMentions, DMChannel, PermissionOverwrite
 from ..rest import Route, WebhookRequester
 from ..utils import MISSING, File
 
-if TYPE_CHECKING:
-    from .state import Cache
-
-
 __all__ = ('RESTClient',)
 
 
 class RESTClient(WebhookRequester):
     """Requester subclass wrapping endpoints used for Discord applications."""
 
-    _cache: Optional['Cache']
+    __slots__ = ()
 
-    __slots__ = ('_cache',)
-
-    def __init__(self, cache: Optional['Cache'], token: str, *args, **kwargs):
+    def __init__(self, token: str, *args, **kwargs):
         super().__init__(*args, **kwargs, headers={"Authorization": f"Bot {token}"})
-
-        self._cache = cache
 
     # Audit Log endpoints
 
@@ -1673,10 +1664,7 @@ class RESTClient(WebhookRequester):
         data = await self.request(Route(
             'POST', '/users/@me/channels'), json={'recipient_id': int(recipient)}
         )
-        if self._cache:
-            return self._cache.store_channel(data)
-        else:
-            return DMChannel(self, self._cache, data)
+        return DMChannel(data)
 
     # Webhook endpoints (without usage of webhook token)
 
