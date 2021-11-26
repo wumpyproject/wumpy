@@ -11,7 +11,7 @@ from discord_gateway import (
     CloseDiscordConnection, ConnectionRejected, DiscordConnection
 )
 
-from ..errors import ConnectionClosed
+from .errors import ConnectionClosed
 
 __all__ = ('Shard',)
 

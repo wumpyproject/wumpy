@@ -1,0 +1,49 @@
+[project]
+name = "wumpy-gateway"
+version = "0.1.0"
+description = "Gateway implementation for the Wumpy project"
+readme = {file = "README.md"}
+requires-python = ""
+license = {file = "LICENSE"}
+authors = [{name = "Bluenix", email = "bluenixdev@gmail.com"}]
+
+keywords = [
+    "wumpy", "wumpus", "wrapper",
+    "discord", "discord-api", "discord-bot", "discord-api-wrapper",
+    "python-3"
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Internet",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+dependencies = ["discord-gateway", "anyio"]
+
+[project.urls]
+homepage = "https://github.com/Bluenix2/wumpy"
+repository = "https://github.com/Bluenix2/wumpy/main/library/wumpy-gateway"
+documentation = "https://wumpy.rtfd.io"
+
+[build-system]
+requires = ["flit_core >=3.5<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+# This is a subpackage under the wumpy namespace package,
+# we need to tell flit this otherwise it tries to make the
+# import wumpy-gateway rather than wumpy.gateway
+name = "wumpy.gateway"
