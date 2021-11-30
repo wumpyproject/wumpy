@@ -3,7 +3,11 @@ name = "wumpy-gateway"
 version = "0.1.0"
 description = "Gateway implementation for the Wumpy project"
 readme = {file = "README.md", content-type="text/markdown"}
-requires-python = ""
+
+# Both discord-gateway and anyio has 3.6.2 as the minimum requirement
+# but @contextlib.asynccontextmanager was added in Python 3.7
+requires-python = ">=3.7"
+
 license = {file = "LICENSE"}
 authors = [{name = "Bluenix", email = "bluenixdev@gmail.com"}]
 
