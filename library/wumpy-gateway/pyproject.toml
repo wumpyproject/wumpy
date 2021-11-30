@@ -1,6 +1,6 @@
 [project]
 name = "wumpy-gateway"
-version = "0.1.0"
+version = "0.1.1"
 description = "Gateway implementation for the Wumpy project"
 readme = {file = "README.md", content-type="text/markdown"}
 
