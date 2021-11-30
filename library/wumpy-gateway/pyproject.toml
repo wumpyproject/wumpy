@@ -2,7 +2,7 @@
 name = "wumpy-gateway"
 version = "0.1.0"
 description = "Gateway implementation for the Wumpy project"
-readme = {file = "README.md"}
+readme = {file = "README.md", content-type="text/markdown"}
 requires-python = ""
 license = {file = "LICENSE"}
 authors = [{name = "Bluenix", email = "bluenixdev@gmail.com"}]
