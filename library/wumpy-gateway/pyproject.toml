@@ -31,7 +31,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-dependencies = ["discord-gateway", "anyio"]
+dependencies = ["discord-gateway >=0.2.0, <3", "anyio >= 3.3.4, <4"]
 
 [project.urls]
 homepage = "https://github.com/Bluenix2/wumpy"
@@ -39,7 +39,7 @@ repository = "https://github.com/Bluenix2/wumpy/main/library/wumpy-gateway"
 documentation = "https://wumpy.rtfd.io"
 
 [build-system]
-requires = ["flit_core >=3.5<4"]
+requires = ["flit_core >=3.5, <4"]
 build-backend = "flit_core.buildapi"
 
 [tool.flit.module]
