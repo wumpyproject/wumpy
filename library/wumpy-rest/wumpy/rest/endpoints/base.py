@@ -79,8 +79,17 @@ class Requester:
 
         self._stack = contextlib.AsyncExitStack()
 
-        self._tasks = await self._stack.enter_async_context(anyio.create_task_group())
-        self._session = await self._stack.enter_async_context(httpx.AsyncClient(http2=True))
+        try:
+            self._tasks = await self._stack.enter_async_context(anyio.create_task_group())
+            self._session = await self._stack.enter_async_context(
+                httpx.AsyncClient(headers=self.headers, http2=True, follow_redirects=True)
+            )
+        except:
+            # If any of the __aenter__s fails in the above block the finalizer
+            # won't be called correctly. This is important to handle if we get
+            # cancelled for example..
+            await self._stack.__aexit__(*sys.exc_info())
+            raise
 
         return self
 
