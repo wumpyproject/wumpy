@@ -2,12 +2,13 @@ import contextlib
 import sys
 from datetime import datetime, timezone
 from types import TracebackType
-from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Type, Union
 from urllib.parse import quote as urlquote
 
 import httpx
 import anyio
 import anyio.abc
+from typing_extensions import Self
 
 from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
@@ -17,9 +18,6 @@ from .locks import RateLimit
 from .ratelimiter import DictRateLimiter, RateLimiter, Route
 
 __all__ = ('build_user_agent', 'Requester')
-
-
-SELF = TypeVar('SELF', bound='Requester')
 
 
 def build_user_agent() -> str:
@@ -73,7 +71,7 @@ class Requester:
 
         self.ratelimiter = ratelimiter()
 
-    async def __aenter__(self: SELF) -> SELF:
+    async def __aenter__(self) -> Self:
         if hasattr(self, '_stack'):
             raise RuntimeError("Cannot enter already opened requester")
 
@@ -284,7 +282,7 @@ class Requester:
             kwargs['json'] = self._clean_dict(kwargs['json'])
 
         # Create the headers for the request
-        headers: dict[str, str] = kwargs.pop('headers', {})
+        headers: Dict[str, str] = kwargs.pop('headers', {})
 
         # The second part of the if-statement is to check if the value is
         # truthy, otherwise we'll send an X-Audit-Log-Reason of None
