@@ -296,23 +296,21 @@ class Requester:
         # Create the headers for the request
         headers: Dict[str, str] = kwargs.pop('headers', {})
 
-        # The second part of the if-statement is to check if the value is
-        # truthy, otherwise we'll send an X-Audit-Log-Reason of None
         if reason is not MISSING:
             headers['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
-        for attempt in range(5):
+        for attempt in range(3):
             async with await self.ratelimiter.get(route) as rl:
                 try:
                     res = await self._request(route, headers, rl, attempt, **kwargs)
-                except OSError as error:
-                    # Connection reset by peer
-                    if attempt < 4 and error.errno in (54, 10054):
-                        # Exponentially backoff and try again
+                except httpx.RequestError as error:
+                    if attempt < 3:
+                        # Exponentisally backoff and try again
                         await anyio.sleep(1 + attempt * 2)
                         continue
 
-                    # The last attempt or some other error
+                    # Even the last attempt failed, so we want to make sure it
+                    # reaches the user.
                     raise error
 
                 if res is None:
