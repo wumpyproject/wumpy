@@ -46,10 +46,13 @@ def releaser(delay: Union[int, float], callback: Callable) -> Callable[[], Corou
 
 
 class Requester:
-    """A class to make requests against Discord's API, respecting ratelimits.
+    """Base for making requests to Discord's API, respecting ratelimits.
 
-    This class itself does not actually contain any routes, that way it can be
-    re-used and subclassed for several purposes.
+    This is meant to be re-used for many different purposes and as such does
+    not contain any actual routes.
+
+    Use it as an asynchronous context manager to ensure that sockets and tasks
+    are properly cleaned up.
     """
 
     headers: Dict[str, str]
@@ -106,7 +109,14 @@ class Requester:
         return {k: v for k, v in mapping.items() if v is not MISSING}
 
     async def _handle_ratelimit(self, data: Dict[str, Any]) -> None:
-        """Handle an unexpected 429 response."""
+        """Sleep through a 429 Too Many Requests response.
+
+        This method simply sleeps the amount specified in the response, locking
+        the global ratelimit lock if necessary.
+
+        Parameters:
+            data: The JSON deserialized body of the response.
+        """
         retry_after: float = data['retry_after']
 
         is_global: bool = data.get('global', False)
@@ -129,10 +139,34 @@ class Requester:
         data: Optional[Dict] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None
     ) -> Optional[Any]:
-        """Attempt to actually make the request.
+        """Make one attempt at a successful request.
 
-        None is returned if the request got a bad response which was handled
-        and the function should be called again to retry.
+        Parameters:
+            route: The route to make the request to.
+            headers: Headers to use when making the request.
+            ratelimit: Ratelimit lock for this route.
+            attempt: How many attempts have been made at this route.
+            json: Dictionary to serialize to JSON and send as the request body.
+            data: Dictionary to send as a multipart form-data request body.
+            auth:
+                Tuple with two items: (username, password) to authorize with
+                using BASIC. This parameter is not used, as Discord primarily
+                authenticates using the Authorization header.
+
+        Raises:
+            Forbidden: The request received a 403 Forbidden response.
+            NotFound: The request received a 404 Not Found response.
+            ServerException:
+                The request received a 503 Service Unavailable response, this
+                is different from 500, 502 or 504 responses as they are
+                gracefully retried.
+            HTTPException:
+                The request received a non-successful unknown response. Simply
+                indicates a general failure.
+
+        Returns:
+            The JSON deserialized body of the response, or None if the request
+            was unsuccessful and should be retried.
         """
         content = dump_json(json) if json is not None else None
 
@@ -193,16 +227,47 @@ class Requester:
         raise RequestException(res, data)
 
     async def request(self, route: Route, *, reason: str = MISSING, **kwargs: Any) -> Any:
-        """Make a request to the Discord API, respecting rate limits.
+        """Send a request to the Discord API, respecting rate limits.
 
         If the `json` keyword-argument contains values that are MISSING,
-        they will be removed before being passed to HTTPx.
+        they will be removed before being passed to HTTPX.
 
         This function returns a deserialized JSON object if Content-Type is
         `application/json`, otherwise a string. Commonly it is known by the
         caller itself what the response will be, in which case it will be
         a burden to narrow down the type unneccesarily. For that reason this
         function is annotated as returning `Any`.
+
+        Parameters:
+            route: The route to make the request to.
+            reason:
+                The reason to insert into the Audit Log for this change, not
+                supported by all endpoints.
+            headers: Headers to use when making the request.
+            ratelimit: Ratelimit lock for this route.
+            attempt: How many attempts have been made at this route.
+            json: Dictionary to serialize to JSON and send as the request body.
+            data: Dictionary to send as a multipart form-data request body.
+            auth:
+                Tuple with two items: (username, password) to authorize with
+                using BASIC. This parameter is not used, as Discord primarily
+                authenticates using the Authorization header.
+
+        Raises:
+            Forbidden: The request received a 403 Forbidden response.
+            NotFound: The request received a 404 Not Found response.
+            ServerException:
+                The request received a 503 Service Unavailable response, this
+                is different from 500, 502 or 504 responses as they are
+                gracefully retried.
+            HTTPException:
+                The request received a non-successful unknown response. Simply
+                indicates a general failure, can also be raised if no attempt
+                at the request was successful.
+
+        Returns:
+            The JSON deserialized body of the response, or None if the request
+            was unsuccessful and should be retried.
         """
 
         # Clean up MISSING values
@@ -242,7 +307,6 @@ class Requester:
         self,
         method: str,
         url: str,
-        *args,
         **kwargs
     ) -> bytes:
         """Bypass retrying, ratelimit handling and json serialization.
@@ -250,6 +314,14 @@ class Requester:
         The point of this function is to make a "raw" request somewhere.
         Commonly to a CDN endpoint, that does not have ratelimits and needs to
         read the bytes.
+
+        Parameters:
+            method: The HTTP method to use.
+            url: The URL to make the request to.
+            kwargs: Keyword arguments to pass to HTTPX.
+
+        Returns:
+            The response body read as bytes.
         """
         res = await self.session.request(method, url, **kwargs)
 
@@ -268,4 +340,13 @@ class Requester:
     # Asset endpoint
 
     async def read_asset(self, url: str, *, size: int) -> bytes:
+        """Read the bytes of a CDN asset.
+
+        Parameters:
+            url: The full URL to the asset.
+            size: The value of the 'size' query parameter.
+
+        Returns:
+            The CDN asset read as bytes.
+        """
         return await self._bypass_request('GET', url, params={'size': size})
