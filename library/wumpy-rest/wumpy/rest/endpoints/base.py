@@ -1,6 +1,7 @@
 import contextlib
 import sys
 from datetime import datetime, timezone
+from pkg_resources import get_distribution
 from types import TracebackType
 from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Type, Union
 from urllib.parse import quote as urlquote
@@ -22,10 +23,11 @@ __all__ = ('build_user_agent', 'Requester')
 
 def build_user_agent() -> str:
     """Build a User-Agent to use in making requests."""
-    from wumpy import __version__  # Avoid circular imports
 
-    agent = f'DiscordBot (https://github.com/Bluenix2/wumpy, version: {__version__})'
-    agent += f' Python/{sys.version_info[0]}.{sys.version_info[1]}'
+    v = get_distribution('wumpy.rest').version
+
+    agent = f'DiscordBot (https://github.com/Bluenix2/wumpy, version: {v})'
+    agent += f" Python/{'.'.join([str(i) for i in sys.version_info])}"
 
     return agent
 
