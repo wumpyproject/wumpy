@@ -15,8 +15,8 @@ from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
 )
 from ..utils import MISSING, load_json, dump_json
-from .locks import RateLimit
-from .ratelimiter import DictRateLimiter, RateLimiter, Route
+from ..locks import RateLimit
+from ..ratelimiter import DictRateLimiter, RateLimiter, Route
 
 __all__ = ('build_user_agent', 'Requester')
 
@@ -135,7 +135,8 @@ class Requester:
         await anyio.sleep(retry_after)
 
         if is_global:
-            self.ratelimiter.unlock()  # Release now that the global ratelimit has passed
+            # Release now that the global ratelimit has passed
+            self.ratelimiter.unlock()
 
     async def _request(
         self,
