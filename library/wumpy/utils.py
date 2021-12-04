@@ -18,19 +18,6 @@ __all__ = (
 )
 
 
-try:
-    import orjson
-
-    dump_json = orjson.dumps
-    load_json = orjson.loads
-
-except ImportError:
-    import json
-
-    dump_json = json.dumps
-    load_json = json.loads
-
-
 def _eval_annotations(obj: Callable) -> Dict[str, Any]:
     """Eval a callable's annotations.
 
@@ -82,24 +69,6 @@ def _get_as_snowflake(data: Optional[dict], key: str) -> Optional[Snowflake]:
 
     value = data.get(key)
     return Snowflake(value) if value is not None else None
-
-
-@final
-class MissingType(object):
-    """Representing an optional default when no value has been passed.
-
-    This is mainly used as a sentinel value for defaults to work nicely
-    with typehints, so that `Optional[X]` doesn't have to be used.
-    """
-
-    def __bool__(self) -> bool:
-        return False
-
-    def __repr__(self) -> str:
-        return '<MISSING>'
-
-
-MISSING: Final[Any] = MissingType()
 
 
 class File:
