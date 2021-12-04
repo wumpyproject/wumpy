@@ -200,15 +200,21 @@ class Requester:
 
         # No need to read the body for the following responses
         if res.status_code in {500, 502, 504}:
+            await res.aclose()
             await anyio.sleep(1 + attempt * 2)
             return None
 
-        elif res.status_code == 403:
-            raise Forbidden(res, data)
-        elif res.status_code == 404:
-            raise NotFound(res, data)
-        elif res.status_code == 503:
-            raise ServerException(res, data)
+        elif res.status_code in {403, 404, 503}:
+            # Normally called when the response body is fully called, since we
+            # don't read the body here we need to call it manually.
+            await res.aclose()
+
+            if res.status_code == 403:
+                raise Forbidden(res, data)
+            elif res.status_code == 404:
+                raise NotFound(res, data)
+            elif res.status_code == 503:
+                raise ServerException(res, data)
 
         # The status code is now either 300> or >= 200 or 429
         text = (await res.aread()).decode(encoding='utf-8')
@@ -222,18 +228,22 @@ class Requester:
         if 300 > res.status_code >= 200:
             return body
 
-        # Discord should be responding with a JSON body on a 429 response
-        if not isinstance(data, dict):
-            raise HTTPException(
-                f'Unknown response {res.status_code} {res.reason_phrase}:', data
-            )
-
         # We're being ratelimited by Discord
         if res.status_code == 429:
+            if not isinstance(data, dict):
+                # This should not happen, but there is a possibility since
+                # data is not always a dict. We could potentially look at the
+                # response headers, but for now the best course of action seems
+                # to
+                await anyio.sleep(1 + attempt * 2)
+                return None
+
             # Returning None will cause the function to try again
             return await self._handle_ratelimit(data)
 
-        raise RequestException(res, data)
+        raise HTTPException(
+            f'Unknown response {res.status_code} {res.reason_phrase}:', data
+        )
 
     async def request(self, route: Route, *, reason: str = MISSING, **kwargs: Any) -> Any:
         """Send a request to the Discord API, respecting rate limits.
@@ -310,7 +320,7 @@ class Requester:
 
                 return res
 
-        raise HTTPException(f'All attempts at {route} failed')
+        raise HTTPException(f'All attempts at {route} were unsuccessful.')
 
     async def _bypass_request(
         self,
