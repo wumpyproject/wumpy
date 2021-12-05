@@ -1,22 +1,22 @@
 import contextlib
 import sys
 from datetime import datetime, timezone
-from pkg_resources import get_distribution
 from types import TracebackType
 from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Type, Union
 from urllib.parse import quote as urlquote
 
-import httpx
 import anyio
 import anyio.abc
+import httpx
+from pkg_resources import get_distribution
 from typing_extensions import Self
 
 from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
 )
-from ..utils import MISSING, load_json, dump_json
 from ..locks import RateLimit
 from ..ratelimiter import DictRateLimiter, RateLimiter, Route
+from ..utils import MISSING, dump_json, load_json
 
 __all__ = ('build_user_agent', 'Requester')
 

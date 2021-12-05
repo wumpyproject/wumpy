@@ -1,5 +1,4 @@
 from .locks import *
 from .ratelimiter import *
-from .requester import *
-from .restclient import *
+from .endpoints.base import *
 from .webhook import *
