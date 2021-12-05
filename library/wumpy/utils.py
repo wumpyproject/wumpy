@@ -1,15 +1,12 @@
 import functools
 import inspect
-from types import FunctionType, LambdaType
 from typing import (
-    Any, Awaitable, BinaryIO, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
+    Any, Awaitable, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
     Type, TypeVar, Union, overload
 )
 
 import anyio.abc
-from typing_extensions import Final, final
 
-from .errors import CommandSetupError
 from .models import Snowflake
 
 __all__ = (
@@ -69,32 +66,6 @@ def _get_as_snowflake(data: Optional[dict], key: str) -> Optional[Snowflake]:
 
     value = data.get(key)
     return Snowflake(value) if value is not None else None
-
-
-class File:
-    """Representing a file to be uploaded to Discord."""
-
-    source: BinaryIO
-    filename: str
-
-    __slots__ = ('source', 'filename')
-
-    def __init__(self, source: BinaryIO, filename: str, *, spoiler: bool = False) -> None:
-        self.source = source
-
-        # We use the removeprefix methods as they do nothing if the string does not
-        # start with the string passed.
-        if not spoiler:
-            self.filename = filename.removeprefix('SPOILER_')
-        else:
-            # The user may have already added a SPOILER_ prefix
-            self.filename = 'SPOILER_' + filename.removeprefix('SPOILER_')
-
-    def read(self, n: int) -> bytes:
-        return self.source.read(n)
-
-    def close(self) -> None:
-        return self.source.close()
 
 
 class Event:
