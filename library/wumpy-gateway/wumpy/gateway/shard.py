@@ -76,6 +76,7 @@ class Shard:
     ) -> None:
         self._conn = conn
         self._sock = sock
+        self._write_lock = anyio.Lock()
 
         self.token = token
         self.intents = intents
@@ -109,22 +110,13 @@ class Shard:
             try:
                 yield self
             finally:
-                # We used to cancel the heartbeater before closing the
-                # WebSocket to prevent race conditions between sending a
-                # heartbeat command and actually closing the socket.
-                # This was fixed when discord-gateway added the 'closing'
-                # property because now the heartbeater will wait when this is
-                # True - which it is as soon as the closing handshake has
-                # started (making it safe).
-                # Cancelling the cancel-scope we're in and then immediately
-                # trying to gracefully close the socket also meant we
-                # cancelled the actual closing too unecessarily *facepalm*.
-                await self.aclose()
-
-                # Task groups exit when all tasks have completed, the
-                # heartbeater is an endless loop so we need to cancel it to
-                # be able to exit..
+                # For some reason we are now exiting the context manager
+                # so we need to cancel the heartbeater or else it will block
+                # forever since it is an infinite loop.
                 tg.cancel_scope.cancel()
+
+                # Close the WebSocket and socket before exiting
+                await self.aclose()
 
     @classmethod
     async def create_connection(
@@ -259,40 +251,43 @@ class Shard:
                 # socket was closed without actually closing the WebSocket..
                 # either way we can handle this normally
 
-                # Note: The heartbeater uses the 'closing' property on
-                # self._conn so that there are no race conditions.
-                for send in self._conn.receive(None):
-                    await self._sock.send(send)
+                # Hold the lock while reconnecting so that the heartbeater
+                # doesn't attempt to heartbeat while this is happening
+                async with self._write_lock:
+                    for send in self._conn.receive(None):
+                        await self._sock.send(send)
 
-                await self._sock.aclose()
+                    await self._sock.aclose()
 
-                self._conn, self._sock = await self.create_connection(
-                    self._conn.uri, self.token, self.intents,
-                    conn=self._conn
-                )
-                # The data variable isn't defined so we can't run the code
-                # below, skip to the top of the loop and try again.
-                continue
+                    self._conn, self._sock = await self.create_connection(
+                        self._conn.uri, self.token, self.intents,
+                        conn=self._conn
+                    )
+                    # The data variable isn't defined so we can't run the code
+                    # below, skip to the top of the loop and try again.
+                    continue
 
-            try:
-                for send in self._conn.receive(data):
-                    await self._sock.send(send)
-            except CloseDiscordConnection as err:
-                # There are a few reasons why discord-gateway wants us to
-                # reconnect, either Discord sent an event telling us to do
-                # it or they didn't acknowledge a heartbeat.
+            # The write lock is held during the entire sending and potential
+            # reconnecting so that there isn't a race condition where the
+            # heartbeater grabs the lock between sending and reconnecting.
+            async with self._write_lock:
+                try:
+                    for send in self._conn.receive(data):
+                        await self._sock.send(send)
+                except CloseDiscordConnection as err:
+                    # There are a few reasons why discord-gateway wants us to
+                    # reconnect, either Discord sent an event telling us to do
+                    # it or they didn't acknowledge a heartbeat
 
-                # Same as above, this is safe from race conditions because
-                # of the 'closing' property on self._conn.
-                if err.data is not None:
-                    await self._sock.send(err.data)
+                    if err.data is not None:
+                        await self._sock.send(err.data)
 
-                await self._sock.aclose()
+                    await self._sock.aclose()
 
-                self._conn, self._sock = await self.create_connection(
-                    self._conn.uri, self.token, self.intents,
-                    conn=self._conn
-                )
+                    self._conn, self._sock = await self.create_connection(
+                        self._conn.uri, self.token, self.intents,
+                        conn=self._conn
+                    )
 
             for event in self._conn.events():
                 self.events.append(event)
@@ -307,29 +302,28 @@ class Shard:
         will correctly cleanup the underlying socket.
         """
         try:
-            await self._sock.send(self._conn.close())
+            async with self._write_lock:
+                await self._sock.send(self._conn.close())
 
-            try:
-                while True:
-                    # Receive the acknowledgement of the closing per the
-                    # WebSocket protocol
-                    for data in self._conn.receive(await self._sock.receive()):
-                        await self._sock.send(data)
-            except anyio.EndOfStream:
-                # According to the WebSocket protocol we should've gotten a
-                # closing frame but it's not a big deal - we're closing the
-                # socket either way. Just close the socket as usual in the
-                # 'finally' block below.
-                pass
-            except CloseDiscordConnection as err:
-                if err.data is not None:
-                    await self._sock.send(err.data)
+                try:
+                    while True:
+                        # Receive the acknowledgement of the closing per the
+                        # WebSocket protocol
+                        for data in self._conn.receive(await self._sock.receive()):
+                            await self._sock.send(data)
+                except anyio.EndOfStream:
+                    # According to the WebSocket protocol we should've gotten a
+                    # closing frame but it's not a big deal - we're closing the
+                    # socket either way. Just close the socket as usual in the
+                    # 'finally' block below.
+                    pass
+                except CloseDiscordConnection as err:
+                    if err.data is not None:
+                        await self._sock.send(err.data)
         finally:
             # No matter what happened - whether we completed the closing
-            # handshake or was potentially cancelled - clean up the socket
-            # correctly. If we were cancelled (and are running under Trio)
-            # this will also be cancelled and cause the socket to forcefully
-            # close, the end result is the same.
+            # handshake or was potentially cancelled (perhaps even before we
+            # acquired the lock) - clean up the socket correctly.
             await self._sock.aclose()
 
     async def run_heartbeater(self) -> NoReturn:
@@ -350,14 +344,9 @@ class Shard:
             raise RuntimeError('Heartbeater started before connected')
 
         while True:
-            # This property is set to True if the WebSocket is at any stage of
-            # its closing handshake, meaning that when this is False the
-            # WebSocket is reconnecting (or potentially closing for good).
-            # Paired with the fact that self._sock and self._conn are only
-            # ever overwritten after having sent an IDENTIFY or RESUME command,
-            # this simple if-statement guards all potential race conditions
-            # from happening with the socket.
-            if not self._conn.closing:
+            # Attempt to acquire the write lock, this is held when reconnecting
+            # so that there are no race conditions
+            async with self._write_lock:
                 await self._sock.send(self._conn.heartbeat())
 
             await anyio.sleep(self._conn.heartbeat_interval)
