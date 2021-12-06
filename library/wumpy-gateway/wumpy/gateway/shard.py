@@ -1,7 +1,8 @@
 from collections import deque
 from contextlib import asynccontextmanager
+from functools import partial
 from sys import platform
-from typing import Any, AsyncGenerator, Dict, NoReturn, Optional, Tuple
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, Optional, Tuple
 
 import anyio
 import anyio.abc
@@ -14,6 +15,32 @@ from discord_gateway import (
 from .errors import ConnectionClosed
 
 __all__ = ('Shard',)
+
+
+async def _done_callback(func: Callable[[], Awaitable], callback: Callable[[], Any]) -> None:
+    await func()
+
+    # It is a deliberate design decision to not use a try/finally block here,
+    # we only want to call the callback if func() was successful.
+    callback()
+
+
+async def race(*functions) -> None:
+    """Race several coroutine functions against each other.
+
+    This function will return when the first of the functions complete, by
+    cancelling all other functions. This means that only functions that can
+    properly handle cancellation should be used with this function.
+
+    Parameters:
+        functions: The functions to race against each other.
+    """
+    if len(functions) == 0:
+        raise ValueError("race() missing at least 1 required positional argument")
+
+    async with anyio.create_task_group() as tg:
+        for func in functions:
+            tg.start_soon(partial(_done_callback, func, tg.cancel_scope.cancel))
 
 
 class Shard:
@@ -76,7 +103,9 @@ class Shard:
     ) -> None:
         self._conn = conn
         self._sock = sock
+
         self._write_lock = anyio.Lock()
+        self._closed = anyio.Event()
 
         self.token = token
         self.intents = intents
@@ -103,20 +132,21 @@ class Shard:
         This method also takes the opportunity to start a task that sends
         heartbeat commands which keep the connection alive.
         """
-        async with anyio.create_task_group() as tg:
-            self = cls(*await cls.create_connection(uri, token, intents), token, intents)
-            tg.start_soon(self.run_heartbeater)
+        self = cls(*await cls.create_connection(uri, token, intents), token, intents)
+        try:
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(self.run_heartbeater)
 
-            try:
                 yield self
-            finally:
-                # For some reason we are now exiting the context manager
-                # so we need to cancel the heartbeater or else it will block
-                # forever since it is an infinite loop.
-                tg.cancel_scope.cancel()
 
-                # Close the WebSocket and socket before exiting
-                await self.aclose()
+                # If this was cancelled, or some other error occured, the
+                # heartbeater will be cancelled either way meaning that there
+                # is no point for a try/finally block here (since the point of
+                # it is to cause the heartbeater to gracefully exit).
+                self._closed.set()
+
+        finally:
+            await self.aclose()
 
     @classmethod
     async def create_connection(
@@ -301,6 +331,10 @@ class Shard:
         This is safe to called in a `finally` block - even when cancelled - and
         will correctly cleanup the underlying socket.
         """
+        # In case the event hasn't been set yet (such as if this is directly
+        # called by the user for some reason).
+        self._closed.set()
+
         try:
             async with self._write_lock:
                 await self._sock.send(self._conn.close())
@@ -326,7 +360,7 @@ class Shard:
             # acquired the lock) - clean up the socket correctly.
             await self._sock.aclose()
 
-    async def run_heartbeater(self) -> NoReturn:
+    async def run_heartbeater(self) -> None:
         """Run the heartbeater periodically sending commands to Discord.
 
         This method is automatically started as a task by the `connect()`
@@ -347,6 +381,16 @@ class Shard:
             # Attempt to acquire the write lock, this is held when reconnecting
             # so that there are no race conditions
             async with self._write_lock:
-                await self._sock.send(self._conn.heartbeat())
 
-            await anyio.sleep(self._conn.heartbeat_interval)
+                # Even though we may not be reconnecting or sending anything
+                # over the socket, a closure may have started that we haven't
+                # completed yet. Just skip sending heartbeats in that case.
+                if not self._conn.closing:
+                    await self._sock.send(self._conn.heartbeat())
+
+            # Wait for the first one to complete - either the expected sleeping
+            # or during shutdown the _closed event.
+            await race(partial(anyio.sleep, self._conn.heartbeat_interval), self._closed.wait)
+
+            if self._closed.is_set():
+                return
