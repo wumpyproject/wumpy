@@ -1,3 +1,4 @@
+import logging
 from collections import deque
 from contextlib import asynccontextmanager
 from functools import partial
@@ -15,6 +16,9 @@ from discord_gateway import (
 from .errors import ConnectionClosed
 
 __all__ = ('Shard',)
+
+
+log = logging.getLogger(__name__)
 
 
 async def _done_callback(func: Callable[[], Awaitable], callback: Callable[[], Any]) -> None:
@@ -132,9 +136,13 @@ class Shard:
         This method also takes the opportunity to start a task that sends
         heartbeat commands which keep the connection alive.
         """
+        log.info('Connecting to the Discord gateway...')
         self = cls(*await cls.create_connection(uri, token, intents), token, intents)
+        log.info('Successfully established connection to the Discord gateway.')
+
         try:
             async with anyio.create_task_group() as tg:
+                log.info('Starting gateway heartbeat task.')
                 tg.start_soon(self.run_heartbeater)
 
                 yield self
@@ -146,6 +154,7 @@ class Shard:
                 self._closed.set()
 
         finally:
+            log.info('Exiting the context manager - closing the connection.')
             await self.aclose()
 
     @classmethod
@@ -234,9 +243,10 @@ class Shard:
                         'afk': True
                     }
                 ))
-        except:
-            # The bare except is on purpose, we want to catch *any* error that
-            # happened including cancellation errors.
+        except BaseException as err:
+            # We want to catch *any* error that happened including cancellation
+            # errors so that we can cleanup.
+            log.critical('Failed to (re)connect to the Discord gateway.', exc_info=err)
             await sock.aclose()
             raise
 
@@ -280,6 +290,10 @@ class Shard:
                 # and we then respond to the closure. This error means that the
                 # socket was closed without actually closing the WebSocket..
                 # either way we can handle this normally
+                log.warn(
+                    'Discord closed the socket without closing the WebSocket; '
+                    'reconnecting to the gateway.'
+                )
 
                 # Hold the lock while reconnecting so that the heartbeater
                 # doesn't attempt to heartbeat while this is happening
@@ -308,6 +322,7 @@ class Shard:
                     # There are a few reasons why discord-gateway wants us to
                     # reconnect, either Discord sent an event telling us to do
                     # it or they didn't acknowledge a heartbeat
+                    log.info('Closed the WebSocket, reconnecting to the gateway.')
 
                     if err.data is not None:
                         await self._sock.send(err.data)
@@ -350,7 +365,10 @@ class Shard:
                     # closing frame but it's not a big deal - we're closing the
                     # socket either way. Just close the socket as usual in the
                     # 'finally' block below.
-                    pass
+                    log.warning(
+                        'Discord unexpectedly closed the socket before '
+                        'finishing the WebSocket closing handshake.'
+                    )
                 except CloseDiscordConnection as err:
                     if err.data is not None:
                         await self._sock.send(err.data)
@@ -386,11 +404,15 @@ class Shard:
                 # over the socket, a closure may have started that we haven't
                 # completed yet. Just skip sending heartbeats in that case.
                 if not self._conn.closing:
+                    log.debug('Sending HEARTBEAT command over gateway.')
                     await self._sock.send(self._conn.heartbeat())
+                else:
+                    log.debug('Attempted to heartbeat while closing; skipping.')
 
             # Wait for the first one to complete - either the expected sleeping
             # or during shutdown the _closed event.
             await race(partial(anyio.sleep, self._conn.heartbeat_interval), self._closed.wait)
 
             if self._closed.is_set():
+                log.info('Close event is set - exiting heartbeater.')
                 return
