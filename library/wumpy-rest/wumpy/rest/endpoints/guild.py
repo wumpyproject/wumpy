@@ -2,7 +2,7 @@ from typing import (
     Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union
 )
 
-from ..ratelimiter import Route
+from ..route import Route
 from ..utils import MISSING
 from .base import Requester
 

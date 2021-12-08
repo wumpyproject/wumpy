@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, SupportsInt
 
-from ..ratelimiter import Route
+from ..route import Route
 from ..utils import MISSING, File
 from .base import Requester
 

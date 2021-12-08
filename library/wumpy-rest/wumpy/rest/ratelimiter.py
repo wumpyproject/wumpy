@@ -8,63 +8,12 @@ from typing_extensions import Protocol
 
 from ..models.base import Snowflake
 from .locks import RateLimit
+from .route import Route
 
-__all__ = ('Route', 'RateLimiter', 'DictRateLimiter')
+__all__ = ('RateLimiter', 'DictRateLimiter')
 
 
-class Route:
-    """A route that a request should be made to.
-
-    Containing information such as the endpoint, and parameters to use. Mainly
-    used to figure out ratelimit handling. If the request made should have a
-    request body this should be passed to the requester.
     """
-
-    method: str
-    path: str
-    params: Dict[str, Union[str, int]]
-
-    __slots__ = ('method', 'path', 'params')
-
-    BASE = 'https://discord.com/api/v9'
-
-    def __init__(self, method: str, path: str, **params: Union[str, int]) -> None:
-        self.method = method
-        self.path = path
-
-        self.params = params
-
-    def __repr__(self) -> str:
-        return f'<Route {self.endpoint}>'
-
-    @property
-    def url(self) -> str:
-        """Return a complete, formatted url that a request should be made to."""
-        return self.BASE + self.path.format_map(
-            # Replace special characters with the %xx escapes
-            {k: urlquote(v) if isinstance(v, str) else v for k, v in self.params.items()}
-        )
-
-    @property
-    def endpoint(self) -> str:
-        """Return the Discord endpoint this route will request."""
-        return f'{self.method} {self.path}'
-
-    @property
-    def major_params(self) -> str:
-        """Return a string of the formatted major parameters."""
-        params = ':{0}/{1}/{2}'.format(
-            self.params.get('guild_id', 0), self.params.get('channel_id', 0),
-            self.params.get('webhook_id', 0)
-        )
-
-        # Discord handles messages over 14 days differently
-        message = self.params.get('message_id')
-        if message:
-            delta = datetime.now(timezone.utc) - Snowflake(int(message)).created_at
-            params += f'?{1 if delta > timedelta(days=14) else 0}'
-
-        return params
 
 
 class RateLimiter(Protocol):

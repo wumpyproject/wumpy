@@ -3,7 +3,7 @@ from typing import (
 )
 from urllib.parse import quote as urlquote
 
-from ..ratelimiter import Route
+from ..route import Route
 from ..utils import MISSING, File
 from .base import Requester
 

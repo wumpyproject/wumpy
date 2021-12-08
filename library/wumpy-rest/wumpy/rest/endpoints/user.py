@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, SupportsInt
 
 from discord_typings import DMChannelData, GuildData, UserData
 
-from ..ratelimiter import Route
+from ..route import Route
 from ..utils import MISSING
 from .base import Requester
 

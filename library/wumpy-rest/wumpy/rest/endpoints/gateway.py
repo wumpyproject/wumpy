@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from ..ratelimiter import Route
+from ..route import Route
 from .base import Requester
 
 

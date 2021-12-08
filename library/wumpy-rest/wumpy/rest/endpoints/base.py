@@ -15,7 +15,8 @@ from ..errors import (
     Forbidden, HTTPException, NotFound, RequestException, ServerException
 )
 from ..locks import RateLimit
-from ..ratelimiter import DictRateLimiter, RateLimiter, Route
+from ..ratelimiter import DictRateLimiter, RateLimiter
+from ..route import Route
 from ..utils import MISSING, dump_json, load_json
 
 __all__ = ('build_user_agent', 'Requester')
