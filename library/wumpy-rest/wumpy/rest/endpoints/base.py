@@ -1,8 +1,9 @@
 import contextlib
 import sys
-from datetime import datetime, timezone
 from types import TracebackType
-from typing import Any, Callable, Coroutine, Dict, Optional, Tuple, Type, Union
+from typing import (
+    Any, Awaitable, Callable, Dict, Mapping, Optional, Tuple, Type, Union
+)
 from urllib.parse import quote as urlquote
 
 import anyio
@@ -12,10 +13,10 @@ from pkg_resources import get_distribution
 from typing_extensions import Self
 
 from ..errors import (
-    Forbidden, HTTPException, NotFound, RequestException, ServerException
+    Forbidden, HTTPException, NotFound, RateLimited, RequestException,
+    ServerException
 )
-from ..locks import RateLimit
-from ..ratelimiter import DictRateLimiter, RateLimiter
+from ..ratelimiter import RateLimiter
 from ..route import Route
 from ..utils import MISSING, dump_json, load_json
 
@@ -33,19 +34,6 @@ def build_user_agent() -> str:
     return agent
 
 
-def releaser(delay: Union[int, float], callback: Callable) -> Callable[[], Coroutine]:
-    """Coroutine function factory for sleeping and then call the callback."""
-    async def inner():
-        try:
-            await anyio.sleep(delay)
-        finally:
-            # The sleep could be cancelled and raise an exception, no matter
-            # what we should call the callback and cleanup as to not leave
-            # things in an invalid state.
-            callback()
-    return inner
-
-
 class Requester:
     """Base for making requests to Discord's API, respecting ratelimits.
 
@@ -58,13 +46,13 @@ class Requester:
 
     headers: Dict[str, str]
 
-    ratelimiter: RateLimiter
-
     _session: httpx.AsyncClient
 
-    __slots__ = ('headers', 'ratelimiter', '_session', '_tasks', '_stack')
+    __slots__ = (
+        'headers', '_user_ratelimiter', '_ratelimiter', '_session', '_tasks', '_stack'
+    )
 
-    def __init__(self, ratelimiter=DictRateLimiter, *, headers: Dict[str, str] = {}) -> None:
+    def __init__(self, ratelimiter: RateLimiter, *, headers: Dict[str, str] = {}) -> None:
         # Headers global to the requester
         self.headers: Dict[str, str] = {
             'User-Agent': build_user_agent(),
@@ -72,7 +60,7 @@ class Requester:
             **headers,
         }
 
-        self.ratelimiter = ratelimiter()
+        self._user_ratelimiter = ratelimiter
 
     async def __aenter__(self) -> Self:
         if hasattr(self, '_stack'):
@@ -85,6 +73,7 @@ class Requester:
             self._session = await self._stack.enter_async_context(
                 httpx.AsyncClient(headers=self.headers, http2=True, follow_redirects=True)
             )
+            self._ratelimiter = await self._stack.enter_async_context(self._user_ratelimiter)
         except:
             # If any of the __aenter__s fails in the above block the finalizer
             # won't be called correctly. This is important to handle if we get
@@ -118,32 +107,11 @@ class Requester:
         """
         return {k: v for k, v in mapping.items() if v is not MISSING}
 
-    async def _handle_ratelimit(self, data: Dict[str, Any]) -> None:
-        """Sleep through a 429 Too Many Requests response.
-
-        This method simply sleeps the amount specified in the response, locking
-        the global ratelimit lock if necessary.
-
-        Parameters:
-            data: The JSON deserialized body of the response.
-        """
-        retry_after: float = data['retry_after']
-
-        is_global: bool = data.get('global', False)
-        if is_global:
-            self.ratelimiter.lock()  # Globally lock all requests
-
-        await anyio.sleep(retry_after)
-
-        if is_global:
-            # Release now that the global ratelimit has passed
-            self.ratelimiter.unlock()
-
     async def _request(
         self,
         route: Route,
         headers: Dict[str, str],
-        ratelimit: RateLimit,
+        ratelimit: Callable[[Mapping[str, str]], Awaitable],
         attempt: int,
         *,
         json: Optional[Any] = None,
@@ -187,61 +155,41 @@ class Requester:
             content=content, data=data, auth=auth
         )
 
-        # Update rate limit information if we have received it
-        self.ratelimiter.update(route, res.headers.get('X-RateLimit-Bucket'))
+        # Update rate limit information if we have received it, as well as do
+        # any form of ratelimit handling.
+        await ratelimit.update(res.headers)
 
-        if res.headers.get('X-RateLimit-Remaining') == '0':
-            ratelimit.defer()
-
-            reset = datetime.fromtimestamp(float(res.headers['X-Ratelimit-Reset']), timezone.utc)
-            # Release later when the ratelimit resets
-            self._tasks.start_soon(releaser(
-                (reset - datetime.now(timezone.utc)).total_seconds(),
-                ratelimit.release
-            ))
-
-        # No need to read the body for the following responses
-        if res.status_code in {500, 502, 504}:
-            await res.aclose()
-            await anyio.sleep(1 + attempt * 2)
-            return None
-
-        elif res.status_code in {403, 404, 503}:
+        if res.status_code in {403, 404, 500, 502, 503, 504}:
             # Normally called when the response body is fully called, since we
             # don't read the body here we need to call it manually.
             await res.aclose()
 
             if res.status_code == 403:
-                raise Forbidden(res, data)
+                raise Forbidden(res)
             elif res.status_code == 404:
-                raise NotFound(res, data)
-            elif res.status_code == 503:
-                raise ServerException(res, data)
+                raise NotFound(res)
+            else:
+                raise ServerException(res)
 
         # The status code is now either 300> or >= 200 or 429
         text = (await res.aread()).decode(encoding='utf-8')
 
+        # This is for the typing, because load_json returns Any and screws a
+        # lot of things up..
+        payload: Union[Dict[str, Any], str] = ''
+
         if res.headers.get('Content-Type') == 'application/json':
-            body = load_json(text)
+            payload = load_json(text)
         else:
-            body = text
+            payload = text
 
         # Successful request
         if 300 > res.status_code >= 200:
-            return body
+            return payload
 
-        # We're being ratelimited by Discord
+        # We're being ratelimited by Discord (or possibly Cloudflare)
         if res.status_code == 429:
-            if not isinstance(data, dict):
-                # This should not happen, but there is a possibility since
-                # data is not always a dict. We could potentially look at the
-                # response headers, but for now the best course of action seems
-                # to
-                await anyio.sleep(1 + attempt * 2)
-                return None
-
-            # Returning None will cause the function to try again
-            return await self._handle_ratelimit(data)
+            raise RateLimited(res, payload)
 
         raise HTTPException(
             f'Unknown response {res.status_code} {res.reason_phrase}:', data
@@ -302,21 +250,18 @@ class Requester:
             headers['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
         for attempt in range(3):
-            async with await self.ratelimiter.get(route) as rl:
+            async with self._ratelimiter(route) as rl:
                 try:
                     res = await self._request(route, headers, rl, attempt, **kwargs)
                 except httpx.RequestError as error:
                     if attempt < 3:
-                        # Exponentisally backoff and try again
+                        # Exponentially backoff and try again
                         await anyio.sleep(1 + attempt * 2)
                         continue
 
                     # Even the last attempt failed, so we want to make sure it
                     # reaches the user.
                     raise error
-
-                if res is None:
-                    continue  # Something went wrong, let's retry
 
                 return res
 
