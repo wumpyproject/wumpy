@@ -24,19 +24,24 @@ class HTTPException(Exception):
 class RequestException(HTTPException):
     """Exception subclassed by exceptions relating to failed requests."""
 
-    response: Response
     data: Union[str, Dict, None]
 
     errors: Optional[Dict[str, Any]]
     message: str
     code: int
 
-    def __init__(self, response: Response, data: Union[str, Dict, None] = None) -> None:
     __slots__ = (
         'status_code', 'status_phrase', 'headers', 'data', 'errors',
         'message', 'code', 'attempt'
     )
 
+    def __init__(
+        self,
+        response: Response,
+        data: Union[str, Dict, None] = None,
+        *,
+        attempt: int = 0
+    ) -> None:
         if isinstance(data, dict):
             message = data.get('message', '')
             code = data.get('code', 0)
@@ -53,6 +58,8 @@ class RequestException(HTTPException):
         self.errors = errors
         self.message = message
         self.code = code
+
+        self.attempt = attempt
 
         super().__init__(
             '{0.status_code} {0.reason_phrase} (Discord error code: {1}) {2}'.format(
