@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from httpx import Response
 
@@ -6,29 +6,47 @@ __all__ = ('HTTPException', 'Forbidden', 'NotFound', 'ServerException')
 
 
 class HTTPException(Exception):
-    """Exception that all HTTP related exceptions originate from.
+    """Base for all HTTP exceptions.
 
     The exceptions are smartly inherited in the following schema:
-    ```
-    HTTPException
-    └── RequestException
-        ├── Forbidden
-        ├── NotFound
+
+        HTTPException
+        └── RequestException
+            ├── Forbidden
+            ├── NotFound
         └── ServerException
-    ```
     """
 
     __slots__ = ()
 
 
 class RequestException(HTTPException):
-    """Exception subclassed by exceptions relating to failed requests."""
+    """Exception subclassed by exceptions relating to failed requests.
+
+    Attributes:
+        status_code: The HTTP status code of the response.
+        status_phrase: The phrase that goes along with the status code.
+        headers: The headers returned by the response.
+        data: The body of the response (possibly None).
+        errors: The errors returned by Discord in the body.
+        message: The message returned by Discord in the body.
+        code: The error code returned by Discord in the body.
+        attempt:
+            The number of times the request has been attempted, this should be
+            used to implement exponential backoff in the Ratelimiter.
+    """
+
+    status_code: int
+    status_phrase: str
+    headers: Mapping[str, str]
 
     data: Union[str, Dict, None]
 
     errors: Optional[Dict[str, Any]]
     message: str
     code: int
+
+    attempt: int
 
     __slots__ = (
         'status_code', 'status_phrase', 'headers', 'data', 'errors',
@@ -52,7 +70,10 @@ class RequestException(HTTPException):
             code = 0
             errors = None
 
-        self.response = response
+        self.status_code = response.status_code
+        self.status_phrase = response.reason_phrase
+        self.headers = response.headers
+
         self.data = data
 
         self.errors = errors
@@ -63,7 +84,7 @@ class RequestException(HTTPException):
 
         super().__init__(
             '{0.status_code} {0.reason_phrase} (Discord error code: {1}) {2}'.format(
-                self.response, self.code, self.message
+                response, code, message
             )
         )
 
