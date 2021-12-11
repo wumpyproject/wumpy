@@ -89,6 +89,12 @@ class RequestException(HTTPException):
         )
 
 
+class RateLimited(RequestException):
+    """Exception raised when the client is being rate limited."""
+
+    __slots__ = ()
+
+
 class Forbidden(RequestException):
     """Exception raised when the requester hits a 403 response."""
 
