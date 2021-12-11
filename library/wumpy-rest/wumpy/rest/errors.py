@@ -17,7 +17,8 @@ class HTTPException(Exception):
         └── ServerException
     ```
     """
-    pass
+
+    __slots__ = ()
 
 
 class RequestException(HTTPException):
@@ -31,6 +32,11 @@ class RequestException(HTTPException):
     code: int
 
     def __init__(self, response: Response, data: Union[str, Dict, None] = None) -> None:
+    __slots__ = (
+        'status_code', 'status_phrase', 'headers', 'data', 'errors',
+        'message', 'code', 'attempt'
+    )
+
         if isinstance(data, dict):
             message = data.get('message', '')
             code = data.get('code', 0)
@@ -57,14 +63,17 @@ class RequestException(HTTPException):
 
 class Forbidden(RequestException):
     """Exception raised when the requester hits a 403 response."""
-    pass
+
+    __slots__ = ()
 
 
 class NotFound(RequestException):
     """Exception raised when the requester hits a 404 response."""
-    pass
+
+    __slots__ = ()
 
 
 class ServerException(RequestException):
     """Exception raised when the requester hits a 500 range response."""
-    pass
+
+    __slots__ = ()
