@@ -36,6 +36,12 @@ class Route:
     def __repr__(self) -> str:
         return f'<Route {self.endpoint}>'
 
+    def __str__(self) -> str:
+        return self.endpoint
+
+    def __hash__(self) -> int:
+        return hash(self.endpoint)
+
     @property
     def url(self) -> str:
         """Return a complete, formatted url that a request should be made to."""
