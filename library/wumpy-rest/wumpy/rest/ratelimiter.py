@@ -169,7 +169,11 @@ class DictRateLimiter:
         # Fallback locks before buckets get populated
         self.fallbacks = {}
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Callable[
+        [Route], AsyncContextManager[
+            Callable[[Mapping[str, str]], Awaitable]
+        ]
+    ]:
         self._tasks = await anyio.create_task_group().__aenter__()
         return self.__getitem__
 
@@ -181,7 +185,10 @@ class DictRateLimiter:
     ) -> Optional[bool]:
         return await self._tasks.__aexit__(exc_type, exc_val, traceback)
 
-    def __getitem__(self, route: Route) -> _RouteRateLimit:
+    def __getitem__(
+        self,
+        route: Route
+    ) -> AsyncContextManager[Callable[[Mapping[str, str]], Awaitable]]:
         """Get a ratelimit lock by its endpoint."""
         if not isinstance(route, Route):
             raise KeyError
@@ -190,10 +197,10 @@ class DictRateLimiter:
         if not bucket:
             # Fallback until we get X-RateLimit-Bucket information in update()
             lock = self.fallbacks.setdefault(route, anyio.Lock())
-            return _RouteRateLimit(self, lock, route)
+            return _RouteRateLimit(self, lock, route).acquire()
 
         lock = self.locks.setdefault(bucket + route.major_params, anyio.Lock())
-        return _RouteRateLimit(self, lock, route)
+        return _RouteRateLimit(self, lock, route).acquire()
 
     def __setitem__(self, route: Route, bucket: Optional[str]) -> None:
         if not isinstance(route, Route):
