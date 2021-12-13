@@ -87,13 +87,13 @@ class _RouteRateLimit:
             # The data is somewhat duplicated, which means we can try our best
             # to find it in different places.
             if isinstance(exc.data, dict):
-                retry = exc.data.get('retry_after')
+                retry = exc.data.get('retry_after', 1 + exc.attempt * 2)
                 globally = exc.data.get('global', False)
             else:
                 try:
                     retry = exc.headers['X-RateLimit-Reset-After']
                 except KeyError:
-                    retry = None
+                    retry = 1 + exc.attempt * 2
 
                 try:
                     globally = exc.headers['X-RateLimit-Scope'] == 'global'
@@ -105,10 +105,7 @@ class _RouteRateLimit:
             if globally:
                 self._parent.lock()
 
-            if retry is not None:
-                await anyio.sleep(float(retry))
-            else:
-                await anyio.sleep(1 + exc.attempt * 2)
+            await anyio.sleep(float(retry))
 
             if globally:
                 self._parent.unlock()
