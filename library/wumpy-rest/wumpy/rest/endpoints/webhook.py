@@ -8,6 +8,8 @@ from .base import Requester
 class WebhookRequester(Requester):
     """Bare requester subclass for use of a standalone webhook."""
 
+    __slots__ = ()
+
     async def fetch_webhook(self, webhook: SupportsInt, token: str) -> Dict[str, Any]:
         """Fetch a specific webhook by its id with the token."""
         return await self.request(Route(

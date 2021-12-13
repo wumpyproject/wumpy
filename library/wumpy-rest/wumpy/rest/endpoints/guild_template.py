@@ -7,6 +7,8 @@ from .base import Requester
 
 class GuildTemplateRequester(Requester):
 
+    __slots__ = ()
+
     async def fetch_guild_template(self, code: str) -> Dict[str, Any]:
         """Fetch a guild template by its code."""
         return await self.request(Route(

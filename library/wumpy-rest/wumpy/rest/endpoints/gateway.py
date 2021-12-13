@@ -5,6 +5,9 @@ from .base import Requester
 
 
 class GatewayRequester(Requester):
+
+    __slots__ = ()
+
     async def fetch_gateway(self) -> str:
         """Fetch a single valid WSS URL.
 

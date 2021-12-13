@@ -6,6 +6,9 @@ from .base import Requester
 
 
 class StickerRequester(Requester):
+
+    __slots__ = ()
+
     async def fetch_sticker(self, sticker: SupportsInt) -> Dict[str, Any]:
         """Fetch a sticker by its ID."""
         return await self.request(Route('GET', '/stickers/{sticker_id}', sticker_id=int(sticker)))

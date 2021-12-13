@@ -11,6 +11,8 @@ from .base import Requester
 class ChannelRequester(Requester):
     """Channel related endpoints."""
 
+    __slots__ = ()
+
     async def fetch_channel(self, channel: SupportsInt):
         """Fetch a channel by its ID.
 

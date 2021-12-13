@@ -8,6 +8,9 @@ from .base import Requester
 
 
 class GuildRequester(Requester):
+
+    __slots__ = ()
+
     # Audit Log endpoints
 
     async def fetch_audit_logs(self, guild: SupportsInt) -> Dict[str, Any]:
