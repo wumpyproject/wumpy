@@ -16,7 +16,7 @@ from ..errors import (
     Forbidden, HTTPException, NotFound, RateLimited, RequestException,
     ServerException
 )
-from ..ratelimiter import RateLimiter
+from ..ratelimiter import DictRateLimiter, RateLimiter
 from ..route import Route
 from ..utils import MISSING, dump_json, load_json
 
@@ -52,7 +52,12 @@ class Requester:
         'headers', '_user_ratelimiter', '_ratelimiter', '_session', '_tasks', '_stack'
     )
 
-    def __init__(self, ratelimiter: RateLimiter, *, headers: Dict[str, str] = {}) -> None:
+    def __init__(
+        self,
+        ratelimiter: Optional[RateLimiter] = None,
+        *,
+        headers: Dict[str, str] = {}
+    ) -> None:
         # Headers global to the requester
         self.headers: Dict[str, str] = {
             'User-Agent': build_user_agent(),
@@ -60,7 +65,7 @@ class Requester:
             **headers,
         }
 
-        self._user_ratelimiter = ratelimiter
+        self._user_ratelimiter = ratelimiter if ratelimiter is not None else DictRateLimiter()
 
     async def __aenter__(self) -> Self:
         if hasattr(self, '_stack'):
