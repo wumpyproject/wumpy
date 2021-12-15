@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import (
-    Any, Callable, Dict, Optional, SupportsInt, Type, TypeVar, Union
+    Any, Callable, Dict, Optional, SupportsInt, Union
 )
+
+from typing_extensions import Self
 
 from .base import Object
 from .flags import BaseFlags, flag
@@ -268,9 +270,6 @@ class PermissionTarget(Enum):
     member = 1
 
 
-SELF = TypeVar('SELF', bound='PermissionOverwrite')
-
-
 class PermissionOverwrite(Object):
     """"Discord permission overwrite object.
 
@@ -302,7 +301,7 @@ class PermissionOverwrite(Object):
             setattr(self, name, value)
 
     @classmethod
-    def from_data(cls: Type[SELF], data: Dict) -> SELF:
+    def from_data(cls, data: Dict) -> Self:
         """Initialize a permission overwrite object from Discord data.
 
         This is used because a PermissionOverwrite object is often initialized by users.

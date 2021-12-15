@@ -56,18 +56,6 @@ def _eval_annotations(obj: Callable) -> Dict[str, Any]:
         raise ValueError(f'Could not evaluate the annotations of {unwrapped!r}') from e
 
 
-def _get_as_snowflake(data: Optional[dict], key: str) -> Optional[Snowflake]:
-    """Get a key as a snowflake.
-
-    Returns None if `data` is None or does not have the key.
-    """
-    if data is None:
-        return None
-
-    value = data.get(key)
-    return Snowflake(value) if value is not None else None
-
-
 class Event:
     """Parent class for events, meant to be read from annotations.
 
