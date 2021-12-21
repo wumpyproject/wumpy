@@ -3,25 +3,43 @@
 A Discord API wrapper for Python. Wumpy aims to be easy enough for Wumpus, and
 extensible enough for Clyde!
 
+## Usage
+
+If you are new to Wumpy consider [reading the documentation](https://wumpy.rtfd.io).
+
+A lot of the functionality of Wumpy is separated into *multiple subpackages*,
+for example [`wumpy-gateway`](library/wumpy-gateway/README.md) (imported as
+`wumpy.gateway`) is a subpackage that only contains the code for interacting
+with the gateway.
+
+If you are building another library, consider using some of these subpackages
+instead of re-implementing the same functionality - more times than not it is
+only the highest level (the one that the end-user interacts with) that differs.
+For Wumpy the highest level of abstraction is
+[`wumpy-client`](library/wumpy-client/README.md) which is built on top of all
+other subpackages.
+
 ## Support
 
-If you have a problem please open a discussion. This is the best place to ask
-for help as only bug reports or detailed feature requests should go in the
-issue tracker.
+If you have a problem please open a discussion through GitHub. This is the best
+place to ask for help as only bug reports or detailed feature requests should
+go in the issue tracker.
 
-Please consider starring the repository, it really helps!
+⭐ Please consider starring the repository, it really helps! ⭐
 
-## Goals
+## Future plans
 
-The point of Wumpy is to not be in your way as a developer. Extensibility is
-considered in all design decisions. If you are thinking about monkey patching
-Wumpy please
-[open a Discussion](https://github.com/discord/discord-api-docs/discussions/new?category=development)
-about what you want to achieve. We can see how Wumpy can suit your needs.
+The highest priority right now is to get full API coverage, while keeping the
+standards of quality that Wumpy stands for.
+
+Development is triaged through
+[this GitHub project](https://github.com/orgs/wumpyproject/projects/1) if you
+get curious about the current state of the project, this brings together all
+issues and todos from all subpackage.
 
 ## Contributing
 
 The library is only first now starting to get a good structure. Take a look
 at [CONTRIBUTING.md](CONTRIBUTING.md) and
-[the Wiki](https://github.com/Bluenix2/wumpy/wiki) for developer notes and
+[the Wiki](https://github.com/wumpyproject/wumpy/wiki) for developer notes and
 different design decision write-ups.

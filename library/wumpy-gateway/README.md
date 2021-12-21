@@ -38,35 +38,5 @@ async def main():
 ```
 
 The `connect()` classmethod is an abstraction that also spawns a task to handle
-the heartbeating. It is not recommended but can re-implemented like this:
-
-```python
-import anyio
-from wumpy.gateway import Shard
-
-
-TOKEN = 'ABC123.XYZ789'
-
-
-async def handle_event(event):
-    print(event)
-
-
-async def main():
-    conn, sock = await Shard.create_connection(
-        'wss://gateway.discord.gg/', TOKEN, INTENTS
-    )
-    ws = Shard(conn, sock, TOKEN, INTENTS)
-    async with anyio.create_task_group() as tg:
-        tg.start_soon(ws.run_heartbeater)
-
-        try:
-            async for event in ws:
-                await handle_event(event)
-        finally:
-            # Cancel the heartbeater task - otherwise this will loop forever
-            tg.cancel_scope.cancel()
-
-            # Cleanup the gateway connection (handles closing the socket)
-            await ws.aclose()
-```
+the heartbeating. If you wish to handle this yourself use `create_connection()`
+and create an instance from the return value.
