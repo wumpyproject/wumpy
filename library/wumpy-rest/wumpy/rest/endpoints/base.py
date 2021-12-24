@@ -120,7 +120,8 @@ class Requester:
         attempt: int,
         *,
         json: Optional[Any] = None,
-        data: Optional[Dict] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None
     ) -> Optional[Any]:
         """Make one attempt at a successful request.
@@ -157,7 +158,7 @@ class Requester:
         res = await self.session.request(
             route.method, route.url,
             headers={'Content-Type': 'application/json', **headers},
-            content=content, data=data, auth=auth
+            content=content, data=data, auth=auth, params=params
         )
 
         # Update rate limit information if we have received it, as well as do
@@ -200,7 +201,17 @@ class Requester:
             f'Unknown response {res.status_code} {res.reason_phrase}:', data
         )
 
-    async def request(self, route: Route, *, reason: str = MISSING, **kwargs: Any) -> Any:
+    async def request(
+        self,
+        route: Route,
+        *,
+        reason: str = MISSING,
+        json: Optional[Any] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None,
+        headers: Optional[Mapping[str, str]] = None
+    ) -> Any:
         """Send a request to the Discord API, respecting rate limits.
 
         If the `json` keyword-argument contains values that are MISSING,
@@ -226,6 +237,7 @@ class Requester:
                 Tuple with two items: (username, password) to authorize with
                 using BASIC. This parameter is not used, as Discord primarily
                 authenticates using the Authorization header.
+            headers: Headers to send in the request.
 
         Raises:
             Forbidden: The request received a 403 Forbidden response.
@@ -245,19 +257,20 @@ class Requester:
         """
 
         # Clean up MISSING values
-        if 'json' in kwargs:
-            kwargs['json'] = self._clean_dict(kwargs['json'])
+        if json is not None:
+            json = self._clean_dict(json)
 
-        # Create the headers for the request
-        headers: Dict[str, str] = kwargs.pop('headers', {})
-
+        rheaders = dict(headers or {})
         if reason is not MISSING:
-            headers['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
+            rheaders['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
         for attempt in range(3):
             async with self._ratelimiter(route) as rl:
                 try:
-                    res = await self._request(route, headers, rl, attempt, **kwargs)
+                    res = await self._request(
+                        route, rheaders, rl, attempt,
+                        json=json, data=data, params=params, auth=auth
+                    )
                 except httpx.RequestError as error:
                     if attempt < 3:
                         # Exponentially backoff and try again
