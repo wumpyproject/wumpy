@@ -259,6 +259,10 @@ class Requester:
         # Clean up MISSING values
         if json is not None:
             json = self._clean_dict(json)
+        if data is not None:
+            data = self._clean_dict(data)
+        if params is not None:
+            params = self._clean_dict(params)
 
         rheaders = dict(headers or {})
         if reason is not MISSING:

@@ -302,11 +302,10 @@ class ChannelRequester(Requester):
             'allowed_mentions': allowed_mentions._data if allowed_mentions else MISSING,
             'sticker_ids': [int(s) for s in stickers] if stickers else MISSING,
         }
-        json = self._clean_dict(json)
 
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file
@@ -428,11 +427,10 @@ class ChannelRequester(Requester):
             'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
             'attachments': attachments
         }
-        json = self._clean_dict(json)
 
-        # This will cause HTTPx to use multipart/form-data
+        # This will cause HTTPX to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file
@@ -748,7 +746,6 @@ class ChannelRequester(Requester):
             'before': before,
             'limit': limit
         }
-        query = self._clean_dict(query)
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
@@ -767,7 +764,6 @@ class ChannelRequester(Requester):
             'before': before,
             'limit': limit,
         }
-        query = self._clean_dict(query)
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
@@ -786,7 +782,6 @@ class ChannelRequester(Requester):
             'before': before,
             'limit': limit,
         }
-        query = self._clean_dict(query)
 
         return await self.request(
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),

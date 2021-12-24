@@ -215,11 +215,10 @@ class InteractionRequester(WebhookRequester):
             'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
             'attachments': attachments,
         }
-        json = self._clean_dict(json)
 
-        # This will cause HTTPx to use multipart/form-data
+        # This will cause HTTPX to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file
@@ -259,11 +258,9 @@ class InteractionRequester(WebhookRequester):
         if ephemeral is not MISSING:
             json['flags'] = 64
 
-        json = self._clean_dict(json)
-
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file
@@ -298,11 +295,10 @@ class InteractionRequester(WebhookRequester):
             'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
             'attachments': attachments,
         }
-        json = self._clean_dict(json)
 
         # This will cause HTTPx to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file

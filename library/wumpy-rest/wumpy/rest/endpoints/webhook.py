@@ -70,7 +70,6 @@ class WebhookRequester(Requester):
             'wait': wait,
             'thread_id': int(thread) if thread else MISSING,  # We cannot int() MISSING
         }
-        params = self._clean_dict(params)
 
         json: Dict[str, Any] = {
             'content': content,
@@ -80,11 +79,10 @@ class WebhookRequester(Requester):
             'embeds': embeds,
             'allowed_mentions': allowed_mentions._data if allowed_mentions else MISSING
         }
-        json = self._clean_dict(json)
 
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file
@@ -128,11 +126,10 @@ class WebhookRequester(Requester):
             'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
             'attachments': attachments,
         }
-        json = self._clean_dict(json)
 
         # This will cause HTTPx to use multipart/form-data
         data: Dict[str, Any] = {}
-        data['payload_json'] = json
+        data['payload_json'] = self._clean_dict(json)
 
         if file is not MISSING:
             data['file'] = file
@@ -155,4 +152,3 @@ class WebhookRequester(Requester):
         return await self.request(Route(
             'DELETE', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
             webhook_id=int(webhook), webhook_token=int(token), message_id=int(message)
-        ))
