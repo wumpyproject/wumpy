@@ -1,8 +1,7 @@
 import anyio
 import pytest
 
-from wumpy.extension import Extension
-from wumpy.utils import Event, EventDispatcher
+from wumpy.client import Extension, Event, EventDispatcher
 
 
 # Helper event subclass
@@ -58,11 +57,20 @@ class TestAddListener:
         # Test various different correct signatures that should be
         # supported and added
 
-        async def expected(event: DummyEvent): ...
-        async def pos_only(expected: DummyEvent, /): ...
-        async def defaulted(event: DummyEvent = None): ...
-        async def extra_defaulted(event: DummyEvent, other=None): ...
-        async def extra_kwargs(event: DummyEvent, *, extra=None): ...
+        async def expected(event: DummyEvent):
+            ...
+
+        async def pos_only(expected: DummyEvent, /):
+            ...
+
+        async def defaulted(event: DummyEvent = None):
+            ...
+
+        async def extra_defaulted(event: DummyEvent, other=None):
+            ...
+
+        async def extra_kwargs(event: DummyEvent, *, extra=None):
+            ...
 
         dispatcher.add_listener(expected)
         dispatcher.add_listener(pos_only)
@@ -75,11 +83,20 @@ class TestAddListener:
     def test_wrong_signatures(self, cls):
         dispatcher = cls()
 
-        async def no_args(): ...
-        async def too_many_args(event: DummyEvent, other): ...
-        async def kwargs(*, event: DummyEvent): ...
-        async def wrong_order(other=None, event: DummyEvent = None): ...
-        async def too_many_non_default(event: DummyEvent, other, another=None): ...
+        async def no_args():
+            ...
+
+        async def too_many_args(event: DummyEvent, other):
+            ...
+
+        async def kwargs(*, event: DummyEvent):
+            ...
+
+        async def wrong_order(other=None, event: DummyEvent = None):
+            ...
+
+        async def too_many_non_default(event: DummyEvent, other, another=None):
+            ...
 
         with pytest.raises(TypeError):
             dispatcher.add_listener(no_args)
@@ -99,7 +116,8 @@ class TestAddListener:
     def test_non_async(self, cls):
         dispatcher = cls()
 
-        def non_async(event: DummyEvent): ...
+        def non_async(event: DummyEvent):
+            ...
 
         with pytest.raises(TypeError):
             dispatcher.add_listener(non_async)  # type: ignore
@@ -107,7 +125,8 @@ class TestAddListener:
     def test_not_event_subclass(self, cls):
         dispatcher = cls()
 
-        async def incorrect(arg: int): ...
+        async def incorrect(arg: int):
+            ...
 
         with pytest.raises(TypeError):
             dispatcher.add_listener(incorrect)
@@ -125,9 +144,11 @@ class TestAddListener:
 
         dispatcher = cls()
 
-        async def dumb_callback(event: DumbEvent): ...
+        async def dumb_callback(event: DumbEvent):
+            ...
 
-        async def dumber_callback(event: DumberEvent): ...
+        async def dumber_callback(event: DumberEvent):
+            ...
 
         dispatcher.add_listener(dumb_callback)
         dispatcher.add_listener(dumber_callback)
@@ -178,8 +199,11 @@ class TestRemoveListener:
         # This is a subset of the test_wrong_signatures() method in the
         # TestAddListener test group
 
-        async def no_args(): ...
-        async def too_many_args(event: DummyEvent, other): ...
+        async def no_args():
+            ...
+
+        async def too_many_args(event: DummyEvent, other):
+            ...
 
         with pytest.raises((TypeError, ValueError)):
             dispatcher.remove_listener(no_args)
@@ -205,10 +229,12 @@ class TestRemoveListener:
         dispatcher = cls()
 
         @dispatcher.listener
-        async def registered(event: DummyEvent): ...
+        async def registered(event: DummyEvent):
+            ...
 
         # This one on the other hand isn't registered
-        async def callback(event: DummyEvent): ...
+        async def callback(event: DummyEvent):
+            ...
 
         with pytest.raises(ValueError):
             dispatcher.remove_listener(callback)
@@ -216,7 +242,8 @@ class TestRemoveListener:
     def test_bare_event(self, cls):
         dispatcher = cls()
 
-        async def callback(event: Event): ...
+        async def callback(event: Event):
+            ...
 
         with pytest.raises(TypeError):
             dispatcher.add_listener(callback)
