@@ -1,3 +1,3 @@
 from .ratelimiter import *
-from .endpoints.base import *
+from .endpoints import *
 from .webhook import *

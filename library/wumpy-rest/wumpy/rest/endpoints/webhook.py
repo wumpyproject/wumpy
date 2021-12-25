@@ -6,6 +6,8 @@ from ..route import Route
 from ..utils import MISSING, File
 from .base import Requester
 
+__all__ = ('WebhookRequester',)
+
 
 class WebhookRequester(Requester):
     """Requester subclass for use with a Requester."""
