@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, SupportsInt, Type, TypeVar
+from typing import SupportsInt, Type, TypeVar
 
 __all__ = ('DISCORD_EPOCH', 'Object', 'Snowflake')
 
@@ -13,6 +13,9 @@ class Object:
     A Wumpy object is a simple wrapper over an integer, the Discord snowflake
     which is guaranteed by Discord to be unique. It tries to support as many
     operations as possible.
+
+    Attributes:
+        id: The underlying integer value representing the Discord snowflake.
     """
 
     id: int
@@ -45,7 +48,7 @@ class Object:
         # by defining this one we don't need to define the rest
         return self.id
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, int):
             value = other
         elif isinstance(other, self.__class__):
@@ -55,7 +58,7 @@ class Object:
 
         return self.id == value
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         # There's a performance hit to not defining __ne__, even though
         # Python will automatically call __eq__ and invert it
 
