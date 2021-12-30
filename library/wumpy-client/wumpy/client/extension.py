@@ -3,8 +3,8 @@ import importlib.util
 import sys
 from typing import Any, Callable, Dict, Optional, Union
 
-from .interactions import CommandRegistrar
 from .errors import ExtensionFailure
+from .interactions import CommandRegistrar
 from .utils import EventDispatcher
 
 __all__ = ('Extension', 'ExtensionLoader')
@@ -32,7 +32,7 @@ class Extension(CommandRegistrar, EventDispatcher):
         """
         if self._data is None:
             raise RuntimeError(
-                "Cannot access 'data' attribute before extensi  on has been loaded"
+                "Cannot access 'data' attribute before extension has been loaded"
             )
 
         return self._data
