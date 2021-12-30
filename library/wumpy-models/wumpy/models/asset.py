@@ -1,4 +1,5 @@
-from typing import Any, Coroutine, Generator, Literal
+from functools import partial
+from typing import Any, Callable, Coroutine, Generator, Literal
 
 import httpx
 from typing_extensions import Self
@@ -18,7 +19,7 @@ class AssetData:
 
     __slots__ = ('coro', '_aiter')
 
-    def __init__(self, coro: Coroutine[Any, Any, httpx.Response]) -> None:
+    def __init__(self, coro: Callable[[], Coroutine[Any, Any, httpx.Response]]) -> None:
         self.coro = coro
         self._aiter = None
 
@@ -30,7 +31,7 @@ class AssetData:
 
     async def __anext__(self) -> bytes:
         if self._aiter is None:
-            resp = await self.coro
+            resp = await self.coro()
             self._aiter = resp.aiter_bytes()
 
         return await self._aiter.__anext__()
@@ -39,7 +40,7 @@ class AssetData:
         if self._aiter is not None:
             raise RuntimeError('Cannot await and iterate asset data at the same time')
 
-        resp = await self.coro
+        resp = await self.coro()
         return await resp.aread()
 
 
@@ -112,4 +113,4 @@ class Asset:
             # if we subtract 1, then (0111) AND it we should get 0 (0000).
             raise ValueError('size argument must be a power of two.')
 
-        return AssetData(self.api.read_asset(self.url + f'.{fmt}', size=size))
+        return AssetData(partial(self.api.read_asset, self.url + f'.{fmt}', size=size))
