@@ -235,6 +235,8 @@ class EventDispatcher:
 
     listeners: Dict[str, List[Tuple[Type[Event], Callable[..., Coroutine]]]]
 
+    __slots__ = ('listeners',)
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
