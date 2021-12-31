@@ -286,9 +286,6 @@ class WebhookRequester(Requester):
             thread:
                 The thread the message was sent in, only required if the
                 message was originally sent in a thread.
-
-        Returns:
-            Nothing - on failure raises an exception.
         """
         await self.request(Route(
             'DELETE', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',

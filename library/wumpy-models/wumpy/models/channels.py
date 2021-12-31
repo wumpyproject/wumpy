@@ -279,11 +279,7 @@ class SendableChannel(Object):
         Parameters:
             id: The ID of the message to delete.
             reason: The audit log reason for deleting the message.
-
-        Returns:
-            Nothing - on failure raises an appropriate exception.
         """
-
         await self.api.delete_message(self, int(id), reason=reason)
 
     async def bulk_delete_messages(
@@ -299,9 +295,6 @@ class SendableChannel(Object):
 
         Parameters:
             messages: The IDs of the messages to delete.
-
-        Returns:
-            Nothing - on failure raises an appropriate exception.
         """
 
         await self.api.bulk_delete_messages(self, [int(m) for m in messages], reason=reason)
@@ -433,9 +426,6 @@ class GuildChannel(Object):
                 The type of target, only applies if it isn't set in the
                 PermissionOverwrite object.
             reason: The audit log reason for changing the permission.
-
-        Returns:
-            Nothing - on failure raises an appropriate exception.
         """
         if type is None and overwrite.type is None:
             raise TypeError("'type' not set in PermissionOverwrite object or arguments")
@@ -455,9 +445,6 @@ class GuildChannel(Object):
         Permissions:
             target: The ID of the target to delete.
             reason: The audit log reason for deleting the overwrite.
-
-        Returns:
-            Nothing - on failure raises an appropriate exception.
         """
 
         await self.api.delete_permission(self, target, reason=reason)

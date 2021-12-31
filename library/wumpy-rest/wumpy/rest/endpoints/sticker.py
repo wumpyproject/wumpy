@@ -158,9 +158,6 @@ class StickerRequester(Requester):
             guild: The ID of the guild the sticker is from.
             sticker: The ID of the sticker to delete.
             reason: The audit log reason for deleting this sticker.
-
-        Returns:
-            Nothing - on failure raises an exception.
         """
         await self.request(
             Route(
