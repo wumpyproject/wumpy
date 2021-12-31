@@ -1,19 +1,28 @@
 from typing import (
-    Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union, overload
+    Any, Dict, Iterable, List, Literal, Optional, SupportsInt, Union, overload
 )
-from urllib.parse import quote as urlquote
+
+from discord_typings import (
+    AllowedMentionsData, AttachmentData, ChannelData, EmbedData,
+    FollowedChannelData, InviteData, MessageData, PermissionOverwriteData,
+    ThreadMemberData, UserData
+)
 
 from ..route import Route
-from ..utils import MISSING, File
-from .base import Requester
+from ..utils import MISSING, dump_json
+from .base import Requester, RequestFiles
 
 
 class ChannelRequester(Requester):
-    """Channel related endpoints."""
+    """Requester containing all channel-related endpoints.
+
+    Like all other requesters this contains unique method names meaning it is
+    safe to inherit with other requesters.
+    """
 
     __slots__ = ()
 
-    async def fetch_channel(self, channel: SupportsInt):
+    async def fetch_channel(self, channel: SupportsInt) -> ChannelData:
         """Fetch a channel by its ID.
 
         Parameters:
@@ -33,10 +42,10 @@ class ChannelRequester(Requester):
         name: str = MISSING,
         position: Optional[int] = MISSING,
         nsfw: bool = MISSING,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwriteData]] = MISSING,
         parent: Optional[SupportsInt] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         ...
 
     @overload
@@ -48,12 +57,12 @@ class ChannelRequester(Requester):
         position: int = MISSING,
         bitrate: Optional[int] = MISSING,
         user_limit: Optional[int] = MISSING,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwriteData]] = MISSING,
         parent: Optional[SupportsInt] = MISSING,
         rtc_region: Optional[str] = MISSING,
-        video_quality: Optional[int] = MISSING,
+        video_quality: Optional[Literal[1, 2]] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         ...
 
     @overload
@@ -66,11 +75,11 @@ class ChannelRequester(Requester):
         position: Optional[int] = MISSING,
         topic: Optional[str] = MISSING,
         nsfw: Optional[bool] = MISSING,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwriteData]] = MISSING,
         parent: Optional[SupportsInt] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         ...
 
     @overload
@@ -84,11 +93,11 @@ class ChannelRequester(Requester):
         topic: Optional[str] = MISSING,
         nsfw: Optional[bool] = MISSING,
         rate_limit: Optional[int] = MISSING,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwriteData]] = MISSING,
         parent: Optional[SupportsInt] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         ...
 
     async def edit_channel(
@@ -103,13 +112,13 @@ class ChannelRequester(Requester):
         rate_limit: Optional[int] = MISSING,
         bitrate: Optional[int] = MISSING,
         user_limit: Optional[int] = MISSING,
-        permission_overwrites: Optional[List[PermissionOverwrite]] = MISSING,
+        permission_overwrites: Optional[List[PermissionOverwriteData]] = MISSING,
         parent: Optional[SupportsInt] = MISSING,
         rtc_region: Optional[str] = MISSING,
         video_quality: Optional[Literal[1, 2]] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         """Edit the settings of a channel.
 
         The `MANAGE_CHANNELS` permission is required to edit the channel. Only
@@ -176,7 +185,12 @@ class ChannelRequester(Requester):
             json=payload, reason=reason
         )
 
-    async def delete_channel(self, channel: SupportsInt, *, reason: str = MISSING) -> Dict[str, Any]:
+    async def delete_channel(
+        self,
+        channel: SupportsInt,
+        *,
+        reason: str = MISSING
+    ) -> ChannelData:
         """Delete a channel, or close a private message.
 
         Requires the `MANAGE_CHANNELS` or `MANAGE_THREADS` permission. Deleting
@@ -199,9 +213,9 @@ class ChannelRequester(Requester):
         self,
         channel: SupportsInt,
         *,
-        before: int = MISSING,
+        before: SupportsInt = MISSING,
         limit: int = 50
-    ) -> List[Any]:
+    ) -> List[MessageData]:
         ...
 
     @overload
@@ -209,9 +223,9 @@ class ChannelRequester(Requester):
         self,
         channel: SupportsInt,
         *,
-        after: int = MISSING,
+        after: SupportsInt = MISSING,
         limit: int = 50
-    ) -> List[Any]:
+    ) -> List[MessageData]:
         ...
 
     @overload
@@ -219,20 +233,20 @@ class ChannelRequester(Requester):
         self,
         channel: SupportsInt,
         *,
-        around: int = MISSING,
+        around: SupportsInt = MISSING,
         limit: int = 50
-    ) -> List[Any]:
+    ) -> List[MessageData]:
         ...
 
     async def fetch_messages(
         self,
         channel: SupportsInt,
         *,
-        before: int = MISSING,
-        after: int = MISSING,
-        around: int = MISSING,
+        before: SupportsInt = MISSING,
+        after: SupportsInt = MISSING,
+        around: SupportsInt = MISSING,
         limit: int = 50
-    ) -> List[Any]:
+    ) -> List[MessageData]:
         """Fetch messages in a channel.
 
         The `VIEW_CHANNEL` permossion is required, if the bot is missing the
@@ -258,9 +272,9 @@ class ChannelRequester(Requester):
 
         payload: Dict[str, Any] = {
             'limit': limit,
-            'before': before,
-            'after': after,
-            'around': around
+            'before': int(before) if before is not MISSING else MISSING,
+            'after': int(after) if after is not MISSING else MISSING,
+            'around': int(around) if around is not MISSING else MISSING
         }
 
         return await self.request(
@@ -268,8 +282,18 @@ class ChannelRequester(Requester):
             params=payload
         )
 
-    async def fetch_message(self, channel: SupportsInt, message: SupportsInt) -> Dict[str, Any]:
-        """Fetch a specific message from a channel by its ID."""
+    async def fetch_message(self, channel: SupportsInt, message: SupportsInt) -> MessageData:
+        """Fetch a specific message from a channel by its ID.
+
+        On guild channels this requires the `READ_MESSAGE_HISTORY` permission.
+
+        Parameters:
+            channel: The ID of the channel to fetch the message from.
+            message: The ID of the message to fetch.
+
+        Returns:
+            The message object if successful.
+        """
         return await self.request(Route(
             'GET', '/channels/{channel_id}/messages/{message_id}',
             channel_id=int(channel), message_id=int(message)
@@ -280,45 +304,54 @@ class ChannelRequester(Requester):
         channel: SupportsInt,
         *,
         content: str = MISSING,
-        username: str = MISSING,
-        avatar_url: str = MISSING,
         tts: bool = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
-        allowed_mentions: AllowedMentions = MISSING,
-        file: File = MISSING,
-        stickers: Sequence[SupportsInt] = MISSING
+        embeds: Iterable[EmbedData] = MISSING,
+        allowed_mentions: AllowedMentionsData = MISSING,
+        files: RequestFiles = None,
+        stickers: Iterable[SupportsInt] = MISSING
     ) -> Dict[str, Any]:
-        """Send a message into a channel."""
+        """Send a message into a channel.
 
-        if not any((content, embeds, file, stickers)):
+        If the channel is a guild channel then the `SEND_MESSAGES` permission
+        is required, replying to a message requires the `READ_MESSAGE_HISTORY`
+        and to use `tts` required `SEND_TTS_MESSAGES` permission.
+
+        Parameters:
+            channel: The ID of the channel to send a message to.
+            content: The content of the message.
+            tts: Whether the message should be sent using text-to-speech.¨
+            embeds: Embeds to send with the message.
+            allowed_mentions: Rules for allowed mentions by the messagfe.
+            files: Files to upload and attach with the message.
+            stickers: Stickers to add to the message.
+
+        Returns:
+            The created message object.
+        """
+
+        if not any((content, embeds, files, stickers)):
             raise TypeError("one of 'content', 'embeds', 'file', 'stickers' is required")
 
-        json: Dict[str, Any] = {
+        json = {
             'content': content,
-            'username': username,
-            'avatar_url': str(avatar_url) if avatar_url else MISSING,
             'tts': tts,
             'embeds': embeds,
-            'allowed_mentions': allowed_mentions._data if allowed_mentions else MISSING,
+            'allowed_mentions': allowed_mentions,
             'sticker_ids': [int(s) for s in stickers] if stickers else MISSING,
         }
 
         # Because of the usage of files here, we need to use multipart/form-data
-        data: Dict[str, Any] = {}
-        data['payload_json'] = self._clean_dict(json)
-
-        if file is not MISSING:
-            data['file'] = file
+        data: Dict[str, Any] = {'payload_json': dump_json(self._clean_dict(json))}
 
         return await self.request(
             Route(
                 'POST', '/channels/{channel_id}/messages',
                 channel_id=int(channel)
             ),
-            data=data
+            data=data, files=files
         )
 
-    async def crosspost_message(self, channel: SupportsInt, message: SupportsInt) -> Dict[str, Any]:
+    async def crosspost_message(self, channel: SupportsInt, message: SupportsInt) -> MessageData:
         """Crosspost a message in a news channel to following channels.
 
         This requires the `SEND_MESSAGES` permission if the bot is the author
@@ -345,14 +378,12 @@ class ChannelRequester(Requester):
         Parameters:
             channel: The ID of the channel.
             message: The ID of the message.
-            emoji:
-                The emoji to react with, if this is a custom emoji it must be
-                in the format `name:id` without the greater than/less than
-                symbols normally required.
+            emoji: The emoji to react with.
         """
         await self.request(Route(
             'PUT', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me',
-            channel_id=int(channel), message_id=int(message), emoji=urlquote(str(emoji))
+            channel_id=int(channel), message_id=int(message),
+            emoji=str(emoji).strip('<>')
         ))
 
     async def delete_reaction(
@@ -364,7 +395,8 @@ class ChannelRequester(Requester):
     ) -> None:
         """Delete a reaction on a message.
 
-        If no user is specified the bot's reaction is removed.
+        If no user is specified the bot's reaction is removed. If a user is
+        specified then the `MANAGE_MESSAGES` permission is required.
 
         Parameters:
             channel: The ID of the channel.
@@ -378,17 +410,44 @@ class ChannelRequester(Requester):
         target: Union[str, int] = '@me' if user is MISSING else int(user)
 
         return await self.request(Route(
-            'DELETE', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/{user_id}',
+            'DELETE',
+            '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/{user_id}',
             channel_id=int(channel), message_id=int(message),
-            emoji=urlquote(str(emoji)), user_id=target
+            emoji=str(emoji).strip('<>'), user_id=target
         ))
 
-    async def fetch_reactions(self, channel: SupportsInt, message: SupportsInt, emoji: str) -> List[Any]:
-        """Fetch all users who have added the reaction to a specific message."""
-        return await self.request(Route(
-            'GET', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}',
-            channel_id=int(channel), message_id=int(message), emoji=urlquote(str(emoji))
-        ))
+    async def fetch_reactions(
+        self,
+        channel: SupportsInt,
+        message: SupportsInt,
+        emoji: str,
+        *,
+        after: SupportsInt = MISSING,
+        limit: int = 25
+    ) -> List[UserData]:
+        """Fetch all users who have added the reaction to a specific message.
+
+        This endpoint supports pagination with the `after` and `limit`
+        parameters.
+
+        Parameters:
+            channel: The ID of the channel that the message is in.
+            message: The ID of the message that the reactions are on.
+            emoji: The emoji that is reacted with.
+            after: The ID of the last user returned.
+            limit:: The (1-100) amount of users to return.
+
+        Returns:
+            A list of users who have reacted with the emoji on the message.
+        """
+        return await self.request(
+            Route(
+                'GET', '/channels/{channel_id}/messages/{message_id}/reactions/{emoji}',
+                channel_id=int(channel), message_id=int(message),
+                emoji=str(emoji).strip('<>')
+            ),
+            params={'after': int(after) if after is not MISSING else after, 'limit': limit}
+        )
 
     async def clear_reactions(
         self,
@@ -398,14 +457,22 @@ class ChannelRequester(Requester):
     ) -> None:
         """Delete all reactions on a message.
 
-        If an emojis is passed, only the reactions with that emojis are deleted.
+        This endpoint requires the `MANAGE_MESSAGES` permission.
+
+        If an emojis is passed, only the reactions with that emojis are
+        deleted, otherwise all reactions are removed.
+
+        Parameters:
+            channel: The ID of the channel the message is in.
+            message: The ID of the message that has reactions:
+            emoji: The specific emoji to remove all reactions of.
         """
         path = '/channels/{channel_id}/messages/{message_id}/reactions'
         params: Dict[str, Any] = {'channel_id': int(channel), 'message_id': int(message)}
 
         if emoji is not MISSING:
             path += '/{emoji}'
-            params['emoji'] = str(emoji)
+            params['emoji'] = str(emoji).strip('<>')
 
         await self.request(Route('DELETE', path, **params))
 
@@ -415,32 +482,52 @@ class ChannelRequester(Requester):
         message: SupportsInt,
         *,
         content: Optional[str] = MISSING,
-        embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
-        file: Optional[File] = MISSING,
-        allowed_mentions: Optional[AllowedMentions] = MISSING,
-        attachments: Optional[Dict[str, Any]] = MISSING
-    ) -> Dict[str, Any]:
-        """Edit a previously sent message."""
+        embeds: Optional[Iterable[EmbedData]] = MISSING,
+        flags: SupportsInt = MISSING,
+        files: Optional[RequestFiles] = None,
+        allowed_mentions: Optional[AllowedMentionsData] = MISSING,
+        attachments: Optional[AttachmentData] = MISSING
+    ) -> MessageData:
+        """Edit a previously sent message.
+
+        If the bot is not the original author of the message only `flags` can
+        be modified.
+
+        If `content` is modified it is important to still pass
+        `allowed_mentions` - otherwise it will be parsed with default values.
+
+        Parameters:
+            content: The content of the message.
+            embeds: The embeds to edit the message to have.
+            flags:
+                The new flags of the message, the only value that can be
+                changed is `SUPRESS_EMBEDS` (1 << 2).
+            files:
+                New files to upload. They must be given matching `attachments`
+                objects to be added successfully.
+            allowed_mentions: Allowed mentions to parse the new content with.
+            attachments: Attachments to add, change or remove from the message.
+
+        Returns:
+            The updated message object.
+        """
         json: Dict[str, Any] = {
             'content': content,
             'embeds': embeds,
-            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'flags': int(flags) if flags is not MISSING else flags,
+            'allowed_mentions': allowed_mentions,
             'attachments': attachments
         }
 
         # This will cause HTTPX to use multipart/form-data
-        data: Dict[str, Any] = {}
-        data['payload_json'] = self._clean_dict(json)
-
-        if file is not MISSING:
-            data['file'] = file
+        data: Dict[str, Any] = {'payload_json': dump_json(self._clean_dict(json))}
 
         return await self.request(
             Route(
                 'PATCH', '/channels/{channel_id}/messages/{message_id}',
                 channel_id=int(channel), message_id=int(message)
             ),
-            data=data
+            data=data, files=files
         )
 
     async def delete_message(
@@ -450,7 +537,16 @@ class ChannelRequester(Requester):
         *,
         reason: str = MISSING
     ) -> None:
-        """Delete a message by its ID."""
+        """Delete a message by its ID.
+
+        If the message was not sent by the bot this requires the
+        `MANAGE_MESSAGES` permission.
+
+        Parameters:
+            channel: The ID of the channel the message is in.
+            message: The ID of the message to delete.
+            reason: The audit log reason for deleting the message.
+        """
         return await self.request(
             Route(
                 'DELETE', '/channels/{channel_id}/messages/{message_id}',
@@ -467,8 +563,17 @@ class ChannelRequester(Requester):
     ) -> None:
         """Delete multiple messages in a single request.
 
+        This method can only be called with guild channels and requires the
+        `MANAGE_MESSAGES` permission.
+
         All messages must not be older than 2 weeks, the list may not contain
-        duplicates. Not following either of these guidelines will result in an exception.
+        duplicates. Not following either of these guidelines will result in an
+        exception.
+
+        Parameters:
+            channel: The ID of the channel the messages are in.
+            messages: The IDs of the messages to delete.
+            reason: The audit log reason for deleting the messages.
         """
         await self.request(
             Route(
@@ -484,14 +589,29 @@ class ChannelRequester(Requester):
         *,
         allow: Union[str, int],
         deny: Union[str, int],
-        type: PermissionTarget,
+        type: Literal[0, 1],
         reason: str = MISSING
     ) -> None:
-        """Edit channel permission overwrites for a user or role."""
+        """Edit channel permission overwrites for a user or role.
+
+        This method can only be used on guild channels and requires the
+        `MANAGE_ROLES` permission. Only permissions that the bot has in the
+        guild or channel can be changed unless it has `MANAGE_ROLES`.
+
+        Parameters:
+            channel: The ID of the channel to edit the permission for.
+            overwrite: The ID of the user or role to edit the permission for.
+            allow: The new allowed permissions.
+            deny: The new denied permissions.
+            type:
+                The type of the overwrite, either `0` for modifying permissions
+                for a role or `1` for a user.
+            reason: The audit log reason for changing the permission.
+        """
         payload: Dict[str, Any] = {
             'allow': str(allow),
             'deny': str(deny),
-            'type': type.value
+            'type': type
         }
         await self.request(
             Route(
@@ -501,8 +621,17 @@ class ChannelRequester(Requester):
             json=payload, reason=reason
         )
 
-    async def fetch_channel_invites(self, channel: SupportsInt) -> List[Any]:
-        """Fetch all invites created on a channel."""
+    async def fetch_channel_invites(self, channel: SupportsInt) -> List[InviteData]:
+        """Fetch all invites created on a channel.
+
+        This method requires the `MANAGE_CHANNELS` permission.
+
+        Parameters:
+            channel: The ID of the channel to fetch invites from.
+
+        Returns:
+            A list of invite objects.
+        """
         return await self.request(Route(
             'GET', '/channels/{channel_id}/invites',
             channel_id=int(channel)
@@ -518,7 +647,7 @@ class ChannelRequester(Requester):
         temporary: bool = False,
         unique: bool = False,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> InviteData:
         ...
 
     @overload
@@ -530,10 +659,10 @@ class ChannelRequester(Requester):
         max_uses: int = 0,
         temporary: bool = False,
         unique: bool = False,
-        target_type: int,
+        target_type: Literal[1, 2],
         target: SupportsInt,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> InviteData:
         ...
 
     async def create_invite(
@@ -544,14 +673,37 @@ class ChannelRequester(Requester):
         max_uses: int = 0,
         temporary: bool = False,
         unique: bool = False,
-        target_type: int = MISSING,
+        target_type: Literal[1, 2] = MISSING,
         target: SupportsInt = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> InviteData:
         """Create a new channel invite.
 
-        `target` wraps both `target_user_id` and `target_application_id` depending
-        on what `target_type` is set.
+        This method can only be used on guild channels and requires the
+        `CREATE_INSTANT_INVITE` permission.
+
+        Parameters:
+            channel: The ID of the channel to create the invite in.
+            max_age:
+                How long the invite should last in seconds, use 0 for a never
+                expiring invite.
+            max_uses: How many times the invite can be used, 0 means unlimited.
+            temporary: Whether the invite only grants temporary membership.
+            unique:
+                Whether the returned invite must be new. Discord re-uses
+                similar invites sometimes, so the returned invite may not be
+                new.
+            target_type:
+                The type of the invite target, use `1` for a stream and `2`
+                for an embedded application.
+            target:
+                Depending on the target type this is either the ID of the user
+                who is streaming for target type `1`, otherwise the ID of the
+                application that is embedded.
+            reason: The audit log reason for creating the invite.
+
+        Returns:
+            The created invite object.
         """
         if target_type is not MISSING and target is MISSING:
             raise TypeError("'target' is required when 'target_type' is passed")
@@ -585,7 +737,16 @@ class ChannelRequester(Requester):
         *,
         reason: str = MISSING
     ) -> None:
-        """Delete a channel permission overwrite."""
+        """Delete a channel permission overwrite.
+
+        This method can only be used on guild channels and requires the
+        `MANAGE_ROLES` permission.
+
+        Parameters:
+            channel: The ID of the channel to delete the permission from.
+            overwrite: The ID of the user or role to delete the permission for.
+            reason: The audit log reason for deleting the permission.
+        """
         await self.request(
             Route(
                 'PUT', '/channels/{channel_id}/permissions/{overwrite_id}',
@@ -594,20 +755,52 @@ class ChannelRequester(Requester):
             reason=reason
         )
 
-    async def follow_channel(self, channel: SupportsInt, target: SupportsInt) -> Dict[str, Any]:
-        """Follow a news channel to send messages to a target channel."""
+    async def follow_channel(
+        self,
+        channel: SupportsInt,
+        target: SupportsInt
+    ) -> FollowedChannelData:
+        """Follow a news channel to send messages to a target channel.
+
+        This can only be used on guild channels and requires the
+        `MANAGE_WEBHOOKS` permission to perform.
+
+        Parameters:
+            channel: The ID of the channel to follow.
+            target: The ID of the target channel to send messages to.
+
+        Returns:
+            A "followed channel" response which contains the created webhook
+            (`webhook_id`) and the source channel (`channel_id`).
+        """
         return await self.request(
             Route('POST', '/channels/{channel_id}/followers', channel_id=int(channel)),
             json={'webhook_channel_id': int(target)}
         )
 
     async def trigger_typing(self, channel: SupportsInt) -> None:
-        """Trigger a typing indicator in a channel."""
-        await self.request(Route('POST', '/channels/{channel_id}/typing', channel_id=int(channel)))
+        """Trigger a typing indicator in a channel.
 
-    async def fetch_pins(self, channel: SupportsInt) -> List[Any]:
-        """Fetch all pinned messages in a channel."""
-        return await self.request(Route('GET', '/channels/{channel_id}/pins', channel_id=int(channel)))
+        In general, this endpoint should **not** be used by bots. Only if
+        something may take a few seconds should this be used to let the user
+        know that it is being processed.
+        """
+        await self.request(Route(
+            'POST', '/channels/{channel_id}/typing', channel_id=int(channel)
+        ))
+
+    async def fetch_pins(self, channel: SupportsInt) -> List[MessageData]:
+        """Fetch all pinned messages in a channel.
+
+        Parameters:
+            channel: The ID of the channel to fetch pins from.
+
+        Returns:
+            A list of message objects that are pinned.
+        """
+        return await self.request(Route(
+            'GET', '/channels/{channel_id}/pins', channel_id=int(channel)
+        ))
 
     async def pin_message(
         self,
@@ -616,7 +809,16 @@ class ChannelRequester(Requester):
         *,
         reason: str = MISSING
     ) -> None:
-        """Pin a message in a channel."""
+        """Pin a message in a channel.
+
+        This method requires the `MANAGE_MESSAGES` permission. The maximum
+        amount of pinned messages is 50.
+
+        Parameters:
+            channel: The ID of the channel to pin the message in.
+            message: The ID of the message to pin.
+            reason: The audit log reason for pinning the message.
+        """
         return await self.request(
             Route(
                 'PUT', '/channels/{channel_id}/pins/{message_id}',
@@ -631,7 +833,16 @@ class ChannelRequester(Requester):
         *,
         reason: str = MISSING
     ) -> Dict[str, Any]:
-        """Unpin a message in a channel."""
+        """Unpin a message from a channel.
+
+        Similar to `pin_message()` this requires the `MANAGE_MESSAGES`
+        permission to execute.
+
+        Parameters:
+            channel: The ID of the channel to unpin the message from.
+            message: The ID of the message to unpin.
+            reason: The audit log reason for unpinning the message.
+        """
         return await self.request(
             Route(
                 'DELETE', '/channels/{channel_id}/pins/{message_id}',
@@ -647,7 +858,7 @@ class ChannelRequester(Requester):
         message: SupportsInt,
         *,
         name: str,
-        archive_duration: Literal[60, 1440, 4320, 10080],
+        archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
         ...
@@ -656,10 +867,9 @@ class ChannelRequester(Requester):
     async def start_thread(
         self,
         channel: SupportsInt,
-        message: SupportsInt,
         *,
         name: str,
-        archive_duration: Literal[60, 1440, 4320, 10080],
+        archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
         type: int,
         invitable: bool = MISSING,
         reason: str = MISSING
@@ -672,12 +882,37 @@ class ChannelRequester(Requester):
         message: SupportsInt = MISSING,
         *,
         name: str,
-        archive_duration: int,
+        archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
         type: int = MISSING,
         invitable: bool = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
-        """Create a new thread in a channel, with or without an existing message."""
+        """Start a new thread in a channel.
+
+        Depending on whether `message` is passed the thread will be started
+        with or without a message (these are two different endpoints).
+
+        If no `message` is passed, the thread defaults to a private thread.
+        If a `message` is passed, the type of thread depends on the type of
+        channel that was passed. The ID of the thread is the same as the ID of
+        the message it was created on.
+
+        Parameters:
+            channel: The ID of the channel to start the thread in.
+            message: The optional ID of the message to start the thread on.
+            name: The 1-100 character name of the thread.
+            archive_duration:
+                After how many minutes after recent activity the thread should
+                be archived automatically.
+            type: The type of thread to create. Pass in a channel type.
+            invitable:
+                Whether non-moderators can add non-moderators to the thread.
+                This can only be passed if you are creating a private thread.
+            reason: The audit log reason for starting the thread.
+
+        Returns:
+            The created thread object.
+        """
         if message is not MISSING and type is MISSING:
             raise TypeError('thread type is required when starting a thread without a message')
 
@@ -703,33 +938,90 @@ class ChannelRequester(Requester):
         )
 
     async def join_thread(self, channel: SupportsInt) -> None:
-        """Make the bot user join a thread."""
+        """Make the bot user join a thread.
+
+        The thread must not be archived or deleted to use this method.
+
+        Parameters:
+            channel: The ID of the thread to join.
+        """
         await self.request(
             Route('PUT', '/channels/{channel_id}/thread-members/@me', channel_id=int(channel))
         )
 
     async def add_thread_member(self, channel: SupportsInt, user: SupportsInt) -> None:
-        """Add another member to a thread."""
+        """Add another member to a thread.
+
+        This method requires the ability to send messages in the thread and
+        that it is not archived or deleted. Trying to add a member that already
+        is in the thread does not fail.
+
+        Parameters:
+            channel: The ID of the thread to add the member to.
+            user: The ID of the member to add to the thread.
+        """
         await self.request(Route(
             'PUT', '/channels/{channel_id}/thread-members/{user_id}',
             channel_id=int(channel), user_id=int(user)
         ))
 
     async def leave_thread(self, channel: SupportsInt) -> None:
-        """Make the bot user leave a thread."""
-        await self.request(
-            Route('DELETE', '/channels/{channel_id}/thread-members/@me', channel_id=int(channel))
-        )
+        """Make the bot user leave a thread.
+
+        The thread can't be archived for this to succeed.
+
+        Parameters:
+            channel: The ID of the thread to leave.
+        """
+        await self.request(Route(
+            'DELETE', '/channels/{channel_id}/thread-members/@me', channel_id=int(channel)
+        ))
 
     async def remove_thread_member(self, channel: SupportsInt, user: SupportsInt) -> None:
-        """Remove another member to a thread."""
+        """Remove another member from a thread.
+
+        This method requires the `MANAGE_THREADS` permission or that the bot is
+        the creator of the thread if it is a `GUILD_PRIVATE_THREAD`. The thread
+        can't be archived.
+
+        Parameters:
+            channel: The ID of the thread to remove the member from.
+            user: The ID of the member to remove from the thread.
+        """
         await self.request(Route(
             'DELETE', '/channels/{channel_id}/thread-members/{user_id}',
             channel_id=int(channel), user_id=int(user)
         ))
 
-    async def fetch_thread_members(self, channel: SupportsInt) -> List[Any]:
-        """Fetch all members who have joined a thread."""
+    async def fetch_thread_member(self, channel: SupportsInt, user: SupportsInt) -> ThreadMemberData:
+        """Fetch thread member information about a member in a thread.
+
+        If the member has not yet joined the thread a 404 NotFound error will
+        be raised.
+
+        Parameters:
+            channel: The ID of the thread the member is in.
+            user: The ID of the member to fetch information about.
+
+        Returns:
+            The thread member information for the member.
+        """
+        return await self.request(Route(
+            'GET', '/channels/{channel_id}/thread-members/{user_id}',
+            channel_id=int(channel), user_id=int(user)
+        ))
+
+    async def fetch_thread_members(self, channel: SupportsInt) -> List[ThreadMemberData]:
+        """Fetch all members who have joined a particular thread.
+
+        This method requires the `GUILD_MEMBERS` priviledged intent.
+
+        Parameters:
+            channel: The ID of the thread to fetch members from.
+
+        Returns:
+            A list of thread member data.
+        """
         return await self.request(
             Route('GET', '/channels/{channel_id}/thread-members', channel_id=int(channel))
         )
@@ -738,17 +1030,33 @@ class ChannelRequester(Requester):
         self,
         channel: SupportsInt,
         *,
-        before: int = MISSING,
+        before: str = MISSING,
         limit: int = MISSING,
-    ) -> Dict[str, Any]:
-        """Fetch all archived public threads."""
-        query: Dict[str, Any] = {
+    ) -> ListThreadsData:
+        """Fetch all archived public threads.
+
+        The returned threads are ordered by their `archive_timestamp` in
+        descending order. This method requires the `READ_MESSAGE_HISTORY`
+        permission to execute.
+
+        Parameters:
+            channel: The ID of the channel to fetch threads from.
+            before: The timestamp to fetch threads that were archived before.
+            limit: The maximum number of threads to return.
+
+        Return:
+            A special object with a `threads`, `members`, and `has_more` keys.
+        """
+        query = {
             'before': before,
             'limit': limit
         }
 
         return await self.request(
-            Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
+            Route(
+                'GET', '/channels/{channel_id}/threads/archived/public',
+                channel_id=int(channel)
+            ),
             params=query
         )
 
@@ -756,17 +1064,33 @@ class ChannelRequester(Requester):
         self,
         channel: SupportsInt,
         *,
-        before: int = MISSING,
+        before: str = MISSING,
         limit: int = MISSING
-    ) -> Dict[str, Any]:
-        """Fetch all archived private threads."""
-        query: Dict[str, Any] = {
+    ) -> ListThreadsData:
+        """Fetch all archived private threads.
+
+        Similar to `fetch_public_archived_threads` the threads are ordered by
+        their `archive_timestamp` in descending order. This method requires
+        *both* the `READ_MESSAGE_HISTORY` and `MANAGE_THREADS` permission.
+
+        Parameters:
+            channel: The ID of the channel to fetch threads from.
+            before: The timestamp to fetch threads that were archived before.
+            limit: The maximum number of threads to return.
+
+        Returns:
+            A special object with a `threads`, `members`, and `has_more` keys.
+        """
+        query = {
             'before': before,
             'limit': limit,
         }
 
         return await self.request(
-            Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
+            Route(
+                'GET', '/channels/{channel_id}/threads/archived/public',
+                channel_id=int(channel)
+            ),
             params=query
         )
 
@@ -776,9 +1100,22 @@ class ChannelRequester(Requester):
         *,
         before: int = MISSING,
         limit: int = MISSING
-    ) -> Dict[str, Any]:
-        """Fetch all joined archived private threads."""
-        query: Dict[str, Any] = {
+    ) -> ListThreadsData:
+        """Fetch all joined archived private threads.
+
+        The threads are ordered by their ID. Compared to
+        `fetch_private_archived_threads()` this endpoint only requires the
+        `READ_MESSAGE_HISTORY` permission.`
+
+        Parameters:
+            channel: The ID of the channel to fetch threads from.
+            before: The ID of the thread to fetch threads before.
+            limit: The maximum number of threads to return.
+
+        Returns:
+            A special object with a `threads`, `members`, and `has_more` keys.
+        """
+        query = {
             'before': before,
             'limit': limit,
         }
