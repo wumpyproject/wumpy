@@ -2,7 +2,8 @@ import contextlib
 import sys
 from types import TracebackType
 from typing import (
-    Any, Awaitable, Callable, Dict, Mapping, Optional, Tuple, Type, Union
+    IO, Any, Awaitable, Callable, Dict, Mapping, Optional, Sequence, Tuple,
+    Type, Union
 )
 from urllib.parse import quote as urlquote
 
@@ -21,6 +22,20 @@ from ..route import Route
 from ..utils import MISSING, dump_json, load_json
 
 __all__ = ('build_user_agent', 'Requester')
+
+
+# The following type variables are copied from HTTPX so that the annotations
+# are correct and as broad as HTTPX allows it:
+FileContent = Union[IO[bytes], bytes]
+FileTypes = Union[
+    # file (or bytes)
+    FileContent,
+    # (filename, file (or bytes))
+    Tuple[Optional[str], FileContent],
+    # (filename, file (or bytes), content_type)
+    Tuple[Optional[str], FileContent, Optional[str]],
+]
+RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
 
 
 def build_user_agent() -> str:
@@ -121,6 +136,7 @@ class Requester:
         *,
         json: Optional[Any] = None,
         data: Optional[Dict[Any, Any]] = None,
+        files: RequestFiles = None,
         params: Optional[Dict[str, Any]] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None
     ) -> Optional[Any]:
@@ -158,12 +174,12 @@ class Requester:
         res = await self.session.request(
             route.method, route.url,
             headers={'Content-Type': 'application/json', **headers},
-            content=content, data=data, auth=auth, params=params
+            content=content, data=data, files=files, auth=auth, params=params
         )
 
         # Update rate limit information if we have received it, as well as do
         # any form of ratelimit handling.
-        await ratelimit.update(res.headers)
+        await ratelimit(res.headers)
 
         if res.status_code in {403, 404, 500, 502, 503, 504}:
             # Normally called when the response body is fully called, since we
@@ -198,7 +214,7 @@ class Requester:
             raise RateLimited(res, payload)
 
         raise HTTPException(
-            f'Unknown response {res.status_code} {res.reason_phrase}:', data
+            f'Unknown response {res.status_code} {res.reason_phrase}: {payload}'
         )
 
     async def request(
@@ -208,6 +224,7 @@ class Requester:
         reason: str = MISSING,
         json: Optional[Any] = None,
         data: Optional[Dict[Any, Any]] = None,
+        files: Optional[RequestFiles] = None,
         params: Optional[Dict[str, Any]] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None,
         headers: Optional[Mapping[str, str]] = None
@@ -273,7 +290,8 @@ class Requester:
                 try:
                     res = await self._request(
                         route, rheaders, rl, attempt,
-                        json=json, data=data, params=params, auth=auth
+                        json=json, data=data, files=files, params=params,
+                        auth=auth
                     )
                 except httpx.RequestError as error:
                     if attempt < 3:
