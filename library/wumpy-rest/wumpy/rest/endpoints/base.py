@@ -10,7 +10,6 @@ from urllib.parse import quote as urlquote
 import anyio
 import anyio.abc
 import httpx
-from pkg_resources import get_distribution
 from typing_extensions import Self
 
 from ..errors import (
@@ -41,9 +40,7 @@ RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
 def build_user_agent() -> str:
     """Build a User-Agent to use in making requests."""
 
-    v = get_distribution('wumpy.rest').version
-
-    agent = f'DiscordBot (https://github.com/Bluenix2/wumpy, version: {v})'
+    agent = 'DiscordBot (https://github.com/Bluenix2/wumpy, version: 0.0.1)'
     agent += f" Python/{'.'.join([str(i) for i in sys.version_info])}"
 
     return agent
