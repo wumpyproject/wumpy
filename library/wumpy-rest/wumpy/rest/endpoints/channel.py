@@ -12,6 +12,8 @@ from ..route import Route
 from ..utils import MISSING, dump_json
 from .base import Requester, RequestFiles
 
+__all__ = ('ChannelRequester',)
+
 
 class ChannelRequester(Requester):
     """Requester containing all channel-related endpoints.
