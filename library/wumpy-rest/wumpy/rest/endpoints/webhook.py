@@ -1,10 +1,13 @@
-from typing import Any, Dict, Optional, Sequence, SupportsInt, overload
+from typing import (
+    Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union, overload
+)
 
 from discord_typings import AllowedMentionsData, MessageData, WebhookData
+from discord_typings.resources.channel import AttachmentData
 
 from ..route import Route
-from ..utils import MISSING, File
-from .base import Requester
+from ..utils import MISSING, dump_json
+from .base import Requester, RequestFiles
 
 __all__ = ('WebhookRequester',)
 
@@ -92,7 +95,7 @@ class WebhookRequester(Requester):
         elif token is MISSING and channel is not MISSING:
             raise TypeError("cannot specify 'channel' when using webhook token authorization")
 
-        payload: Dict[str, Any] = {
+        payload = {
             'name': name,
             'avatar': avatar,
             'channel': int(channel) if channel is not MISSING else channel
@@ -125,6 +128,44 @@ class WebhookRequester(Requester):
             webhook_id=int(webhook), webhook_token=token
         ))
 
+    @overload
+    async def execute_webhook(
+        self,
+        webhook: SupportsInt,
+        token: str,
+        *,
+        wait: Literal[False] = False,
+        thread: SupportsInt = MISSING,
+        content: str = MISSING,
+        username: str = MISSING,
+        avatar_url: str = MISSING,
+        tts: bool = MISSING,
+        embeds: Sequence[Dict[str, Any]] = MISSING,
+        allowed_mentions: AllowedMentionsData = MISSING,
+        files: Optional[RequestFiles] = None,
+        attachments: List[AllowedMentionsData] = MISSING,
+    ) -> None:
+        ...
+
+    @overload
+    async def execute_webhook(
+        self,
+        webhook: SupportsInt,
+        token: str,
+        *,
+        wait: Literal[True],
+        thread: SupportsInt = MISSING,
+        content: str = MISSING,
+        username: str = MISSING,
+        avatar_url: str = MISSING,
+        tts: bool = MISSING,
+        embeds: Sequence[Dict[str, Any]] = MISSING,
+        allowed_mentions: AllowedMentionsData = MISSING,
+        files: Optional[RequestFiles] = None,
+        attachments: List[AllowedMentionsData] = MISSING,
+    ) -> MessageData:
+        ...
+
     async def execute_webhook(
         self,
         webhook: SupportsInt,
@@ -138,8 +179,9 @@ class WebhookRequester(Requester):
         tts: bool = MISSING,
         embeds: Sequence[Dict[str, Any]] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
-        file: File = MISSING,
-    ) -> MessageData:
+        files: Optional[RequestFiles] = None,
+        attachments: List[AllowedMentionsData] = MISSING,
+    ) -> Union[MessageData, None]:
         """Execute a webhook and send a message in the channel it's setup in.
 
         Unlike many other endpoints, the token is always required to call this
@@ -158,40 +200,45 @@ class WebhookRequester(Requester):
             allowed_mentions:
                 A special allowed mentions object telling Discord what mentions
                 to parse and ping in the client.
-            file: Special file object to send as an attachment.
+            files: Files to upload to Discord.
+            attachments: Filename and descriptions for the files.
+
+        Returns:
+            The created message object if `wait` is specified.
         """
 
-        if content is MISSING and embeds is MISSING and file is MISSING:
-            raise TypeError("one of 'content', 'embeds' or 'file' is required")
+        if content is MISSING and embeds is MISSING and files is MISSING:
+            raise TypeError("one of 'content', 'embeds' or 'files' is required")
 
-        params: Dict[str, Any] = {
+        params = {
             'wait': wait,
             'thread_id': int(thread) if thread else MISSING,  # We cannot int() MISSING
         }
 
-        json: Dict[str, Any] = {
+        json = {
             'content': content,
             'username': username,
             'avatar_url': str(avatar_url),
             'tts': tts,
             'embeds': embeds,
-            'allowed_mentions': allowed_mentions
+            'allowed_mentions': allowed_mentions,
+            'attachments': attachments
         }
 
         # Because of the usage of files here, we need to use multipart/form-data
-        data: Dict[str, Any] = {}
-        data['payload_json'] = self._clean_dict(json)
+        data = {'payload_json': dump_json(self._clean_dict(json))}
 
-        if file is not MISSING:
-            data['file'] = file
-
-        return await self.request(
+        ret = await self.request(
             Route(
                 'POST', '/webhooks/{webhook_id}/{webhook_token}}',
                 webhook_id=int(webhook), webhook_token=token
             ),
-            data=data, params=params
+            data=data, files=files, params=params
         )
+        if ret == '':
+            return None
+
+        return ret
 
     async def fetch_webhook_message(
         self,
@@ -230,7 +277,8 @@ class WebhookRequester(Requester):
         content: Optional[str] = MISSING,
         embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
         allowed_mentions: Optional[AllowedMentionsData] = MISSING,
-        file: Optional[File] = MISSING
+        files: Optional[RequestFiles] = None,
+        attachments: List[AttachmentData] = MISSING,
     ) -> MessageData:
         """Edit a message the webhook sent previously.
 
@@ -243,30 +291,28 @@ class WebhookRequester(Requester):
             allowed_mentions:
                 Mentions allowed to ping in the client for the (new) content.
                 This does not have much of a use.
-            file: Another file to upload with the message.
+            files: Additional files to add to the message.
+            attachments: Attachments to add, edit, or remove from the message.
 
         Returns:
             The updated message.
         """
-        json: Dict[str, Any] = {
+        json = {
             'content': content,
             'embeds': embeds,
             'allowed_mentions': allowed_mentions,
+            'attachments': attachments,
         }
 
         # This will cause HTTPx to use multipart/form-data
-        data: Dict[str, Any] = {}
-        data['payload_json'] = self._clean_dict(json)
-
-        if file is not MISSING:
-            data['file'] = file
+        data = {'payload_json': dump_json(self._clean_dict(json))}
 
         return await self.request(
             Route(
                 'PATCH', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
                 webhook_id=int(webhook), webhook_token=token, message_id=int(message)
             ),
-            data=data
+            data=data, files=files
         )
 
     async def delete_webhook_message(
