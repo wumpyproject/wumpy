@@ -33,6 +33,9 @@ class Route:
 
         self.params = params
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Route) and self.endpoint == other.endpoint
+
     def __repr__(self) -> str:
         return f'<Route {self.endpoint}>'
 
