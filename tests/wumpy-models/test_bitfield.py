@@ -1,5 +1,4 @@
 import pytest
-
 from wumpy.models.flags import BaseFlags, BitMask
 from wumpy.models.permissions import TriBitMask
 

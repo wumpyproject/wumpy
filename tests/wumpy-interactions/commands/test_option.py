@@ -4,7 +4,6 @@ from typing import AnyStr, Literal, Optional, Union
 
 import pytest
 from typing_extensions import Annotated
-
 from wumpy.interactions import ApplicationCommandOption
 from wumpy.interactions.commands.option import OptionClass, OptionType
 from wumpy.models.member import InteractionMember

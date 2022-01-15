@@ -1,5 +1,4 @@
 import pytest
-
 from wumpy.interactions import ApplicationCommandOption, Option, option
 from wumpy.interactions.commands.option import OptionClass
 from wumpy.interactions.commands.registrar import CommandRegistrar

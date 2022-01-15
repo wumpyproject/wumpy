@@ -1,5 +1,4 @@
 import pytest
-
 from wumpy.interactions import (
     CommandInteraction, CommandRegistrar, CommandType
 )

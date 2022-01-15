@@ -36,6 +36,22 @@ jobs:
       - name: Lint codebase with Flake8
         run: flake8 library/
 
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+  
+      - name: Install Isort
+        run: pip install isort
+
+      - name: Verify import order
+        run: isort . --check-only
+
   pyright:
     runs-on: ubuntu-latest
     strategy:

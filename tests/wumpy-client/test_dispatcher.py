@@ -1,7 +1,6 @@
 import anyio
 import pytest
-
-from wumpy.client import Extension, Event, EventDispatcher
+from wumpy.client import Event, EventDispatcher, Extension
 
 
 # Helper event subclass

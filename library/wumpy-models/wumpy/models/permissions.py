@@ -1,7 +1,5 @@
 from enum import Enum
-from typing import (
-    Any, Callable, Dict, Optional, SupportsInt, Union
-)
+from typing import Any, Callable, Dict, Optional, SupportsInt, Union
 
 from typing_extensions import Self
 

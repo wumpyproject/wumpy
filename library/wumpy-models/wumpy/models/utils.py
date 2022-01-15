@@ -1,7 +1,7 @@
 from typing import Any, Mapping, Optional
-from typing_extensions import Final, NoReturn, final
 
-from wumpy.rest import MISSING
+from typing_extensions import Final, NoReturn, final
+from wumpy.rest.utils import MISSING
 
 from .base import Snowflake
 
