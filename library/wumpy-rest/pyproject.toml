@@ -18,6 +18,7 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
+    "Framework :: AnyIO",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -28,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Internet",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries",
@@ -38,8 +40,8 @@ classifiers = [
 dependencies = ["anyio >= 3.3.4, <4", "httpx", "discord-typings >= 0.1.0, < 2"]
 
 [project.urls]
-Homepage = "https://github.com/Bluenix2/wumpy"
-Repository = "https://github.com/Bluenix2/wumpy/tree/main/library/wumpy-rest"
+Homepage = "https://github.com/wumpyproject/wumpy"
+Repository = "https://github.com/wumpyproject/wumpy/tree/main/library/wumpy-rest"
 Documentation = "https://wumpy.rtfd.io"
 
 [build-system]

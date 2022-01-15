@@ -40,7 +40,7 @@ RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
 def build_user_agent() -> str:
     """Build a User-Agent to use in making requests."""
 
-    agent = 'DiscordBot (https://github.com/Bluenix2/wumpy, version: 0.0.1)'
+    agent = 'DiscordBot (https://github.com/wumpyproject/wumpy, version: 0.0.1)'
     agent += f" Python/{'.'.join([str(i) for i in sys.version_info])}"
 
     return agent

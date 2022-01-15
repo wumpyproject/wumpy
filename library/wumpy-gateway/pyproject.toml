@@ -18,6 +18,7 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
+    "Framework :: AnyIO",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -28,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Internet",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries",
@@ -38,9 +40,9 @@ classifiers = [
 dependencies = ["discord-gateway >=0.2.0, <3", "anyio >= 3.3.4, <4"]
 
 [project.urls]
-homepage = "https://github.com/Bluenix2/wumpy"
-repository = "https://github.com/Bluenix2/wumpy/main/library/wumpy-gateway"
-documentation = "https://wumpy.rtfd.io"
+Homepage = "https://github.com/wumpyproject/wumpy"
+Repository = "https://github.com/wumpyproject/wumpy/main/library/wumpy-gateway"
+Documentation = "https://wumpy.rtfd.io"
 
 [build-system]
 requires = ["flit_core >=3.5, <4"]

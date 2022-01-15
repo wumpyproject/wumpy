@@ -2,7 +2,7 @@ site_name: Wumpy
 site_description: Documentation for the Discord API wrapper Wumpy
 site_author: Bluenix
 
-repo_url: https://github.com/Bluenix2/wumpy
+repo_url: https://github.com/wumpyproject/wumpy
 repo_name: GitHub
 edit_uri: tree/main/docs
 
