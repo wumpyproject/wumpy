@@ -8,7 +8,7 @@ on:
       - 'library/**'
       - 'tests/**'
 
-  pull_requests:
+  pull_request:
     types:
       - opened
       - synchronize
