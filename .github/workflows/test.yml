@@ -1,0 +1,71 @@
+name: Run unit tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'library/**'
+      - 'tests/**'
+
+  pull_requests:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - auto_merge_enabled
+      - reopened
+    paths:
+      - 'library/**'
+      - 'tests/**'
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      # If one of the Python versions fail we still want to continue testing
+      # the rest if possible.
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.7'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+    env:
+      subpackages:
+          - cache
+          - client
+          - gateway
+          - interactions
+          - models
+          - rest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Attempt to access cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: 'test-cache/${{ matrix.python-version }}'
+
+      - name: Install Pytest
+        run: pip install pytest
+
+      - name: Install all subpackages
+        run: |
+          cd library/
+          for subpackage in ${{ env.subpackages }}; do
+            cd wumpy-$subpackage/
+            flit install
+            cd ..
+          done
+
+      - name: Run pytest tests
+        run: pytest tests/

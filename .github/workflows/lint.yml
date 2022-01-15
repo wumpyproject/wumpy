@@ -1,0 +1,82 @@
+name: Lint codebase
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'library/**'
+      - 'tests/**'
+
+  pull_requests:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - auto_merge_enabled
+      - reopened
+    paths:
+      - 'library/**'
+      - 'tests/**'
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Install Flake8
+        run: pip install flake8
+
+      - name: Lint codebase with Flake8
+        run: flake8 library/
+
+  pyright:
+    runs-on: ubuntu-latest
+    strategy:
+      # If one of the subpackages fail this step, we want to continue running
+      # the rest as to not mask errors.
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.7'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+        subpackage:
+          - cache
+          - client
+          - gateway
+          - interactions
+          - models
+          - rest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Attempt to access cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: 'pyright-v${{ matrix.python-version }}/${{ matrix.subpackage }}'
+
+      - name: Install Pyright and Flit
+        run: pip install pyright flit
+
+      - name: Install wumpy-${{ matrix.subpackage }}
+        run: |
+          cd library/wumpy-${{ matrix.subpackage }}
+          flit install
+
+      - name: Verify wumpy-${{ matrix.subpackage }} types
+        run: pyright --verifytypes wumpy.${{ matrix.subpackage }}
