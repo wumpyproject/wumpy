@@ -33,13 +33,7 @@ jobs:
           - '3.9'
           - '3.10'
     env:
-      subpackages:
-          - cache
-          - client
-          - gateway
-          - interactions
-          - models
-          - rest
+      subpackages: 'cache client gateway interactions models rest'
 
     steps:
       - uses: actions/checkout@v2
