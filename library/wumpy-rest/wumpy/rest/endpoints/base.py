@@ -184,11 +184,11 @@ class Requester:
             await res.aclose()
 
             if res.status_code == 403:
-                raise Forbidden(res)
+                raise Forbidden(res.status_code, res.headers)
             elif res.status_code == 404:
-                raise NotFound(res)
+                raise NotFound(res.status_code, res.headers)
             else:
-                raise ServerException(res)
+                raise ServerException(res.status_code, res.headers)
 
         # The status code is now either 300> or >= 200 or 429
         text = (await res.aread()).decode(encoding='utf-8')
@@ -208,7 +208,7 @@ class Requester:
 
         # We're being ratelimited by Discord (or possibly Cloudflare)
         if res.status_code == 429:
-            raise RateLimited(res, payload)
+            raise RateLimited(res.status_code, res.headers, payload)
 
         raise HTTPException(
             f'Unknown response {res.status_code} {res.reason_phrase}: {payload}'
@@ -330,13 +330,13 @@ class Requester:
             return await res.aread()
 
         if res.status_code == 403:
-            raise Forbidden(res)
+            raise Forbidden(res.status_code, res.headers)
         elif res.status_code == 404:
-            raise NotFound(res)
+            raise NotFound(res.status_code, res.headers)
         elif res.status_code == 503:
-            raise ServerException(res)
+            raise ServerException(res.status_code, res.headers)
         else:
-            raise RequestException(res)
+            raise RequestException(res.status_code, res.headers)
 
     # Asset endpoint
 

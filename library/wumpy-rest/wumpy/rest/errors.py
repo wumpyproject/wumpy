@@ -1,6 +1,6 @@
 from typing import Any, Dict, Mapping, Optional, Union
 
-from httpx import Response
+from httpx import codes
 
 __all__ = ('HTTPException', 'Forbidden', 'NotFound', 'ServerException')
 
@@ -55,7 +55,8 @@ class RequestException(HTTPException):
 
     def __init__(
         self,
-        response: Response,
+        status_code: int,
+        headers: Mapping[str, str],
         data: Union[str, Dict, None] = None,
         *,
         attempt: int = 0
@@ -70,9 +71,9 @@ class RequestException(HTTPException):
             code = 0
             errors = None
 
-        self.status_code = response.status_code
-        self.status_phrase = response.reason_phrase
-        self.headers = response.headers
+        self.status_code = status_code
+        self.status_phrase = codes.get_reason_phrase(self.status_code)
+        self.headers = headers
 
         self.data = data
 
@@ -84,7 +85,7 @@ class RequestException(HTTPException):
 
         super().__init__(
             '{0.status_code} {0.reason_phrase} (Discord error code: {1}) {2}'.format(
-                response, code, message
+                self, code, message
             )
         )
 
