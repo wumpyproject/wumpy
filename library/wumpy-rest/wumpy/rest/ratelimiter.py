@@ -1,22 +1,25 @@
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import TracebackType
 from typing import (
-    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Coroutine, Dict,
-    Mapping, Optional, Type, Union
+    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Coroutine,
+    Dict, Mapping, Optional, Type
 )
 from weakref import WeakValueDictionary
 
 import anyio
+import anyio.lowlevel
+from typing_extensions import Self
 
 from .errors import RateLimited, ServerException
 from .route import Route
 
-__all__ = ('RateLimiter', 'DictRateLimiter')
+__all__ = ('Ratelimiter', 'DictRatelimiter')
 
 
 # The type allows the usage to the right of the code.
-RateLimiter = AsyncContextManager[  # async with ratelimiter as rl:
+Ratelimiter = AsyncContextManager[  # async with ratelimiter as rl:
     Callable[[Route], AsyncContextManager[  # async with rl(route) as lock:
         Callable[[Mapping[str, str]], Awaitable]  # await lock(headers)
     ]]
@@ -44,25 +47,158 @@ value if you wish the requester retry the request.
 """
 
 
-def releaser(delay: Union[int, float], callback: Callable) -> Callable[[], Coroutine]:
-    """Coroutine function factory for sleeping and then call the callback."""
-    async def inner():
-        try:
-            await anyio.sleep(delay)
-        finally:
-            # The sleep could be cancelled and raise an exception, no matter
-            # what we should call the callback and cleanup as to not leave
-            # things in an invalid state.
-            callback()
-    return inner
+class Ratelimit:
+    """A special type of timed semaphore.
+
+    This is very similar to AnyIO's `Semaphore` or `CapacityLimiter`
+    implementation, but adapted to work for Discord ratelimits.
+
+    A `Ratelimit` is made up of one lock and two events, along with the
+    information from the ratelimit headers. The purpose of the lock is to be
+    able to queue tasks trying to acquire the ratelimit, because if one task
+    needs to sleep until the next reset then all the following tasks needs to
+    do so as well.
+
+    The two events are used a bit differently, the first is used to completely
+    lock the ratelimit in the case that a 429 response is received. The second
+    event allows the ratelimit to notify itself once another reset is known,
+    because Discord does not provide a "per" header so it cannot be calculated
+    in advance.
+
+    The last feature of the `Ratelimit` is the ability to move itself using the
+    `move()` method, which is used when two ratelimits are unexpectedly merged
+    because they share the same `X-RateLimit-Bucket` header.
+    """
+
+    _lock: anyio.Lock
+    _ratelimited: anyio.Event
+    _event: anyio.Event
+
+    _limit: int
+    _remaining: int
+    _reset_at: Optional[float]
+
+    _moved: Optional[Self]
+
+    __slots__ = (
+        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at', '_moved',
+        '__weakref__'
+    )
+
+    def __init__(self, limit: int = 1, remaining: int = 1) -> None:
+        self._lock = anyio.Lock()
+        self._ratelimited = anyio.Event()
+        self._ratelimited.set()
+        self._event = anyio.Event()
+        self._event.set()
+
+        self._limit = limit
+        self._remaining = remaining
+
+        self._reset_at = None
+
+        self._moved = None
+
+    async def __aenter__(self) -> Self:
+        await self.acquire()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
+        pass
+
+    @property
+    def remaining(self) -> int:
+        """The remaining number of tokens."""
+        return self._remaining
+
+    @remaining.setter
+    def remaining(self, value: int) -> None:
+        self._remaining = value
+
+    @property
+    def limit(self) -> int:
+        """The maximum number of tokens that can be acquired in the window."""
+        return self._limit
+
+    @limit.setter
+    def limit(self, value: int) -> None:
+        diff = self._limit - self._remaining
+
+        self._limit = value
+        self._remaining = self._limit - diff
+
+    @property
+    def reset_at(self) -> Optional[float]:
+        """The `time.perf_counter()` time at which a new window starts."""
+        return self._reset_at
+
+    @reset_at.setter
+    def reset_at(self, value: datetime) -> None:
+        delta = value - datetime.now(timezone.utc)
+        self._reset_at = time.perf_counter() + delta.total_seconds()
+        self._event.set()
+
+    async def acquire(self) -> None:
+        """Decrement the semaphore value, blocking if necessary."""
+        if self._moved:
+            await self._moved.acquire()
+            return
+
+        async with self._lock:
+            # This is duplicated because the ratelimit may not have moved when
+            # we first checked, but because there's a potential that it
+            # happened while we waited for the lock we need to check again.
+            if self._moved:
+                await self._moved.acquire()
+                return
+
+            await self._ratelimited.wait()
+
+            if self._remaining >= 1:
+                self._remaining -= 1
+                return
+
+            if self._reset_at is None:
+                await self._event.wait()
+
+                if self._reset_at is None:
+                    raise RuntimeError(
+                        'Ratelimit was notified of a new reset, but no reset time was set.'
+                    )
+
+            if self._reset_at < time.perf_counter():
+                self._remaining = self._limit - 1
+                self._reset_at = None
+                self._event = anyio.Event()
+                return
+
+            else:
+                await anyio.sleep(self._reset_at - time.perf_counter())
+                self._remaining = self._limit - 1
+                self._reset_at = None
+                self._event = anyio.Event()
+
+    def move(self, target: Self) -> None:
+        self._moved = target
+
+    def lock(self) -> None:
+        self._ratelimited = anyio.Event()
+
+    def unlock(self) -> None:
+        self._ratelimited.set()
 
 
-class _RouteRateLimit:
-    """Implementation of the RateLimit for the dictionary ratelimiter."""
+class _RouteRatelimit:
+    """Proxy implementing the rest of the ratelimiter protocol."""
 
     __slots__ = ('_lock', '_parent', '_route', 'deferred')
 
-    def __init__(self, parent: 'DictRateLimiter', lock: anyio.Lock, route: Route) -> None:
+    def __init__(self, parent: 'DictRatelimiter', lock: Ratelimit, route: Route) -> None:
         self._parent = parent
         self._lock = lock
         self._route = route
@@ -105,51 +241,74 @@ class _RouteRateLimit:
             if globally:
                 self._parent.lock()
 
+            self._lock.lock()
             await anyio.sleep(float(retry))
+            self._lock.unlock()
 
             if globally:
                 self._parent.unlock()
 
-        finally:
-            if not self.deferred:
-                self._lock.release()
-
     async def update(self, headers: Mapping[str, str]) -> None:
+        """Update the ratelimiter with the rate limit headers from Discord."""
         try:
             bucket = headers['X-RateLimit-Bucket']
         except KeyError:
             bucket = None
 
         # Update the fallback if this route is this using.
-        self._parent[self._route] = bucket
+        old = self._lock
+        self._lock = self._parent.set_lock(self._route, bucket, self._lock)
+        if self._lock is not old:
+            old.move(self._lock)
+
+        try:
+            limit = headers['X-RateLimit-Limit']
+        except KeyError:
+            pass
+        else:
+            self._lock.limit = int(limit)
 
         try:
             remaining = headers['X-RateLimit-Remaining']
         except KeyError:
+            pass
+        else:
+            self._lock.remaining = int(remaining)
+
+        try:
+            reset = headers['X-RateLimit-Reset']
+        except KeyError:
             return
-
-        # Release later when the ratelimit resets, this allows us to exit
-        # without releasing the lock.
-        self.deferred = True
-        reset = datetime.fromtimestamp(float(remaining), timezone.utc)
-        self._parent._tasks.start_soon(releaser(
-            (reset - datetime.now(timezone.utc)).total_seconds(),
-            self._lock.release
-        ))
+        else:
+            dt = datetime.fromtimestamp(float(reset), timezone.utc)
+            self._lock.reset_at = dt
 
 
-class DictRateLimiter:
+class DictRatelimiter:
     """The simplest and default implementation of the RateLimiter protocol.
 
-    This implementation stores all locks and buckets in (weakref)dictionaries
-    in-memory. Locks are not shared across processes.
+    This implementation stores all its locks as capacity limiters in
+    (weakref)dictionaries in-memory, this means that they can't be shared
+    across processes (such as to another shard).
+
+    Attributes:
+        global_event:
+            An anyio Event that gets set when the global ratelimit is hit which
+            pauses all other requests.
+        buckets: A dictionary of endpoints to their ratelimit buckets.
+        limiters:
+            A weak dictionary of buckets + their major parameters to the
+            underlying capacity limiter.
+        fallbacks:
+            Fallback capacity limiters to use before appropriate buckets are
+            known.
     """
 
     global_event: anyio.Event
 
-    buckets: Dict[Route, str]
-    locks: WeakValueDictionary
-    fallbacks: Dict[Route, anyio.Lock]
+    buckets: Dict[str, str]
+    limiters: WeakValueDictionary
+    fallbacks: WeakValueDictionary
 
     __slots__ = ('_tasks', 'global_event', 'buckets', 'locks', 'fallbacks')
 
@@ -167,7 +326,7 @@ class DictRateLimiter:
         self.locks = WeakValueDictionary()
 
         # Fallback locks before buckets get populated
-        self.fallbacks = {}
+        self.fallbacks = WeakValueDictionary()
 
     async def __aenter__(self) -> Callable[
         [Route], AsyncContextManager[
@@ -175,7 +334,7 @@ class DictRateLimiter:
         ]
     ]:
         self._tasks = await anyio.create_task_group().__aenter__()
-        return self.__getitem__
+        return self.get_lock
 
     async def __aexit__(
         self,
@@ -183,31 +342,42 @@ class DictRateLimiter:
         exc_val: Optional[BaseException],
         traceback: Optional[TracebackType]
     ) -> Optional[bool]:
+        # Our tasks simply consist of sleeping callbacks, there's no benefit to
+        # waiting for them to finish when cleaning up.
+        self._tasks.cancel_scope.cancel()
         return await self._tasks.__aexit__(exc_type, exc_val, traceback)
 
-    def __getitem__(
+    def get_lock(
         self,
         route: Route
     ) -> AsyncContextManager[Callable[[Mapping[str, str]], Awaitable]]:
         """Get a ratelimit lock by its endpoint."""
-        if not isinstance(route, Route):
-            raise KeyError
-
-        bucket = self.buckets.get(route)
+        bucket = self.buckets.get(route.endpoint)
         if not bucket:
-            # Fallback until we get X-RateLimit-Bucket information in update()
-            lock = self.fallbacks.setdefault(route, anyio.Lock())
-            return _RouteRateLimit(self, lock, route).acquire()
+            # Fallback until we get X-RateLimit-Bucket information in called
+            # with set_lock().
+            lock = self.fallbacks.setdefault(
+                route.endpoint + route.major_params, Ratelimit()
+            )
+            return _RouteRatelimit(self, lock, route).acquire()
 
-        lock = self.locks.setdefault(bucket + route.major_params, anyio.Lock())
-        return _RouteRateLimit(self, lock, route).acquire()
+        # We have more accurate bucket information we can use together with the
+        # major parameters..
+        lock = self.locks.setdefault(bucket + route.major_params, Ratelimit())
+        return _RouteRatelimit(self, lock, route).acquire()
 
-    def __setitem__(self, route: Route, bucket: Optional[str]) -> None:
-        if not isinstance(route, Route):
-            raise KeyError
+    def set_lock(
+        self,
+        route: Route,
+        bucket: Optional[str],
+        lock: Ratelimit
+    ) -> Ratelimit:
+        """Update and set a lock for a route."""
+        if bucket and self.fallbacks.pop(route.endpoint + route.major_params, None):
+            self.buckets[route.endpoint] = bucket
+            return self.locks.setdefault(bucket + route.major_params, lock)
 
-        if bucket and self.fallbacks.pop(route, None):
-            self.buckets[route] = bucket
+        return lock
 
     def lock(self) -> None:
         """Globally lock all locks across the ratelimiter."""
