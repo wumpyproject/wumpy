@@ -3,17 +3,18 @@ from collections import deque
 from contextlib import asynccontextmanager
 from functools import partial
 from sys import platform
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, Optional, Tuple
+from typing import Any, AsyncContextManager, AsyncGenerator, Callable, Dict, Optional, Tuple
 
 import anyio
 import anyio.abc
 import anyio.lowlevel
 import anyio.streams.tls
 from discord_gateway import (
-    CloseDiscordConnection, ConnectionRejected, DiscordConnection
+    CloseDiscordConnection, ConnectionRejected, DiscordConnection, Opcode
 )
 
 from .errors import ConnectionClosed
+from .utils import DefaultGatewayLimiter, race
 
 __all__ = ('Shard',)
 
@@ -21,30 +22,7 @@ __all__ = ('Shard',)
 log = logging.getLogger(__name__)
 
 
-async def _done_callback(func: Callable[[], Awaitable], callback: Callable[[], Any]) -> None:
-    await func()
-
-    # It is a deliberate design decision to not use a try/finally block here,
-    # we only want to call the callback if func() was successful.
-    callback()
-
-
-async def race(*functions) -> None:
-    """Race several coroutine functions against each other.
-
-    This function will return when the first of the functions complete, by
-    cancelling all other functions. This means that only functions that can
-    properly handle cancellation should be used with this function.
-
-    Parameters:
-        functions: The functions to race against each other.
-    """
-    if len(functions) == 0:
-        raise ValueError("race() missing at least 1 required positional argument")
-
-    async with anyio.create_task_group() as tg:
-        for func in functions:
-            tg.start_soon(partial(_done_callback, func, tg.cancel_scope.cancel))
+GatewayLimiter = Callable[[Opcode], AsyncContextManager]
 
 
 class Shard:
@@ -103,7 +81,8 @@ class Shard:
         conn: DiscordConnection,
         sock: anyio.streams.tls.TLSStream,
         token: str,
-        intents: int
+        intents: int,
+        ratelimiter: GatewayLimiter,
     ) -> None:
         self._conn = conn
         self._sock = sock
@@ -116,6 +95,8 @@ class Shard:
 
         self.events = deque()
 
+        self.ratelimiter = ratelimiter
+
     def __aiter__(self) -> 'Shard':
         return self
 
@@ -125,7 +106,8 @@ class Shard:
         cls,
         uri: str,
         token: str,
-        intents: int
+        intents: int,
+        ratelimiter: Optional[AsyncContextManager[GatewayLimiter]] = None,
     ) -> AsyncGenerator['Shard', None]:
         """Connect and initialize the connection to Discord.
 
@@ -135,27 +117,42 @@ class Shard:
 
         This method also takes the opportunity to start a task that sends
         heartbeat commands which keep the connection alive.
+
+        Parameters:
+            uri: The WebSocket URI to connect to.
+            token: The token to IDENTIFY with.
+            intents: The intents to use when IDENTIFYing.
+            ratelimiter:
+                An asynchronous context manager that will be entered and should
+                return a callable, this callable will be called with the opcode
+                that is about to be sent and should return a asynchronous
+                context manager that will be entered before sending the command
+                over the gateway.
         """
-        log.info('Connecting to the Discord gateway...')
-        self = cls(*await cls.create_connection(uri, token, intents), token, intents)
-        log.info('Successfully established connection to the Discord gateway.')
+        async with (ratelimiter or DefaultGatewayLimiter()) as limiter:
+            log.info('Connecting to the Discord gateway...')
+            self = cls(
+                *await cls.create_connection(uri, token, intents, limiter=limiter),
+                token, intents, limiter
+            )
+            log.info('Successfully established connection to the Discord gateway.')
 
-        try:
-            async with anyio.create_task_group() as tg:
-                log.info('Starting gateway heartbeat task.')
-                tg.start_soon(self.run_heartbeater)
+            try:
+                async with anyio.create_task_group() as tg:
+                    log.info('Starting gateway heartbeat task.')
+                    tg.start_soon(self.run_heartbeater)
 
-                yield self
+                    yield self
 
-                # If this was cancelled, or some other error occured, the
-                # heartbeater will be cancelled either way meaning that there
-                # is no point for a try/finally block here (since the point of
-                # it is to cause the heartbeater to gracefully exit).
-                self._closed.set()
+                    # If this was cancelled, or some other error occured, the
+                    # heartbeater will be cancelled either way meaning that there
+                    # is no point for a try/finally block here (since the point of
+                    # it is to cause the heartbeater to gracefully exit).
+                    self._closed.set()
 
-        finally:
-            log.info('Exiting the context manager - closing the connection.')
-            await self.aclose()
+            finally:
+                log.info('Exiting the context manager - closing the connection.')
+                await self.aclose()
 
     @classmethod
     async def create_connection(
@@ -164,7 +161,8 @@ class Shard:
         token: str,
         intents: int,
         *,
-        conn: Optional[DiscordConnection] = None
+        limiter: GatewayLimiter,
+        conn: Optional[DiscordConnection] = None,
     ) -> Tuple[DiscordConnection, anyio.streams.tls.TLSStream]:
         """Create and initialize the connection to Discord.
 
@@ -179,6 +177,7 @@ class Shard:
             uri: The URI to connect to.
             token: The token to identify with.
             intents: Intents to identify with.
+            limiter: The ratelimiter for the IDENTIFY command to use.
             conn: The (potentially) old connection to reconnect.
 
         Raises:
@@ -227,22 +226,19 @@ class Shard:
                     break
 
             if conn.should_resume:
-                await sock.send(conn.resume(token))
+                async with limiter(Opcode.RESUME):
+                    await sock.send(conn.resume(token))
             else:
-                await sock.send(conn.identify(
-                    token=token,
-                    intents=intents,
-                    properties={
-                        '$os': platform,
-                        '$browser': 'Wumpy',
-                        '$device': 'Wumpy'
-                    },
-                    presence={
-                        'activities': [],
-                        'status': 'offline',
-                        'afk': True
-                    }
-                ))
+                async with limiter(Opcode.IDENTIFY):
+                    await sock.send(conn.identify(
+                        token=token,
+                        intents=intents,
+                        properties={
+                            '$os': platform,
+                            '$browser': 'Wumpy',
+                            '$device': 'Wumpy'
+                        },
+                    ))
         except BaseException as err:
             # We want to catch *any* error that happened including cancellation
             # errors so that we can cleanup.
@@ -305,7 +301,7 @@ class Shard:
 
                     self._conn, self._sock = await self.create_connection(
                         self._conn.uri, self.token, self.intents,
-                        conn=self._conn
+                        limiter=self.ratelimiter, conn=self._conn
                     )
                     # The data variable isn't defined so we can't run the code
                     # below, skip to the top of the loop and try again.
@@ -331,7 +327,7 @@ class Shard:
 
                     self._conn, self._sock = await self.create_connection(
                         self._conn.uri, self.token, self.intents,
-                        conn=self._conn
+                        limiter=self.ratelimiter, conn=self._conn
                     )
 
             for event in self._conn.events():
@@ -405,7 +401,8 @@ class Shard:
                 # completed yet. Just skip sending heartbeats in that case.
                 if not self._conn.closing:
                     log.debug('Sending HEARTBEAT command over gateway.')
-                    await self._sock.send(self._conn.heartbeat())
+                    async with self.ratelimiter(Opcode.HEARTBEAT):
+                        await self._sock.send(self._conn.heartbeat())
                 else:
                     log.debug('Attempted to heartbeat while closing; skipping.')
 
