@@ -14,7 +14,7 @@ class UserRequester(Requester):
 
     __slots__ = ()
 
-    async def fetch_my_user(self) -> Dict[str, Any]:
+    async def fetch_my_user(self) -> UserData:
         """Fetch the bot user account.
 
         This is not a shortcut to `fetch_user()`, it has a different ratelimit
