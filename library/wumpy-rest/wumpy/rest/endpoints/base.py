@@ -308,7 +308,9 @@ class Requester:
         self,
         method: str,
         url: str,
-        **kwargs
+        *,
+        json: Optional[Any] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> bytes:
         """Bypass retrying, ratelimit handling and json serialization.
 
@@ -324,7 +326,14 @@ class Requester:
         Returns:
             The response body read as bytes.
         """
-        res = await self.session.request(method, url, **kwargs)
+
+        # Clean up MISSING values
+        if json is not None:
+            json = self._clean_dict(json)
+        if params is not None:
+            params = self._clean_dict(params)
+
+        res = await self.session.request(method, url, json=json, params=params)
 
         if 300 > res.status_code >= 200:
             return await res.aread()
@@ -340,7 +349,7 @@ class Requester:
 
     # Asset endpoint
 
-    async def read_asset(self, url: str, *, size: int) -> bytes:
+    async def read_asset(self, url: str, *, size: int = MISSING) -> bytes:
         """Read the bytes of a CDN asset.
 
         Parameters:
