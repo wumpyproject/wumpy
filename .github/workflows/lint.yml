@@ -61,11 +61,6 @@ jobs:
       # the rest as to not mask errors.
       fail-fast: false
       matrix:
-        python-version:
-          - '3.7'
-          - '3.8'
-          - '3.9'
-          - '3.10'
         subpackage:
           - cache
           - client
@@ -80,14 +75,14 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.7'
 
       - name: Attempt to access cache
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           # The subpackage isn't included here because it should be shared
-          key: 'pyright-v${{ matrix.python-version }}'
+          key: 'pyright-v3.7'
 
       - name: Install Pyright and Flit
         run: pip install pyright flit
