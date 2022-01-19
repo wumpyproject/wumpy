@@ -10,7 +10,7 @@ import anyio.abc
 import anyio.lowlevel
 import anyio.streams.tls
 from discord_gateway import (
-    CloseDiscordConnection, ConnectionRejected, DiscordConnection, Opcode
+    CloseDiscordConnection, ConnectionRejected, DiscordConnection, Opcode, should_reconnect
 )
 
 from .errors import ConnectionClosed
@@ -325,6 +325,12 @@ class Shard:
 
                     await self._sock.aclose()
 
+                    if not should_reconnect(err.code):
+                        raise ConnectionClosed(
+                            f'Discord closed the WebSocket with code {err.code}'
+                            f': {err.reason}' if err.reason else ''
+                        )
+
                     self._conn, self._sock = await self.create_connection(
                         self._conn.uri, self.token, self.intents,
                         limiter=self.ratelimiter, conn=self._conn
@@ -348,6 +354,12 @@ class Shard:
 
         try:
             async with self._write_lock:
+                if self._conn.closing:
+                    # If we're already closing/fully closed, or something went
+                    # wrong while trying to close down the WebSocket it's best
+                    # to return and only call 'await self._sock.aclose()'.
+                    return
+
                 await self._sock.send(self._conn.close())
 
                 try:
