@@ -3,7 +3,7 @@ from collections import deque
 from contextlib import asynccontextmanager
 from functools import partial
 from sys import platform
-from typing import Any, AsyncContextManager, AsyncGenerator, Callable, Dict, Optional, Tuple
+from typing import Any, AsyncContextManager, AsyncGenerator, Callable, Dict, Optional, Tuple, Deque
 
 import anyio
 import anyio.abc
@@ -22,7 +22,7 @@ __all__ = ('Shard',)
 log = logging.getLogger(__name__)
 
 
-GatewayLimiter = Callable[[Opcode], AsyncContextManager]
+GatewayLimiter = Callable[[Opcode], AsyncContextManager[None]]
 
 
 class Shard:
@@ -74,7 +74,22 @@ class Shard:
         ```
     """
 
-    events: deque
+    _conn: DiscordConnection
+    _sock: anyio.streams.tls.TLSStream
+    _write_lock: anyio.Lock
+    _closed: anyio.Event
+
+    token: str
+    intents: int
+
+    events: Deque[Dict[str, Any]]
+
+    ratelimiter: GatewayLimiter
+
+    __slots__ = (
+        '_conn', '_sock', '_write_lock', '_closed', 'token', 'intents',
+        'events', 'ratelimiter'
+    )
 
     def __init__(
         self,
