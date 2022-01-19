@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/**'
       - 'library/**'
       - 'tests/**'
 
@@ -16,6 +17,7 @@ on:
       - auto_merge_enabled
       - reopened
     paths:
+      - '.github/workflows/**'
       - 'library/**'
       - 'tests/**'
 
@@ -84,15 +86,16 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: 'pyright-v${{ matrix.python-version }}/${{ matrix.subpackage }}'
+          # The subpackage isn't included here because it should be shared
+          key: 'pyright-v${{ matrix.python-version }}'
 
       - name: Install Pyright and Flit
         run: pip install pyright flit
 
       - name: Install wumpy-${{ matrix.subpackage }}
         run: |
-          cd library/wumpy-${{ matrix.subpackage }}
+          cd library/wumpy-${{ matrix.subpackage }}/
           flit install
 
       - name: Verify wumpy-${{ matrix.subpackage }} types
-        run: pyright --verifytypes wumpy.${{ matrix.subpackage }}
+        run: pyright --verifytypes wumpy/${{ matrix.subpackage }}/
