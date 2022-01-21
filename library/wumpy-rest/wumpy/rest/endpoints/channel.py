@@ -311,7 +311,7 @@ class ChannelRequester(Requester):
         allowed_mentions: AllowedMentionsData = MISSING,
         files: RequestFiles = None,
         stickers: Iterable[SupportsInt] = MISSING
-    ) -> Dict[str, Any]:
+    ) -> MessageData:
         """Send a message into a channel.
 
         If the channel is a guild channel then the `SEND_MESSAGES` permission
@@ -834,7 +834,7 @@ class ChannelRequester(Requester):
         message: SupportsInt,
         *,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> None:
         """Unpin a message from a channel.
 
         Similar to `pin_message()` this requires the `MANAGE_MESSAGES`
@@ -845,7 +845,7 @@ class ChannelRequester(Requester):
             message: The ID of the message to unpin.
             reason: The audit log reason for unpinning the message.
         """
-        return await self.request(
+        await self.request(
             Route(
                 'DELETE', '/channels/{channel_id}/pins/{message_id}',
                 channel_id=int(channel), message_id=int(message)
@@ -862,7 +862,7 @@ class ChannelRequester(Requester):
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         ...
 
     @overload
@@ -875,7 +875,7 @@ class ChannelRequester(Requester):
         type: int,
         invitable: bool = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         ...
 
     async def start_thread(
@@ -888,7 +888,7 @@ class ChannelRequester(Requester):
         type: int = MISSING,
         invitable: bool = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> ChannelData:
         """Start a new thread in a channel.
 
         Depending on whether `message` is passed the thread will be started

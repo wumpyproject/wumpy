@@ -72,7 +72,7 @@ class StickerRequester(Requester):
         tags: str,
         file: File,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> StickerData:
         """Create a new sticker for a guild.
 
         This endpoint requires the `MANAGE_EMOJIS_AND_STICKERS` permission.
@@ -109,7 +109,7 @@ class StickerRequester(Requester):
         description: str = MISSING,
         tags: str = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> StickerData:
         """Edit a guild sticker by its ID.
 
         This endpoint requires the `MANAGE_EMOJIS_AND_STICKERS` permission.
