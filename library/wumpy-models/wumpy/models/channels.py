@@ -1,16 +1,18 @@
 import collections
 import contextlib
-from typing import Iterable, Optional, Tuple, List, Dict, Any, Deque, SupportsInt, overload
+from typing import (
+    Any, Deque, Dict, Iterable, List, Optional, SupportsInt, Tuple, overload
+)
 
 import anyio.lowlevel
-from discord_typings import PartialChannelData, MessageData
+from discord_typings import MessageData, PartialChannelData
 from discord_typings.resources.channel import ChannelData, DMChannelData
 from typing_extensions import Self
 from wumpy.rest import Forbidden
 
-from .utils import STATELESS, MISSING, _get_as_snowflake
 from .base import Object, Snowflake
-from .permissions import Permissions, PermissionOverwrite, PermissionTarget
+from .permissions import PermissionOverwrite, Permissions, PermissionTarget
+from .utils import MISSING, STATELESS, _get_as_snowflake
 
 __all__ = (
     'PartialChannel', 'InteractionChannel', 'ChannelHistory',

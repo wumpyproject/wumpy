@@ -1,8 +1,11 @@
 import time
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import Any, AsyncContextManager, AsyncGenerator, Awaitable, Callable, Optional, Type
 from types import TracebackType
+from typing import (
+    Any, AsyncContextManager, AsyncGenerator, Awaitable, Callable, Optional,
+    Type
+)
 
 import anyio
 from discord_gateway import Opcode

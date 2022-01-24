@@ -3,14 +3,18 @@ from collections import deque
 from contextlib import asynccontextmanager
 from functools import partial
 from sys import platform
-from typing import Any, AsyncContextManager, AsyncGenerator, Callable, Dict, Optional, Tuple, Deque
+from typing import (
+    Any, AsyncContextManager, AsyncGenerator, Callable, Deque, Dict, Optional,
+    Tuple
+)
 
 import anyio
 import anyio.abc
 import anyio.lowlevel
 import anyio.streams.tls
 from discord_gateway import (
-    CloseDiscordConnection, ConnectionRejected, DiscordConnection, Opcode, should_reconnect
+    CloseDiscordConnection, ConnectionRejected, DiscordConnection, Opcode,
+    should_reconnect
 )
 
 from .errors import ConnectionClosed

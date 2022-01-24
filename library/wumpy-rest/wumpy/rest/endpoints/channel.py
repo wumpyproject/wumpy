@@ -4,8 +4,8 @@ from typing import (
 
 from discord_typings import (
     AllowedMentionsData, AttachmentData, ChannelData, EmbedData,
-    FollowedChannelData, InviteData, MessageData, PermissionOverwriteData,
-    ThreadMemberData, UserData
+    FollowedChannelData, InviteData, ListThreadsData, MessageData,
+    PermissionOverwriteData, ThreadMemberData, UserData
 )
 
 from ..route import Route
