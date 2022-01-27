@@ -43,3 +43,38 @@ The library is only first now starting to get a good structure. Take a look
 at [CONTRIBUTING.md](CONTRIBUTING.md) and
 [the Wiki](https://github.com/wumpyproject/wumpy/wiki) for developer notes and
 different design decision write-ups.
+
+## Version guarantees
+
+The Wumpy project's official subpackages all follow
+[Semantic Versioning 2.0](https://semver.org/):
+
+- Major version bumps hold no guarantees at all.
+
+- Minor version bumps are backwards compatible but not forwards compatible.
+
+- Patch versions are *both* backwards compatible and forwards compatible.
+
+To simplify the above, this is how it will affect you (these are imaginary
+example versions):
+
+- You can upgrade from `v1.0.6` to `v1.0.8`, or downgrade to `v1.0.3` without
+  any code changes.
+
+- You can upgrade from `v1.5.0` to `v1.6.0` without any code changes, but you
+  can't downgrade to `v1.4.0`.
+
+- You cannot upgrade from `v4.0.0` to `v5.0.0` or downgrade to `v3.0.0`. Major
+  versions have no guarantee of compatability.
+
+## Public API
+
+The public API is documented in the API reference hosted on Read the docs,
+which can be found [here](https://wumpy.rtfd.io/). Unless otherwise noted
+through examples **no files in the library are part of the public API.** This
+means that all imports should go through the subpackages, for example
+`from wumpy.gateway.shard import Shard` is not part of the public API - but
+`from wumpy.gateway import Shard` is.
+
+Since files are not part of the public API, they are considered internal, and
+can be renamed on any version bump without breaking the public API.
