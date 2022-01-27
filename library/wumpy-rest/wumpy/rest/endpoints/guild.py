@@ -1,10 +1,13 @@
 from typing import (
-    Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union
+    Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union, overload
 )
 
 from discord_typings import (
-    AuditLogData, BanData, ChannelData, EmojiData, GuildData, GuildMemberData,
-    GuildPreviewData, InviteData, RoleData, StageInstanceData
+    AuditLogData, BanData, ChannelData, ChannelPositionData, EmojiData,
+    GuildData, GuildMemberData, GuildPreviewData, GuildWidgetData,
+    GuildWidgetSettingsData, IntegrationData, InviteData, ListThreadsData,
+    PermissionOverwriteData, RoleData, RolePositionData, StageInstanceData, VoiceRegionData,
+    WelcomeChannelData, WelcomeScreenData
 )
 
 from ..route import Route
@@ -301,10 +304,55 @@ class GuildRequester(Requester):
         preferred_locale: Optional[str] = MISSING,
         features: Sequence[str] = MISSING,
         description: Optional[str] = MISSING,
+        premium_progress_bar: bool = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
-        """Edit a guild."""
-        payload: Dict[str, Any] = {
+        """Edit a guild's settings.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to edit.
+            name: The new name of the guild.
+            verification_level: The new verification level of the guild.
+            notification_level: The new notification level of the guild.
+            content_filter: The new explicit content filter level of the guild.
+            afk_channel:
+                The ID of the channel to use as the AFK channel, where members
+                are moved when they are considered AFK.
+            afk_timeout:
+                The timeout in seconds before the member is moved to the AFK
+                channel from inactivity.
+            icon: The base64 encoded image data of the new guild icon.
+            owner:
+                The ID of the new owner of the guild. The bot must be the
+                owner of the guild.
+            splash: The new base64 encoded image data for a new guild splash.
+            discovery:
+                The new base64 encoded image data for a new discovery splash
+                image of the guild.
+            banner: The new base64 encoded image data for a new guild banner.
+            system_channel:
+                The ID of the channel to use as the system channel for welcome
+                messages and boost messages.
+            system_channel_flags:
+                Bitfield of system flags. Refer to the Discord API for specific
+                bits and what they do.
+            rules_channel: The ID of the channel to use as the rules channel.
+            updates_channel:
+                The ID of the channel to use as the updates channel where
+                admins and moderators receive official Community updates
+                from Discord.
+            preferred_locale: The new preferred locale of the guild.
+            features: Enabled features of the guild.
+            description: The new description of the guild.
+            premium_progress_bar: Whether to show the guild's premium progress.
+            reason: The audit log reason for editing the guild's settings.
+
+        Returns:
+            The updated data of the guild object.
+        """
+        payload = {
             'name': name,
             'verification_level': verification_level,
             'default_message_notifications': notification_level,
@@ -322,7 +370,8 @@ class GuildRequester(Requester):
             'public_updates_channel_id': int(updates_channel) if updates_channel else updates_channel,
             'preferred_locale': preferred_locale,
             'features': features,
-            'description': description
+            'description': description,
+            'premium_progress_bar_enabled': premium_progress_bar
         }
 
         return await self.request(
@@ -358,19 +407,48 @@ class GuildRequester(Requester):
         guild: SupportsInt,
         name: str,
         *,
-        type: int = MISSING,
+        type: Literal[0, 1, 2, 3, 4, 5, 6, 10, 11, 12, 13] = MISSING,
         topic: str = MISSING,
         bitrate: int = MISSING,
         user_limit: int = MISSING,
         rate_limit: int = MISSING,
         position: int = MISSING,
-        permission_overwrites: List[PermissionOverwrite] = MISSING,
+        permission_overwrites: List[PermissionOverwriteData] = MISSING,
         parent: SupportsInt = MISSING,
         nsfw: bool = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
-        """Create a new guild channel."""
-        payload: Dict[str, Any] = {
+    ) -> ChannelData:
+        """Create a new guild channel.
+
+        This requires the `MANAGE_CHANNELS` permission. If permission
+        overwrites are changed, only permissions your bot user has in the guild
+        can be updated. Setting `MANAGE_ROLES` is only possible for guild
+        administrators.
+
+        Parameters:
+            guild: The ID of the guild to create the channel in.
+            name: The (1-100 character) name of the new channel.
+            type: The type of the new channel.
+            topic: The (0-1024 character) topic of the new channel.
+            bitrate: The bitrate of the new channel if it is a voice channel.
+            user_limit:
+                The limit of users able to be in the voice channel at the same
+                time.
+            rate_limit:
+                The amount of seconds a user has to wait before sending another
+                message (0-21600). Bots and users with the `MANAGE_MESSAGES` or
+                `MANAGE_CHANNELS` permission bypass this.
+            position: The position of the new channel.
+            permission_overwrites:
+                A list of permission overwrite objects to apply to the new
+                channel upon creation.
+            parent: The ID of the parent category to create the channel in.
+            nsfw: Whether the channel should be marked NSFW or not.
+
+        Returns:
+            The created channel object.
+        """
+        payload = {
             'name': name,
             'type': type,
             'topic': topic,
@@ -391,18 +469,42 @@ class GuildRequester(Requester):
     async def edit_channel_positions(
         self,
         guild: SupportsInt,
-        channels: List[Dict[str, Any]],
+        channels: List[ChannelPositionData],
         *,
         reason: str = MISSING
     ) -> None:
-        """Edit several channels' positions."""
+        """Edit several channels' positions.
+
+        This requires the `MANAGE_CHANNELS` permission.
+
+        Parameters:
+            guild: The ID of the guild to edit the channels in.
+            channels:
+                A list of a special type of position data with `id`,
+                `position`, `lock_permissions` (whether to sync permissions
+                with the new parent, if moving to a new category) and
+                `parent_id` keys. All fields are optional (can be None) except
+                for `id` which is required.
+            reason: The audit log reason for editing the channels.
+        """
         return await self.request(
             Route('PATCH', '/guilds/{guild_id}/channels', guild_id=int(guild)),
             json=channels, reason=reason
         )
 
-    async def fetch_active_threads(self, guild: SupportsInt) -> ListActive:
-        """Fetch all active threads in a guild, both public and private threads."""
+    async def fetch_active_threads(self, guild: SupportsInt) -> ListThreadsData:
+        """Fetch all active threads in a guild.
+
+        This endpoint returns both public and private threads, sorted by their
+        `id` snowflake in descending order.
+
+        Parameters:
+            guild: The ID of the guild to fetch threads from.
+
+        Returns:
+            A special payload with `threads` and `members` keys containing
+            channel, respectively tread member objects.
+        """
         return await self.request(
             Route('GET', '/guilds/{guild_id}/threads/active', guild_id=int(guild))
         )
@@ -426,13 +528,24 @@ class GuildRequester(Requester):
         self,
         guild: SupportsInt,
         *,
-        limit: int = 1,
-        after: int = 0
-    ) -> List[Any]:
+        limit: int = MISSING,
+        after: int = MISSING
+    ) -> List[GuildMemberData]:
         """Fetch all members in a guild.
 
-        `after` is the highest user ID in the previous page, this way you can
-        paginate all members even the guild has more than 1000 members.
+        This endpoint requires the `GUILD_MEMBERS` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch members from.
+            limit:
+                The maximum number of members to return (1-1000). Defaulting
+                to 1 on the API side.
+            after:
+                The ID of the highest user in the previous page. This defaults
+                to 0 on the API side to fetch the first page.
+
+        Returns:
+            A list of member objects.
         """
         if 0 > limit > 1001:
             raise TypeError("'limit' must be a value between 1-1000")
@@ -442,8 +555,25 @@ class GuildRequester(Requester):
             params={'limit': limit, 'after': after}
         )
 
-    async def search_members(self, guild: SupportsInt, query: str, *, limit: int = 1) -> List[Any]:
-        """Search guild members after a name or nickname similar to `query`."""
+    async def search_members(
+        self,
+        guild: SupportsInt,
+        query: str,
+        *,
+        limit: int = MISSING
+    ) -> List[GuildMemberData]:
+        """Search guild members after a name or nickname starting with `query`.
+
+        Parameters:
+            guild: The ID of the guild to search members in.
+            query: The string to search for by usernames and nicknames.
+            limit:
+                The maximum number of members to return (1-1000). Similar to
+                `fetch_members()` this will default to 1 on the API side.
+
+        Returns:
+            A list of member objects.
+        """
         return await self.request(
             Route('GET', '/guilds/{guild_id}/members/search', guild_id=int(guild)),
             params={'query': query, 'limit': limit}
@@ -459,15 +589,38 @@ class GuildRequester(Requester):
         mute: Optional[bool] = MISSING,
         deafen: Optional[bool] = MISSING,
         channel: Optional[int] = MISSING,
+        timeout: Optional[int] = MISSING,
         reason: str = MISSING
     ) -> Dict[str, Any]:
-        """Edit another guild member."""
-        payload: Dict[str, Any] = {
+        """Edit another guild member.
+
+        This endpoint requires a few different permissions depending on the
+        options passed, including `MANAGE_NICKNAMES`, `MANAGE_ROLES`,
+        `MUTE_MEMBERS`, `DEAFEN_MEMBERS`, `MOVE_MEMBERS` and `MODERATE_MEMBERS`
+        respectively.
+
+        Parameters:
+            guild: The ID of the guild to edit the member in.
+            user: The ID of the user to edit.
+            nick: The new nickname of the member.
+            roles: A list of role IDs to set to the member (add and remove).
+            mute: Whether to mute the member in voice channels.
+            deafen: Whether to deafen the member in voice channels.
+            channel: The ID of the voice channel to move the member to.
+            timeout:
+                The number of seconds to timeout the member for. This can be
+                set up until 28 days in the future.
+
+        Returns:
+            The updated data of the member object.
+        """
+        payload = {
             'nick': nick,
             'roles': [int(r) for r in roles] if roles else roles,
             'mute': mute,
             'deaf': deafen,
-            'channel_id': int(channel) if channel else channel
+            'channel_id': int(channel) if channel else channel,
+            'communication_disabled_until': timeout,
         }
 
         return await self.request(
@@ -481,19 +634,22 @@ class GuildRequester(Requester):
     async def edit_my_nick(
         self,
         guild: SupportsInt,
-        nick: Optional[str] = '',
+        nick: Optional[str] = MISSING,
         *,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
-        """Edit the nickname of the bot in the guild, passing None will reset the nickname."""
-        # We need to mimic Discord's API, if you don't pass `nick` nothing happens
-        options: Dict[str, Any] = {}
-        if nick != '':
-            options['nick'] = nick
+    ) -> GuildMemberData:
+        """Edit the nickname of the bot user in the guild.
 
+        Parameters:
+            guild: The ID of the guild to edit the nickname in.
+            nick: The new nickname of the bot user. Set to None to reset it.
+
+        Returns:
+            The updated data of the member object.
+        """
         return await self.request(
             Route('PATCH', '/guilds/{guild_id}/members/@me/nick', guild_id=int(guild)),
-            json=options, reason=reason
+            json={'nick': nick}, reason=reason
         )
 
     async def add_member_role(
@@ -626,8 +782,22 @@ class GuildRequester(Requester):
             json={'delete_message_days': delete_message_days}, reason=reason
         )
 
-    async def pardon_user(self, guild: SupportsInt, user: SupportsInt, *, reason: str = MISSING) -> None:
-        """Pardon a user, and remove the ban allowing them to enter the guild again."""
+    async def pardon_user(
+        self,
+        guild: SupportsInt,
+        user: SupportsInt,
+        *,
+        reason: str = MISSING
+    ) -> None:
+        """Pardon a user and remove their ban.
+
+        This method requires the `BAN_MEMBERS` permission.
+
+        Parameters:
+            guild: The ID of the guild to pardon the user from.
+            user: The ID of the user to pardon.
+            reason: The audit log reason for removing the ban.
+        """
         await self.request(
             Route(
                 'DELETE', '/guilds/{guild_id}/bans/{user_id}',
@@ -636,8 +806,17 @@ class GuildRequester(Requester):
         )
 
     async def fetch_roles(self, guild: SupportsInt) -> List[Any]:
-        """Fetch all roles from a guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/roles', guild_id=int(guild)))
+        """Fetch all roles from a guild.
+
+        Parameters:
+            guild: The ID of the guild to fetch roles from.
+
+        Returns:
+            A list of roles present in the guild.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/roles', guild_id=int(guild))
+        )
 
     async def create_role(
         self,
@@ -647,15 +826,39 @@ class GuildRequester(Requester):
         permissions: Union[str, int] = MISSING,
         color: int = 0,
         hoist: bool = False,
+        icon: str = MISSING,
+        unicode_emoji: str = MISSING,
         mentionable: bool = False,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
-        """Create a new role in a guild."""
-        payload: Dict[str, Any] = {
+    ) -> RoleData:
+        """Create a new role in a guild.
+
+        This method requires the `MANAGE_ROLES` permission.
+
+        Parameters:
+            guild: The ID of the guild to create the role in.
+            name: The name of the role, defaults to `"new role"`.
+            permissions: The permissions to assign to the role.
+            color: The color of the role, defaults to `0`.
+            hoist:
+                Whether to hoist the role in the members list, displaying them
+                separately in the sidebar. This defaults to `False`.
+            icon: The base64 image data for the icon of the role.
+            unicode_emoji:
+                The unicode emoji (renders as twemoji in the client) to use for
+                the role. This is mutually exclusive with `icon`.
+            mentionable: Whether anyone can mention the role.
+
+        Returns:
+            The newly created role data.
+        """
+        payload = {
             'name': name,
             'permissions': str(permissions) if permissions else MISSING,
             'color': color,
             'hoist': hoist,
+            'icon': icon,
+            'unicode_emoji': unicode_emoji,
             'mentionable': mentionable
         }
 
@@ -667,10 +870,21 @@ class GuildRequester(Requester):
     async def edit_role_positions(
         self,
         guild: SupportsInt,
-        roles: List[Dict[str, Any]],
+        roles: List[RolePositionData],
         reason: str = MISSING
-    ) -> List[Any]:
-        """Edit several roles' positions."""
+    ) -> List[RoleData]:
+        """Edit several roles' positions at the same time.
+
+        This method requires the `MANAGE_ROLES` permission.
+
+        Parameters:
+            guild: The ID of the guild to edit the roles in.
+            roles: A list of payloads with `id ` and `position` fields.
+            reason: The audit log reason for moving the roles.
+
+        Returns:
+            All of the guild's roles.
+        """
         return await self.request(
             Route('PATCH', '/guilds/{guild_id}/roles', guild_id=int(guild)),
             json=roles, reason=reason
@@ -685,15 +899,37 @@ class GuildRequester(Requester):
         permissions: Optional[Union[int, str]] = MISSING,
         color: Optional[int] = MISSING,
         hoist: Optional[bool] = MISSING,
+        icon: Optional[str] = MISSING,
+        unicode_emoji: Optional[str] = MISSING,
         mentionable: Optional[bool] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
-        """Edit a guild role's different fields."""
-        payload: Dict[str, Any] = {
+    ) -> RoleData:
+        """Edit a guild role's different fields.
+
+        This method requires the `MANAGE_ROLES` permission.
+
+        Parameters:
+            guild: The ID of the guild the role is in.
+            role: The ID of the role to edit.
+            name: The new name of the role.
+            permissions: The new permissions of the role.
+            color: The new color of the role.
+            hoist: Whether to hoist the role in the members list.
+            icon: The base64 image data for the new icon of the role.
+            unicode_emoji: The unicode emoji to use as the role icon.
+            mentionable: Whether anyone can mention the role.
+            reason: The audit log reason for editing the role.
+
+        Returns:
+            The newly edited role data.
+        """
+        payload = {
             'name': name,
             'permissions': str(permissions) if permissions else permissions,
             'color': color,
             'hoist': hoist,
+            'icon': icon,
+            'unicode_emoji': unicode_emoji,
             'mentionable': mentionable
         }
 
@@ -705,8 +941,22 @@ class GuildRequester(Requester):
             json=payload, reason=reason
         )
 
-    async def delete_role(self, guild: SupportsInt, role: SupportsInt, *, reason: str = MISSING) -> None:
-        """Delete a guild role."""
+    async def delete_role(
+        self,
+        guild: SupportsInt,
+        role: SupportsInt,
+        *,
+        reason: str = MISSING
+    ) -> None:
+        """Delete a role from a guild.
+
+        This method requires the `MANAGE_ROLES` permission.
+
+        Parameters:
+            guild: The ID of the guild to delete the role from.
+            role: The ID of the role to delete.
+            reason: The audit log reason for deleting the role.
+        """
         await self.request(
             Route(
                 'DELETE', '/guilds/{guild_id}/roles/{role_id}',
@@ -720,55 +970,142 @@ class GuildRequester(Requester):
         *,
         days: int = 7,
         roles: Optional[Sequence[SupportsInt]] = None
-    ) -> Dict[str, int]:
+    ) -> int:
         """Fetch the amount of members that would be pruned.
 
-        `roles` is a list of roles that should be included, as normally
-        any member with roles is excluded from the operation.
+        This requires the `KICK_MEMBERS` permission.
+
+        By default, pruning will not touch any users with roles. Use the
+        `roles` kwarg to add roles that should be included.
+
+        Parameters:
+            guild: The ID of the guild to fetch the prune count for.
+            days: The number of days of inactivity to consider for pruning.
+            roles: A list of role IDs that should be included in the prune.
+
+        Returns:
+            The amount of members that would be pruned.
         """
         # Roles may be a list of role object, first we int() them for the IDs
         # and then convert them to strings to join them
         include_roles = ', '.join([str(int(r)) for r in roles]) if roles else roles
-        return await self.request(
+        data = await self.request(
             Route('GET', '/guilds/{guild_id}/prune', guild_id=int(guild)),
             params={'days': days, 'include_roles': include_roles}
         )
+        return data['pruned']
+
+    @overload
+    async def prune_guild(
+        self,
+        guild: SupportsInt,
+        *,
+        days: int = ...,
+        compute_count: Literal[True] = ...,
+        roles: Optional[Sequence[SupportsInt]] = ...,
+        reason: str = ...
+    ) -> int:
+        ...
+
+    @overload
+    async def prune_guild(
+        self,
+        guild: SupportsInt,
+        *,
+        days: int = ...,
+        compute_count: Literal[False] = ...,
+        roles: Optional[Sequence[SupportsInt]] = ...,
+        reason: str = ...
+    ) -> None:
+        ...
 
     async def prune_guild(
         self,
         guild: SupportsInt,
         *,
-        days: int = 7,
+        days: int = MISSING,
         compute_count: bool = True,
-        roles: Optional[Sequence[SupportsInt]] = None,
+        roles: Optional[Sequence[SupportsInt]] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Optional[int]]:
-        """Begin a prune operation, and kick all members who do not meet the criteria passed."""
+    ) -> Optional[int]:
+        """Begin a prune operation.
+
+        This requires the `KICK_MEMBERS` permission.
+
+        For very large guilds it is recommended to set `compute_count` to
+        `False`. This will force the return value to be None.
+
+        By default, pruning will not touch any users with roles. Use the
+        `roles` kwarg to add roles that should be included.
+
+        Parameters:
+            guild: The ID of the guild to prune.
+            days: The number of days of inactivity to consider for pruning.
+            compute_count: Whether to wait and return the prune count.
+            roles: A list of role IDs that should be included in the prune.
+            reason: The audit log reason for pruning the guild.
+
+        Returns:
+            The amount of members pruned, if `compute_count` is `True`.
+        """
         include_roles = ', '.join([str(int(r)) for r in roles]) if roles else roles
-        return await self.request(
+        data = await self.request(
             Route('POST', '/guilds/{guild_id}/prune', guild_id=int(guild)),
             json={'days': days, 'compute_prune_count': compute_count, 'include_roles': include_roles},
             reason=reason
         )
+        return data['pruned']
 
-    async def fetch_voice_regions(self, guild: SupportsInt = MISSING) -> List[Any]:
+    async def fetch_voice_regions(self, guild: SupportsInt = MISSING) -> List[VoiceRegionData]:
         """Fetch a list of voice regions.
 
         If a guild is passed, this may return VIP servers if the guild
         is VIP-enabled.
+
+        Parameters:
+            guild:
+                The ID of the guild to fetch the voice regions for, otherwise
+                all (non-VIP) voice regions will be fetched.
+
+        Returns:
+            A list of voice region data.
         """
         if guild is MISSING:
             return await self.request(Route('GET', '/voice/regions'))
 
-        return await self.request(Route('GET', '/guilds/{guild_id}/regions', guild_id=int(guild)))
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/regions', guild_id=int(guild))
+        )
 
-    async def fetch_guild_invites(self, guild: SupportsInt) -> List[Any]:
-        """Fetch all invites for the guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/invites', guild_id=int(guild)))
+    async def fetch_guild_invites(self, guild: SupportsInt) -> List[InviteData]:
+        """Fetch all invites for a guild.
 
-    async def fetch_integrations(self, guild: SupportsInt) -> List[Any]:
-        """Fetch all intergration for the guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/integrations', guild_id=int(guild)))
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch all invites from.
+
+        Returns:
+            A list of all invites for the guild.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/invites', guild_id=int(guild))
+        )
+
+    async def fetch_integrations(self, guild: SupportsInt) -> List[IntegrationData]:
+        """Fetch all intergration for a guild.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch all integrations from.
+
+        Returns:
+            A list of integrations for the guild.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/integrations', guild_id=int(guild))
+        )
 
     async def delete_integration(
         self,
@@ -779,8 +1116,15 @@ class GuildRequester(Requester):
     ) -> None:
         """Delete an attached integration for the guild.
 
+        This method requires the `MANAGE_GUILD` permission.
+
         This may also delete any associated webhooks and kick the bot if
         there is one attached.
+
+        Parameters:
+            guild: The ID of the guild to delete the integration from.
+            integration: The ID of the integration to delete.
+            reason: The audit log reason for deleting the integration.
         """
         await self.request(
             Route(
@@ -789,9 +1133,20 @@ class GuildRequester(Requester):
             ), reason=reason
         )
 
-    async def fetch_widget_settings(self, guild: SupportsInt) -> Dict[str, Any]:
-        """Fetch the settings for a widget for a guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/widget', guild_id=int(guild)))
+    async def fetch_widget_settings(self, guild: SupportsInt) -> GuildWidgetSettingsData:
+        """Fetch the settings for a widget for a guild.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch the widget settins for.
+
+        Returns:
+            The widget settings for the guild.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/widget', guild_id=int(guild))
+        )
 
     async def edit_widget(
         self,
@@ -800,9 +1155,21 @@ class GuildRequester(Requester):
         enabled: bool = MISSING,
         channel: Optional[SupportsInt] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
-        """Edit a guild widget."""
-        payload: Dict[str, Any] = {
+    ) -> GuildWidgetSettingsData:
+        """Edit a guild's widget settings.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to edit the widget settings for.
+            enabled: Whether the widget is enabled.
+            channel: The ID of the channel the widget should display.
+            reason: The audit log reason for editing the widget settings.
+
+        Returns:
+            The updated widget settings.
+        """
+        payload = {
             'enabled': enabled,
             'channel_id': int(channel) if channel else channel
         }
@@ -812,44 +1179,100 @@ class GuildRequester(Requester):
             json=payload, reason=reason
         )
 
-    async def fetch_widget(self, guild: SupportsInt) -> Dict[str, Any]:
-        """Fetch a complete widget for a guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/widget.json', guild_id=int(guild)))
+    async def fetch_widget(self, guild: SupportsInt) -> GuildWidgetData:
+        """Fetch a complete widget for a guild.
 
-    async def fetch_vanity_invite(self, guild: SupportsInt) -> Dict[str, Any]:
-        """Fetch a partial invite for a guild that has that feature."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/vanity-url', guild_id=int(guild)))
+        Parameters:
+            guild: The ID of the guild to fetch a widget for.
 
-    async def fetch_widget_image(
+        Returns:
+            The full widget for the guild.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/widget.json', guild_id=int(guild))
+        )
+
+    async def fetch_vanity_invite(self, guild: SupportsInt) -> InviteData:
+        """Fetch a partial invite for a guild that has a vanity invite.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch a vanity invite for.
+
+        Returns:
+            The vanity invite for the guild. If the guild does not have a
+            vanity invite, the `code` key will be `None`.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/vanity-url', guild_id=int(guild))
+        )
+
+    async def read_widget_image(
         self,
         guild: SupportsInt,
         *,
         style: Literal['shield', 'banner1', 'banner2', 'banner3', 'banner4'] = 'shield'
     ) -> bytes:
-        """Read a style of PNG image for a guild's widget."""
+        """Read a guild's widget image.
+
+        Parameters:
+            guild: The ID of the guild to read the widget image for.
+            style:
+                The style of the widget image, has to be one of `'shield'`,
+                `'banner1'`, `'banner2'`, `'banner3'`, or `'banner4'`.
+
+        Returns:
+            The raw image data for the guild's widget.
+        """
         return await self._bypass_request(
             'GET',
             Route.BASE + f'/guilds/{int(guild)}/widget.png',
             params={'style': style}
         )
 
-    async def fetch_welcome_screen(self, guild: SupportsInt) -> Dict[str, Any]:
-        """Fetch the welcome screen for a guild."""
-        return await self.request(Route('GET', '/guilds/{guild_id}/welcome-screen', guild_id=int(guild)))
+    async def fetch_welcome_screen(self, guild: SupportsInt) -> WelcomeScreenData:
+        """Fetch the welcome screen for a guild.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch the welcome screen for.
+
+        Returns:
+            The welcome screen for the guild.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/welcome-screen', guild_id=int(guild))
+        )
 
     async def edit_welcome_screen(
         self,
         guild: SupportsInt,
         *,
         enabled: Optional[bool] = MISSING,
-        welcome_channels: List[Dict[str, Any]] = MISSING,
+        welcome_channels: List[WelcomeChannelData] = MISSING,
         description: Optional[str] = MISSING
-    ) -> Dict[str, Any]:
-        """Edit the guild's welcome screen."""
+    ) -> WelcomeScreenData:
+        """Edit the guild's welcome screen.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to edit the welcome screen for.
+            enabled: Whether the welcome screen is enabled.
+            welcome_channels:
+                A list of welcome screen channel data with their display
+                options for the welcome screen.
+            description: The server description to show in the welcome screen.
+
+        Returns:
+            The updated welcome screen.
+        """
         if enabled is MISSING and welcome_channels is MISSING and description is MISSING:
             raise TypeError("one of 'enabled', 'welcome_channels' or 'description' is requied")
 
-        payload: Dict[str, Any] = {
+        payload = {
             'enabled': enabled,
             'welcome_channels': welcome_channels,
             'description': description
@@ -866,19 +1289,31 @@ class GuildRequester(Requester):
         *,
         channel: SupportsInt,
         suppress: bool = MISSING,
-        request_to_speak: int = MISSING
-    ) -> Dict[str, Any]:
-        """Update the bot user's voice state in that guild."""
-        options: Dict[str, Any] = {'channel_id': int(channel)}
-        if suppress is not MISSING:
-            options['suppress'] = suppress
+        request_to_speak: Optional[str] = MISSING
+    ) -> Any:  # TODO: What does this return?
+        """Update the bot user's voice state in that guild.
 
-        if request_to_speak is not MISSING:
-            options['request_to_speak_timestamp'] = request_to_speak
+        This endpoint can only be used when `channel` is already a stage
+        channel, and the bot must be in that channel. The `MUTE_MEMBERS`
+        permission is required to set `supress` to False and the
+        `REQUEST_TO_SPEAK` permission is required to set `request_to_speak`.
+
+        Parameters:
+            guild: The ID of the guild to update the bot's voice state in.
+            channel: The ID of the voice channel the bot user is in.
+            suppress: Whether the bot user's voice should be suppressed.
+            request_to_speak:
+                A ISO8601 timestamp of when the bot user should ask to speak.
+        """
+        payload = {
+            'channel_id': int(channel),
+            'suppress': suppress,
+            'request_to_speak_timestamp': request_to_speak,
+        }
 
         return await self.request(
             Route('PATCH', 'guild/{guild_id}/voice-states/@me', guild_id=int(guild)),
-            json=options
+            json=payload
         )
 
     async def edit_voice_state(
@@ -888,17 +1323,30 @@ class GuildRequester(Requester):
         *,
         channel: SupportsInt,
         suppress: bool = MISSING
-    ) -> Dict[str, Any]:
-        """Edit another user's voice state."""
-        options: Dict[str, Any] = {'channel': int(channel)}
-        if suppress is not MISSING:
-            options['suppress'] = suppress
+    ) -> Any:  # TODO: What does this return?
+        """Edit another user's voice state.
+
+        This endpoint can only be used when `channel` is already a stage
+        channel, and the bot must be in that channel. The `MUTE_MEMBERS`
+        permission is required since `supress` is the only option in the
+        Discord API currently.
+
+        Parameters:
+            guild: The ID of the guild to update the user's voice state in.
+            user: The ID of the user to update the voice state for.
+            channel: The ID of the voice channel the user is in.
+            suppress: Whether the user's voice should be suppressed.
+        """
+        payload = {
+            'channel': int(channel),
+            'suppress': suppress,
+        }
 
         return await self.request(
             Route(
                 'PATCH', '/guilds/{guild_id}/voice-states/{user_id}',
                 guild_id=int(guild), user_id=int(user)
-            ), json=options
+            ), json=payload
         )
 
     # Invite endpoints
