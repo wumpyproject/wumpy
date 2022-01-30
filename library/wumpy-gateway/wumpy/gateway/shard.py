@@ -1,4 +1,5 @@
 import logging
+import ssl
 from collections import deque
 from contextlib import asynccontextmanager
 from functools import partial
@@ -91,7 +92,7 @@ class Shard:
     ratelimiter: GatewayLimiter
 
     __slots__ = (
-        '_conn', '_sock', '_write_lock', '_closed', 'token', 'intents',
+        '_conn', '_sock', '_ssl', '_write_lock', '_closed', 'token', 'intents',
         'events', 'ratelimiter'
     )
 
@@ -102,9 +103,12 @@ class Shard:
         token: str,
         intents: int,
         ratelimiter: GatewayLimiter,
+        ssl_context: Optional[ssl.SSLContext] = None
     ) -> None:
         self._conn = conn
         self._sock = sock
+
+        self._ssl = ssl_context
 
         self._write_lock = anyio.Lock()
         self._closed = anyio.Event()
@@ -127,6 +131,7 @@ class Shard:
         token: str,
         intents: int,
         ratelimiter: Optional[AsyncContextManager[GatewayLimiter]] = None,
+        ssl_context: Optional[ssl.SSLContext] = None,
     ) -> AsyncGenerator['Shard', None]:
         """Connect and initialize the connection to Discord.
 
@@ -151,8 +156,11 @@ class Shard:
         async with (ratelimiter or DefaultGatewayLimiter()) as limiter:
             _log.info('Connecting to the Discord gateway...')
             self = cls(
-                *await cls.create_connection(uri, token, intents, limiter=limiter),
-                token, intents, limiter
+                *await cls.create_connection(
+                    uri, token, intents, limiter=limiter,
+                    ssl_context=ssl_context
+                ),
+                token, intents, limiter, ssl_context
             )
             _log.info('Successfully established connection to the Discord gateway.')
 
@@ -164,9 +172,10 @@ class Shard:
                     yield self
 
                     # If this was cancelled, or some other error occured, the
-                    # heartbeater will be cancelled either way meaning that there
-                    # is no point for a try/finally block here (since the point of
-                    # it is to cause the heartbeater to gracefully exit).
+                    # heartbeater will be cancelled either way meaning that
+                    # there is no point for a try/finally block here (since the
+                    # point of it is to cause the heartbeater to gracefully
+                    # exit).
                     self._closed.set()
 
             finally:
@@ -182,6 +191,7 @@ class Shard:
         *,
         limiter: GatewayLimiter,
         conn: Optional[DiscordConnection] = None,
+        ssl_context: ssl.SSLContext = None,
     ) -> Tuple[DiscordConnection, anyio.streams.tls.TLSStream]:
         """Create and initialize the connection to Discord.
 
@@ -201,6 +211,9 @@ class Shard:
             intents: Intents to identify with.
             limiter: The ratelimiter for the IDENTIFY command to use.
             conn: The (potentially) old connection to reconnect.
+            ssl_context:
+                SSL context to use for the TCP connection, allowing for easier
+                testing when using a self-signed certificate.
 
         Raises:
             ConnectionClosed:
@@ -217,7 +230,7 @@ class Shard:
             *conn.destination, tls=True,
             # HTTP connections (which a WebSocket relies on) don't usually
             # perform the closing TLS handshake
-            tls_standard_compatible=False
+            tls_standard_compatible=False, ssl_context=ssl_context
         )
         try:
             # Upgrade the connection to a WebSocket connection using a
@@ -325,7 +338,8 @@ class Shard:
                         try:
                             self._conn, self._sock = await self.create_connection(
                                 self._conn.uri, self.token, self.intents,
-                                limiter=self.ratelimiter, conn=self._conn
+                                limiter=self.ratelimiter, conn=self._conn,
+                                ssl_context=self._ssl
                             )
                         except ConnectionClosed:
                             continue
@@ -364,7 +378,8 @@ class Shard:
                         try:
                             self._conn, self._sock = await self.create_connection(
                                 self._conn.uri, self.token, self.intents,
-                                limiter=self.ratelimiter, conn=self._conn
+                                limiter=self.ratelimiter, conn=self._conn,
+                                ssl_context=self._ssl
                             )
                         except ConnectionClosed:
                             continue
