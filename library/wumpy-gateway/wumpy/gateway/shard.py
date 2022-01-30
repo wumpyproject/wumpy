@@ -192,6 +192,9 @@ class Shard:
         implementation, returning them in a tuple possible to unpack into
         `__init__()` with the token and intents again.
 
+        This can be put in an infinite loop that catches `ConnectionClosed` as
+        it uses the exponential backoff feature of `discord-gateway`.
+
         Parameters:
             uri: The URI to connect to.
             token: The token to identify with.
@@ -208,7 +211,7 @@ class Shard:
         else:
             # Reset the internal state of the connection to prepare for a new
             # WebSocket connection.
-            conn.reconnect()
+            await anyio.sleep(conn.reconnect())
 
         sock = await anyio.connect_tcp(
             *conn.destination, tls=True,
@@ -258,10 +261,10 @@ class Shard:
                             '$device': 'Wumpy'
                         },
                     ))
-        except BaseException as err:
+        except:
             # We want to catch *any* error that happened including cancellation
             # errors so that we can cleanup.
-            _log.critical('Failed to (re)connect to the Discord gateway.', exc_info=err)
+            _log.critical('Failed to (re)connect to the Discord gateway.', exc_info=True)
             await sock.aclose()
             raise
 
@@ -318,10 +321,17 @@ class Shard:
 
                     await self._sock.aclose()
 
-                    self._conn, self._sock = await self.create_connection(
-                        self._conn.uri, self.token, self.intents,
-                        limiter=self.ratelimiter, conn=self._conn
-                    )
+                    while True:
+                        try:
+                            self._conn, self._sock = await self.create_connection(
+                                self._conn.uri, self.token, self.intents,
+                                limiter=self.ratelimiter, conn=self._conn
+                            )
+                        except ConnectionClosed:
+                            continue
+
+                        break
+
                     # The data variable isn't defined so we can't run the code
                     # below, skip to the top of the loop and try again.
                     continue
@@ -350,10 +360,16 @@ class Shard:
                             f': {err.reason}' if err.reason else ''
                         )
 
-                    self._conn, self._sock = await self.create_connection(
-                        self._conn.uri, self.token, self.intents,
-                        limiter=self.ratelimiter, conn=self._conn
-                    )
+                    while True:
+                        try:
+                            self._conn, self._sock = await self.create_connection(
+                                self._conn.uri, self.token, self.intents,
+                                limiter=self.ratelimiter, conn=self._conn
+                            )
+                        except ConnectionClosed:
+                            continue
+
+                        break
 
             for event in self._conn.events():
                 self.events.append(event)
