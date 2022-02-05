@@ -1,9 +1,8 @@
-from typing import Callable, Dict, Literal, TypeVar, Union, overload
+from typing import Callable, Dict, Literal, TypeVar, Union, overload, Optional
 
 import anyio.abc
 from typing_extensions import ParamSpec
 
-from ...utils import MISSING
 from ..base import CommandInteraction
 from .base import Callback
 from .context import MessageCommand, UserCommand
@@ -61,6 +60,9 @@ class CommandRegistrar:
         Parameters:
             command: The command to register into the dictionary.
         """
+        if command.name is None:
+            raise ValueError('Command cannot be registered with no name')
+
         self.commands[command.name] = command
 
     def unregister_command(self, command: Command) -> None:
@@ -75,6 +77,9 @@ class CommandRegistrar:
         Raises:
             ValueError: The command couldn't be found where it's supposed to
         """
+        if command.name is None:
+            raise ValueError("Cannot unregister a command with no name")
+
         if self.commands.get(command.name) != command:
             raise ValueError(
                 "'command' has not been registered previously or another"
@@ -129,8 +134,8 @@ class CommandRegistrar:
         self,
         type: CommandType = CommandType.chat_input,
         *,
-        name: str = MISSING,
-        description: str = MISSING
+        name: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Callable[[Callback[P, RT]], SlashCommand[P, RT]]:
         ...
 
@@ -139,7 +144,7 @@ class CommandRegistrar:
         self,
         type: Literal[CommandType.message],
         *,
-        name: str = MISSING
+        name: Optional[str] = None
     ) -> Callable[[Callback[P, RT]], MessageCommand[P, RT]]:
         ...
 
@@ -148,7 +153,7 @@ class CommandRegistrar:
         self,
         type: Literal[CommandType.user],
         *,
-        name: str = MISSING
+        name: Optional[str] = None
     ) -> Callable[[Callback[P, RT]], UserCommand[P, RT]]:
         ...
 
@@ -156,8 +161,8 @@ class CommandRegistrar:
         self,
         type: Union[CommandType, Callback[P, RT]] = CommandType.chat_input,
         *,
-        name: str = MISSING,
-        description: str = MISSING
+        name: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Union[Command[P, RT], Callable[[Callback[P, RT]], Command[P, RT]]]:
         """Register and create a new application command through a decorator.
 

@@ -9,7 +9,6 @@ from typing_extensions import Annotated
 
 from ...errors import CommandSetupError
 from ...models import InteractionChannel, InteractionMember, InteractionUser
-from ...utils import MISSING
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
@@ -78,14 +77,16 @@ class FloatType(OptionType):
         return
 
 
+# This is sentinel value used for one particular purpose - the option default
+@(lambda cls: cls())
+class _MISSING_DEFAULT:
+    pass
+
+
 class OptionClass:
     """A user-constructed option to an application command.
 
     For most cases the `Option` helper function should be used.
-
-    The OptionClass uses the `MISSING` sentinel for missing values. This can be
-    tricky to work with and in general users should not play around with this
-    class unless it is for the purpose of extending it.
 
     Attributes:
         type: Application command option type to send to Discord.
@@ -105,21 +106,21 @@ class OptionClass:
             `determine_type()` when the parameter annotation is read.
     """
 
-    type: OptionType
+    type: Optional[OptionType]
 
-    name: str
-    description: str
-    required: bool
-    choices: Dict[str, Union[str, int, float]]  # Name of the choice to the value
+    name: Optional[str]
+    description: Optional[str]
+    required: Optional[bool]
+    choices: Optional[Dict[str, Union[str, int, float]]]  # Name of the choice to the value
 
-    min: int
-    max: int
+    min: Optional[int]
+    max: Optional[int]
 
     default: Any
-    converter: Any  # Simple callable, used for enums to convert the argument
+    converter: Optional[Any]  # Simple callable, used for enums to convert the argument
 
-    param: str
-    kind: inspect._ParameterKind
+    param: Optional[str]
+    kind: Optional[inspect._ParameterKind]
 
     __slots__ = (
         'default', 'name', 'description', 'required',
@@ -141,22 +142,22 @@ class OptionClass:
 
     def __init__(
         self,
-        default: Any = MISSING,
+        default: Any = _MISSING_DEFAULT,
         *,
-        name: str = MISSING,
-        description: str = MISSING,
-        required: bool = MISSING,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        required: Optional[bool] = None,
         # This isn't very readable, but it means a list or dictionary of
         # strings, integers or floats.
-        choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
-        min: int = MISSING,
-        max: int = MISSING,
-        type: Type[Any] = MISSING
+        choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]], None] = None,
+        min: Optional[int] = None,
+        max: Optional[int] = None,
+        type: Optional[Type[Any]] = None
     ) -> None:
         self.name = name
         self.description = description
 
-        if default is not MISSING and required is MISSING:
+        if default is not _MISSING_DEFAULT and required is None:
             # If required hasn't been set and there's a default we
             # should assume the user wants the option to be optional
             required = False
@@ -172,13 +173,13 @@ class OptionClass:
         self.max = max
 
         self.default = default
-        self.converter = MISSING
+        self.converter = None
 
-        self.param = MISSING
-        self.kind = MISSING
-        self.type = MISSING
+        self.param = None
+        self.kind = None
+        self.type = None
 
-        if type is not MISSING:
+        if type is not None:
             self.determine_type(type)
 
     def determine_union(self, args: Tuple[Any, ...]) -> bool:
@@ -196,7 +197,7 @@ class OptionClass:
         # Optional[X] becomes Union[X, NoneType]. Flake8 thinks we should use
         # isinstance() but that won't work (hence the noqa)
         if len(args) == 2 and args[-1] == type(None):  # noqa: E721
-            self.required = False if self.required is MISSING else self.required
+            self.required = False if self.required is None else self.required
 
             # Find the typing of X in Optional[X]
             return self.determine_type(args[0])
@@ -241,7 +242,7 @@ class OptionClass:
         if isinstance(annotation, type) and issubclass(annotation, Enum):
             # If the enum is a subclass of another type, such as an IntEnum we
             # can infer the type from that.
-            if self.type is MISSING:
+            if self.type is None:
                 for primitive in self.type_mapping:
                     if not issubclass(annotation, primitive):
                         continue
@@ -250,7 +251,7 @@ class OptionClass:
                     self.determine_type(primitive)
 
             # We can use an enum's members as choices.
-            if self.choices is MISSING:
+            if self.choices is None:
                 self.converter = annotation
                 self.choices = {name: val.value for name, val in annotation.__members__.items()}
 
@@ -273,7 +274,7 @@ class OptionClass:
             return any(self.determine_type(attempt) for attempt in args[1:])
 
         elif origin is Literal and args:  # Make sure it isn't empty
-            if self.type is MISSING:
+            if self.type is None:
                 type_ = type(args[0])
                 for value in args:
                     if not isinstance(value, type_):
@@ -283,7 +284,7 @@ class OptionClass:
 
                 self.determine_type(type_)
 
-            if self.choices is MISSING:
+            if self.choices is None:
                 # Discord wants a name and a value, for Literal we simply have
                 # to use the arguments for both
                 self.choices = {str(value): value for value in args}
@@ -305,31 +306,31 @@ class OptionClass:
         self.param = param.name
 
         # Generally the Option instance has priority, unless it is MISSING
-        self.name = param.name if self.name is MISSING else self.name
+        self.name = param.name if self.name is None else self.name
 
         if param.default is not param.empty and not isinstance(param.default, self.__class__):
             # If the parameter has a default other than an Option class we can
             # use it for the option default
-            self.default = param.default if self.default is MISSING else self.default
-            self.required = False if self.required is MISSING else self.required
+            self.default = param.default if self.default is None else self.default
+            self.required = False if self.required is None else self.required
 
         self.kind = param.kind
 
-        if param.annotation is not param.empty and self.type is MISSING:
+        if param.annotation is not param.empty and self.type is None:
             self.determine_type(param.annotation)
 
     def _update_values(
         self,
-        name: str = MISSING,
-        description: str = MISSING,
-        required: bool = MISSING,
+        name: str = None,
+        description: str = None,
+        required: bool = None,
         choices: Union[
             List[Union[str, int, float]],
             Dict[str, Union[str, int, float]]
-        ] = MISSING,
-        min: int = MISSING,
-        max: int = MISSING,
-        type: Any = MISSING
+        ] = None,
+        min: int = None,
+        max: int = None,
+        type: Any = None
     ) -> None:
         """Update internal values of the option.
 
@@ -337,28 +338,28 @@ class OptionClass:
         OptionClass instance aware of the parameter is has been defined in.
         """
 
-        if type is not MISSING:
+        if type is not None:
             self.determine_type(type)
 
-        if name is not MISSING:
+        if name is not None:
             self.name = name
 
-        if description is not MISSING:
+        if description is not None:
             self.description = description
 
-        if required is not MISSING:
+        if required is not None:
             self.required = required
 
-        if choices is not MISSING:
+        if choices is not None:
             if isinstance(choices, list):
                 choices = {str(value): value for value in choices}
 
             self.choices = choices
 
-        if min is not MISSING:
+        if min is not None:
             self.min = min
 
-        if max is not MISSING:
+        if max is not None:
             self.max = max
 
     def resolve(
@@ -384,12 +385,14 @@ class OptionClass:
             CommandSetupError: The data failed to be converted to an enum.
         """
         if data is None:
-            if self.default is MISSING:
+            if self.default is None:
                 raise CommandSetupError(
                     f"Missing data for option '{self.param}' of command '{interaction.name}'"
                 )
 
             return self.default
+
+        assert self.type is not None
 
         if data.type is not self.type.enum:
             raise CommandSetupError(
@@ -403,7 +406,7 @@ class OptionClass:
                 f"Expected command option value for '{self.param}' of '{interaction.name}'"
             )
 
-        if self.converter is not MISSING:
+        if self.converter is not None:
             try:
                 value = self.converter(value)
             except Exception as exc:
@@ -443,24 +446,27 @@ class OptionClass:
 
     def to_dict(self) -> Dict[str, Any]:
         """Turn the option into a dictionary to send to Discord."""
+        if self.name is None or self.type is None or self.description is None:
+            raise CommandSetupError('Missing required option values')
+
         data = {
             'name': self.name,
             'type': self.type.enum.value,
             'description': self.description,
-            'required': True if self.required is MISSING else self.required,
+            'required': True if self.required is None else self.required,
         }
 
-        if self.choices is not MISSING:
+        if self.choices is not None:
             # We store choices with the name as the key and value being the
             # value but Discord expects a payload with explicit name and value
             # keys so we need to convert it.
             choices = [{'name': k, 'value': v} for k, v in self.choices.items()]
             data['choices'] = choices
 
-        if self.min is not MISSING:
+        if self.min is not None:
             data['min_value'] = self.min
 
-        if self.max is not MISSING:
+        if self.max is not None:
             data['max_value'] = self.max
 
         return data

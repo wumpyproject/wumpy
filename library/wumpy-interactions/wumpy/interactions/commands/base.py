@@ -5,7 +5,6 @@ from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar
 import anyio.abc
 from typing_extensions import ParamSpec
 
-from ...utils import MISSING
 from ..base import CommandInteraction
 
 __all__ = ('Callback', 'CommandCallback')
@@ -25,7 +24,7 @@ class CommandCallback(Generic[P, RT]):
         name: The name of the command.
     """
 
-    name: str
+    name: Optional[str]
 
     _callback: Optional[Callback[P, RT]]
 
@@ -35,14 +34,14 @@ class CommandCallback(Generic[P, RT]):
         self,
         callback: Optional[Callback[P, RT]] = None,
         *,
-        name: str = MISSING
+        name: Optional[str] = None
     ) -> None:
         self.name = name
 
         self.callback = callback
 
     def _set_callback(self, function: Callback[P, RT]) -> None:
-        self.name = function.__name__ if self.name is MISSING else self.name
+        self.name = function.__name__ if self.name is None else self.name
 
         self._callback = function
 

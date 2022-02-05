@@ -7,7 +7,6 @@ from typing_extensions import ParamSpec
 
 from ...errors import CommandSetupError
 from ...models import InteractionMember, InteractionUser
-from ...utils import MISSING
 from ..base import CommandInteraction
 from .base import Callback, CommandCallback
 from .option import CommandType
@@ -31,10 +30,10 @@ class ContextMenuCommand(CommandCallback[P, RT]):
 
     argument: Any
 
-    def __init__(self, callback: Callback[P, RT], *, name: str = MISSING) -> None:
+    def __init__(self, callback: Callback[P, RT], *, name: Optional[str] = None) -> None:
         super().__init__(callback, name=name)
 
-        self.argument = MISSING
+        self.argument = None
 
     def _verify_annotation(self, annotation: Any) -> None:
         # The point of this method is to raise TypeErrors if something is wrong

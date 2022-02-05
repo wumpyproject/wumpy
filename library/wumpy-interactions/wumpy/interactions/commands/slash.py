@@ -8,7 +8,7 @@ import anyio.abc
 from typing_extensions import ParamSpec
 
 from ...errors import CommandSetupError
-from ...utils import MISSING, _eval_annotations
+from ...utils import _eval_annotations
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
@@ -33,8 +33,8 @@ class Subcommand(CommandCallback[P, RT]):
         options: Options you can pass to the subcommand.
     """
 
-    name: str
-    description: str
+    name: Optional[str]
+    description: Optional[str]
 
     options: Dict[str, OptionClass]
 
@@ -44,8 +44,8 @@ class Subcommand(CommandCallback[P, RT]):
         self,
         callback: Optional[Callback[P, RT]] = None,
         *,
-        name: str = MISSING,
-        description: str = MISSING
+        name: Optional[str] = None,
+        description: Optional[str] = None
     ) -> None:
         self.description = description
         self.options = {}
@@ -54,7 +54,7 @@ class Subcommand(CommandCallback[P, RT]):
 
     def _set_callback(self, function: Callback[P, RT]) -> None:
         doc = inspect.getdoc(function)
-        if self.description is MISSING and doc is not None:
+        if self.description is None and doc is not None:
             # Similar to Markdown, we want to turn one full stop character into
             # space, and two characters into one.
             doc = doc.split('\n\n')[0].replace('\n', ' ')
@@ -95,6 +95,9 @@ class Subcommand(CommandCallback[P, RT]):
                 param.replace(annotation=annotation)
             )
 
+            if option.name is None:
+                raise ValueError('Cannot register unnamed option')
+
             self.options[option.name] = option
 
         super()._set_callback(function)
@@ -119,6 +122,8 @@ class Subcommand(CommandCallback[P, RT]):
         args, kwargs = [], {}
 
         for option in self.options.values():
+            assert option.name is not None and option.kind is not None
+
             data = mapping.get(option.name)
             if option.kind in {option.kind.POSITIONAL_ONLY, option.kind.POSITIONAL_OR_KEYWORD}:
                 args.append(option.resolve(interaction, data))
@@ -131,16 +136,17 @@ class Subcommand(CommandCallback[P, RT]):
         self,
         param: str,
         *,
-        name: str = MISSING,
-        description: str = MISSING,
-        required: bool = MISSING,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        required: Optional[bool] = None,
         choices: Union[
             List[Union[str, int, float]],
-            Dict[str, Union[str, int, float]]
-        ] = MISSING,
-        min: int = MISSING,
-        max: int = MISSING,
-        type: ApplicationCommandOption = MISSING
+            Dict[str, Union[str, int, float]],
+            None
+        ] = None,
+        min: Optional[int] = None,
+        max: Optional[int] = None,
+        type: Optional[ApplicationCommandOption] = None
     ) -> None:
         """Update values of a slash command's options.
 
@@ -166,10 +172,11 @@ class Subcommand(CommandCallback[P, RT]):
 
         option = found[0]
 
-        if name is not MISSING:
+        if name is not None:
             # We have to update the internal dictionary where the option is
             # stored so that it can be found correctly when receiving an
             # interaction from Discord.
+            assert option.name is not None
             del self.options[option.name]
             self.options[name] = option
 
@@ -260,6 +267,9 @@ class SubcommandGroup:
         if command.name in self.commands:
             raise ValueError(f"Command with name '{command.name}' already registered")
 
+        if command.name is None:
+            raise ValueError('Cannot register unnamed command')
+
         self.commands[command.name] = command
 
     @overload
@@ -270,17 +280,17 @@ class SubcommandGroup:
     def command(
         self,
         *,
-        name: str = MISSING,
-        description: str = MISSING
+        name: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Callable[[Callback[P, RT]], Subcommand[P, RT]]:
         ...
 
     def command(
         self,
-        callback: Callback[P, RT] = MISSING,
+        callback: Callback[P, RT] = None,
         *,
-        name: str = MISSING,
-        description: str = MISSING,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
         """Create and register a subcommand of this group.
 
@@ -326,8 +336,8 @@ class SlashCommand(Subcommand[P, RT]):
         self,
         callback: Optional[Callback[P, RT]] = None,
         *,
-        name: str,
-        description: str
+        name: Optional[str],
+        description: Optional[str]
     ) -> None:
         super().__init__(callback, name=name, description=description)
 
@@ -378,6 +388,9 @@ class SlashCommand(Subcommand[P, RT]):
         if command.name in self.commands:
             raise ValueError(f"Command with name '{command.name}' already registered")
 
+        if command.name is None:
+            raise ValueError('Cannot register unnamed command')
+
         self.commands[command.name] = command
 
     def group(
@@ -418,17 +431,17 @@ class SlashCommand(Subcommand[P, RT]):
     def command(
         self,
         *,
-        name: str = MISSING,
-        description: str = MISSING
+        name: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Callable[[Callback[P, RT]], Subcommand[P, RT]]:
         ...
 
     def command(
         self,
-        callback: Callback[P, RT] = MISSING,
+        callback: Optional[Callback[P, RT]] = None,
         *,
-        name: str = MISSING,
-        description: str = MISSING
+        name: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
         """Create a subcommand directly on the slash command.
 
