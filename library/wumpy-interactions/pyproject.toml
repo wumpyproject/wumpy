@@ -1,0 +1,53 @@
+[project]
+name = "wumpy-interactions"
+version = "0.0.1"
+description = "Support for HTTP interactions with the Discord API"
+readme = {file = "README.md", content-type="text/markdown"}
+
+requires-python = ">=3.7"
+
+license = {file = "LICENSE"}
+authors = [{name = "Bluenix", email = "bluenixdev@gmail.com"}]
+
+keywords = [
+    "wumpy", "wumpus", "wrapper",
+    "discord", "discord-api", "discord-bot", "discord-api-wrapper", "discord-interaction",
+    "python-3"
+]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Framework :: AnyIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Internet",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+dependencies = ["anyio >= 3.3.4, <4"]
+
+[project.urls]
+Homepage = "https://github.com/wumpyproject/wumpy"
+Repository = "https://github.com/wumpyproject/wumpy/tree/main/library/wumpy-interactions"
+Documentation = "https://wumpy.rtfd.io"
+
+[build-system]
+requires = ["flit_core >=3.5, <4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+# This is a subpackage under the wumpy namespace package,
+# we need to tell flit this otherwise it tries to make the
+# import wumpy-interactions rather than wumpy.interactions
+name = "wumpy.interactions"
