@@ -1,7 +1,7 @@
 [project]
 name = "wumpy-rest"
 version = "0.0.1"
-description = "Full support of the Discord REST API for the Wumpy project"
+description = "Reusable and richly typed wrapper over the Discord REST API"
 readme = {file = "README.md", content-type="text/markdown"}
 
 # Both httpx and anyio has 3.6.2 as the minimum requirement
