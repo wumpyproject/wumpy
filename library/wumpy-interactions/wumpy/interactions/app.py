@@ -4,13 +4,12 @@ from typing import (
 )
 
 import anyio
-from nacl.exceptions import BadSignatureError
-from nacl.signing import VerifyKey
+from wumpy.rest import InteractionRequester
 
 from .base import CommandInteraction, ComponentInteraction, InteractionType
 from .commands.registrar import CommandRegistrar
 from .components.handler import ComponentHandler
-from .rest import InteractionRequester
+from .utils import DiscordRequestVerifier
 
 __all__ = ('InteractionApp',)
 
@@ -23,7 +22,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     """
 
     rest: InteractionRequester
-    verification: VerifyKey
+    verification: DiscordRequestVerifier
 
     token: Optional[str]
     secret: Optional[str]
@@ -60,7 +59,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         super().__init__()
 
         self.rest = InteractionRequester(application_id)
-        self.verification = VerifyKey(bytes.fromhex(public_key))
+        self.verification = DiscordRequestVerifier(public_key)
 
         self.token = token
         self.secret = secret
@@ -183,13 +182,9 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             request = await receive()
             body.extend(request['body'])
 
-        try:
-            self.verification.verify(timestamp + bytes(body), bytes.fromhex(signature.decode()))
-        except BadSignatureError:
-            # This request was not sent by Discord
-            return False, body
+        verified = self.verification.verify(signature.decode('utf-8'), timestamp, body)
 
-        return True, body
+        return verified, body
 
     async def sync_commands(self, commands: List[Any]) -> None:
         """Synchronize the commands with Discord."""
