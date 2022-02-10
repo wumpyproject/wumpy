@@ -1,6 +1,16 @@
-from typing import Any, Callable, Mapping, Awaitable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Awaitable, Optional
 
 from .utils import DiscordRequestVerifier
+
+if TYPE_CHECKING:
+    from sanic.request import Request
+
+try:
+    from sanic.response import HTTPResponse
+    SANIC_AVAILABLE = True
+except ImportError:
+    SANIC_AVAILABLE = False
+
 
 __all__ = ('ASGIMiddleware',)
 
@@ -86,3 +96,72 @@ class ASGIMiddleware:
 
         self._sent = True
         return {'type': 'http.request', 'body': self._body, 'more_body': False}
+
+
+class SanicMiddleware:
+    """Middleware implementation for Sanic.
+
+    This middleware is not as easy to use as the `ASGIMiddleware`. Instead
+    you'll need to instantiate this before hand, and await its `verify()`
+    method.
+
+    Examples:
+
+        ```python
+        verification = SanicMiddleware(...)  # Replace with your public key
+
+        # It is recommended to attach this to a specific blueprint with the
+        # route that interactions should go to.
+        @bp.middleware('request')
+        async def check_interactions(request):
+            return await verification.verify(request)
+        ```
+
+        ```python
+        verification = SanicMiddleware(...)  # Replace with your public key
+
+        @app.route('/interactions')
+        async def interactions_route(request):
+            response = await verification.verify(request)
+            if response:
+                return response
+
+            ...  # The rest of your interactions logic
+        ```
+
+    Parameters:
+        public_key:
+            The public key from the Discord developer portal. This is used to
+            verify the request according to Ed29915.
+    """
+
+    def __init__(self, public_key: str) -> None:
+        if not SANIC_AVAILABLE:
+            raise RuntimeError("Sanic has to be installed to use 'SanicMiddleware'")
+
+        self._verification = DiscordRequestVerifier(public_key)
+
+    async def verify(self, request: 'Request') -> Optional['HTTPResponse']:
+        """Verify that the Sanic request comes from Discord.
+
+        This method may return an `HTTPResponse` instance to respond to the
+        request with error-codes if the request is invalid.
+
+        Parameters:
+            request: The request from Sanic to verify.
+
+        Returns:
+            None if the request is valid, or an `HTTPResponse` instance as a
+            response if the request was invalid.
+        """
+        signature = request.headers.get('X-Signature-Ed25519')
+        timestamp = request.headers.get('X-Signature-Timestamp')
+
+        if signature is None or timestamp is None:
+            return HTTPResponse(status=401, body='Unauthorized')
+
+        await request.receive_body()
+        if not self._verification.verify(signature, timestamp.encode('utf-8'), request.body):
+            return HTTPResponse(status=401, body='Unauthorized')
+
+        return None
