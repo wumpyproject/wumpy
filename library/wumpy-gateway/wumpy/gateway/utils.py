@@ -9,6 +9,7 @@ from typing import (
 
 import anyio
 from discord_gateway import Opcode
+from typing_extensions import Self
 
 __all__ = ('race', 'DefaultGatewayLimiter')
 
@@ -57,6 +58,10 @@ class DefaultGatewayLimiter:
 
         self._reset = None
         self._value = self.RATE
+
+    def __call__(self, shard: int) -> Self:
+        # We don't use the shard ID for anything
+        return self
 
     async def __aenter__(self) -> Callable[[Opcode], AsyncContextManager[None]]:
         return self.acquire

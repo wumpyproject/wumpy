@@ -130,7 +130,7 @@ class Shard:
         uri: str,
         token: str,
         intents: int,
-        ratelimiter: Optional[AsyncContextManager[GatewayLimiter]] = None,
+        ratelimiter: Optional[Callable[[int], AsyncContextManager[GatewayLimiter]]] = None,
         ssl_context: Optional[ssl.SSLContext] = None,
     ) -> AsyncGenerator['Shard', None]:
         """Connect and initialize the connection to Discord.
@@ -153,7 +153,7 @@ class Shard:
                 context manager that will be entered before sending the command
                 over the gateway.
         """
-        async with (ratelimiter or DefaultGatewayLimiter()) as limiter:
+        async with (ratelimiter or DefaultGatewayLimiter())(0) as limiter:
             _log.info('Connecting to the Discord gateway...')
             self = cls(
                 *await cls.create_connection(
