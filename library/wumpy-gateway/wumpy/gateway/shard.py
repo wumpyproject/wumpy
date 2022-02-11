@@ -89,11 +89,14 @@ class Shard:
 
     events: Deque[Dict[str, Any]]
 
+    shard_id: Optional[Tuple[int, int]]
+    max_concurrency: int
+
     ratelimiter: GatewayLimiter
 
     __slots__ = (
         '_conn', '_sock', '_ssl', '_write_lock', '_closed', 'token', 'intents',
-        'events', 'ratelimiter'
+        'events', 'shard_id', 'max_concurrency', 'ratelimiter'
     )
 
     def __init__(
@@ -103,6 +106,8 @@ class Shard:
         token: str,
         intents: int,
         ratelimiter: GatewayLimiter,
+        shard_id: Optional[Tuple[int, int]],
+        max_concurrency: int = 1,
         ssl_context: Optional[ssl.SSLContext] = None
     ) -> None:
         self._conn = conn
@@ -118,6 +123,9 @@ class Shard:
 
         self.events = deque()
 
+        self.shard_id = shard_id
+        self.max_concurrency = max_concurrency
+
         self.ratelimiter = ratelimiter
 
     def __aiter__(self) -> 'Shard':
@@ -130,6 +138,8 @@ class Shard:
         uri: str,
         token: str,
         intents: int,
+        shard_id: Optional[Tuple[int, int]] = None,
+        max_concurrency: int = 1,
         ratelimiter: Optional[Callable[[int], AsyncContextManager[GatewayLimiter]]] = None,
         ssl_context: Optional[ssl.SSLContext] = None,
     ) -> AsyncGenerator['Shard', None]:
@@ -153,14 +163,18 @@ class Shard:
                 context manager that will be entered before sending the command
                 over the gateway.
         """
-        async with (ratelimiter or DefaultGatewayLimiter())(0) as limiter:
+        ratelimiter = ratelimiter or DefaultGatewayLimiter()
+        # Calculate the ratelimit bucket for max concurrency IDENTIFY
+        bucket = (shard_id[0] if shard_id else 0) % max_concurrency
+
+        async with ratelimiter(bucket) as limiter:
             _log.info('Connecting to the Discord gateway...')
             self = cls(
                 *await cls.create_connection(
-                    uri, token, intents, limiter=limiter,
+                    uri, token, intents, limiter=limiter, shard_id=shard_id,
                     ssl_context=ssl_context
                 ),
-                token, intents, limiter, ssl_context
+                token, intents, limiter, shard_id, max_concurrency, ssl_context
             )
             _log.info('Successfully established connection to the Discord gateway.')
 
@@ -190,6 +204,7 @@ class Shard:
         intents: int,
         *,
         limiter: GatewayLimiter,
+        shard_id: Optional[Tuple[int, int]] = None,
         conn: Optional[DiscordConnection] = None,
         ssl_context: ssl.SSLContext = None,
     ) -> Tuple[DiscordConnection, anyio.streams.tls.TLSStream]:
@@ -210,6 +225,7 @@ class Shard:
             token: The token to identify with.
             intents: Intents to identify with.
             limiter: The ratelimiter for the IDENTIFY command to use.
+            shard_id: A two-item tuple (shard ID, total shards) for sharding.
             conn: The (potentially) old connection to reconnect.
             ssl_context:
                 SSL context to use for the TCP connection, allowing for easier
@@ -273,6 +289,7 @@ class Shard:
                             '$browser': 'Wumpy',
                             '$device': 'Wumpy'
                         },
+                        shard=shard_id
                     ))
         except:
             # We want to catch *any* error that happened including cancellation
@@ -338,8 +355,8 @@ class Shard:
                         try:
                             self._conn, self._sock = await self.create_connection(
                                 self._conn.uri, self.token, self.intents,
-                                limiter=self.ratelimiter, conn=self._conn,
-                                ssl_context=self._ssl
+                                limiter=self.ratelimiter, shard_id=self.shard_id,
+                                conn=self._conn, ssl_context=self._ssl
                             )
                         except ConnectionClosed:
                             continue
@@ -378,8 +395,8 @@ class Shard:
                         try:
                             self._conn, self._sock = await self.create_connection(
                                 self._conn.uri, self.token, self.intents,
-                                limiter=self.ratelimiter, conn=self._conn,
-                                ssl_context=self._ssl
+                                limiter=self.ratelimiter, shard_id=self.shard_id,
+                                conn=self._conn, ssl_context=self._ssl
                             )
                         except ConnectionClosed:
                             continue
