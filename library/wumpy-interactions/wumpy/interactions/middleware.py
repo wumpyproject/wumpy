@@ -112,14 +112,14 @@ class SanicMiddleware:
 
         # It is recommended to attach this to a specific blueprint with the
         # route that interactions should go to.
-        @bp.middleware('request')
-        async def check_interactions(request):
-            return await verification.verify(request)
+        bp.on_request(verification.verify)
         ```
 
         ```python
         verification = SanicMiddleware(...)  # Replace with your public key
 
+        # You can also use the functionality directly if you don't want to
+        # create a blueprint for only the interactions endpoint.
         @app.route('/interactions')
         async def interactions_route(request):
             response = await verification.verify(request)
