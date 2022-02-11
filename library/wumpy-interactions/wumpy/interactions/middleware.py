@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from sanic.request import Request
 
 try:
-    from sanic.response import HTTPResponse
+    from sanic.exceptions import Unauthorized  # type: ignore
     SANIC_AVAILABLE = True
 except ImportError:
     SANIC_AVAILABLE = False
@@ -141,27 +141,21 @@ class SanicMiddleware:
 
         self._verification = DiscordRequestVerifier(public_key)
 
-    async def verify(self, request: 'Request') -> Optional['HTTPResponse']:
+    async def verify(self, request: 'Request') -> None:
         """Verify that the Sanic request comes from Discord.
-
-        This method may return an `HTTPResponse` instance to respond to the
-        request with error-codes if the request is invalid.
 
         Parameters:
             request: The request from Sanic to verify.
 
-        Returns:
-            None if the request is valid, or an `HTTPResponse` instance as a
-            response if the request was invalid.
+        Raises:
+            Unauthorized: The request could not be verified.
         """
         signature = request.headers.get('X-Signature-Ed25519')
         timestamp = request.headers.get('X-Signature-Timestamp')
 
         if signature is None or timestamp is None:
-            return HTTPResponse(status=401, body='Unauthorized')
+            raise Unauthorized('Unauthorized')
 
         await request.receive_body()
         if not self._verification.verify(signature, timestamp.encode('utf-8'), request.body):
-            return HTTPResponse(status=401, body='Unauthorized')
-
-        return None
+            raise Unauthorized('Unauthorized')
