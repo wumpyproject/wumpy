@@ -306,7 +306,7 @@ class GuildRequester(Requester):
         description: Optional[str] = MISSING,
         premium_progress_bar: bool = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> GuildData:
         """Edit a guild's settings.
 
         This method requires the `MANAGE_GUILD` permission.
@@ -591,7 +591,7 @@ class GuildRequester(Requester):
         channel: Optional[int] = MISSING,
         timeout: Optional[int] = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> GuildMemberData:
         """Edit another guild member.
 
         This endpoint requires a few different permissions depending on the
@@ -1436,7 +1436,7 @@ class GuildRequester(Requester):
         topic: str = MISSING,
         privacy_level: int = MISSING,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> StageInstanceData:
         """Edit fields of an existing stage instance.
 
         This method requires that the bot user is a moderator of the stage
@@ -1469,7 +1469,7 @@ class GuildRequester(Requester):
         channel: SupportsInt,
         *,
         reason: str = MISSING
-    ) -> Dict[str, Any]:
+    ) -> StageInstanceData:
         """Delete a stage instance by the ID of the stage channel.
 
         This method requires that the bot user is a moderator of the stage
