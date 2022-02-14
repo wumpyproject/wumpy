@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Awaitable, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Optional
 
 from .utils import DiscordRequestVerifier
 

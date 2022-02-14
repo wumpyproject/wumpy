@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Literal, TypeVar, Union, overload, Optional
+from typing import Callable, Dict, Literal, Optional, TypeVar, Union, overload
 
 import anyio.abc
 from typing_extensions import ParamSpec

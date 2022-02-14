@@ -2,8 +2,9 @@ from typing import (
     Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union, overload
 )
 
-from discord_typings import AllowedMentionsData, MessageData, WebhookData
-from discord_typings.resources.channel import AttachmentData
+from discord_typings import (
+    AllowedMentionsData, AttachmentData, MessageData, WebhookData
+)
 
 from ..route import Route
 from ..utils import MISSING, dump_json

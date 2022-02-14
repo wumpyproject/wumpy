@@ -6,8 +6,8 @@ from discord_typings import (
     AuditLogData, BanData, ChannelData, ChannelPositionData, EmojiData,
     GuildData, GuildMemberData, GuildPreviewData, GuildWidgetData,
     GuildWidgetSettingsData, IntegrationData, InviteData, ListThreadsData,
-    PermissionOverwriteData, RoleData, RolePositionData, StageInstanceData, VoiceRegionData,
-    WelcomeChannelData, WelcomeScreenData
+    PermissionOverwriteData, RoleData, RolePositionData, StageInstanceData,
+    VoiceRegionData, WelcomeChannelData, WelcomeScreenData
 )
 
 from ..route import Route
