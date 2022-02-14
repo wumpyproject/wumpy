@@ -266,7 +266,7 @@ class WebhookRequester(Requester):
         """
         return await self.request(Route(
             'GET', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
-            webhook_id=int(webhook), webhook_token=int(token), message_id=int(message)
+            webhook_id=int(webhook), webhook_token=token, message_id=int(message)
         ), params={'thread_id': int(thread) if thread is not MISSING else thread})
 
     async def edit_webhook_message(
@@ -336,5 +336,5 @@ class WebhookRequester(Requester):
         """
         await self.request(Route(
             'DELETE', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
-            webhook_id=int(webhook), webhook_token=int(token), message_id=int(message)
+            webhook_id=int(webhook), webhook_token=token, message_id=int(message)
         ), params={'thread_id': int(thread) if thread is not MISSING else thread})
