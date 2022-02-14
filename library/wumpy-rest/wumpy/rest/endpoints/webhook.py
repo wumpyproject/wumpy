@@ -3,7 +3,8 @@ from typing import (
 )
 
 from discord_typings import (
-    AllowedMentionsData, AttachmentData, MessageData, WebhookData
+    AllowedMentionsData, AttachmentData, ComponentData, EmbedData, MessageData,
+    WebhookData
 )
 
 from ..route import Route
@@ -141,7 +142,8 @@ class WebhookRequester(Requester):
         username: str = MISSING,
         avatar_url: str = MISSING,
         tts: bool = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
+        embeds: Sequence[EmbedData] = MISSING,
+        components: Sequence[ComponentData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AllowedMentionsData] = MISSING,
@@ -160,7 +162,8 @@ class WebhookRequester(Requester):
         username: str = MISSING,
         avatar_url: str = MISSING,
         tts: bool = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
+        embeds: Sequence[EmbedData] = MISSING,
+        components: Sequence[ComponentData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AllowedMentionsData] = MISSING,
@@ -178,7 +181,8 @@ class WebhookRequester(Requester):
         username: str = MISSING,
         avatar_url: str = MISSING,
         tts: bool = MISSING,
-        embeds: Sequence[Dict[str, Any]] = MISSING,
+        embeds: Sequence[EmbedData] = MISSING,
+        components: Sequence[ComponentData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AllowedMentionsData] = MISSING,
@@ -222,6 +226,7 @@ class WebhookRequester(Requester):
             'avatar_url': str(avatar_url),
             'tts': tts,
             'embeds': embeds,
+            'components': components,
             'allowed_mentions': allowed_mentions,
             'attachments': attachments
         }
@@ -276,7 +281,8 @@ class WebhookRequester(Requester):
         message: SupportsInt,
         *,
         content: Optional[str] = MISSING,
-        embeds: Optional[Sequence[Dict[str, Any]]] = MISSING,
+        embeds: Optional[Sequence[EmbedData]] = MISSING,
+        components: Optional[Sequence[ComponentData]] = MISSING,
         allowed_mentions: Optional[AllowedMentionsData] = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AttachmentData] = MISSING,
@@ -301,11 +307,12 @@ class WebhookRequester(Requester):
         json = {
             'content': content,
             'embeds': embeds,
+            'components': components,
             'allowed_mentions': allowed_mentions,
             'attachments': attachments,
         }
 
-        # This will cause HTTPx to use multipart/form-data
+        # This will cause HTTPXs to use multipart/form-data
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
         return await self.request(
