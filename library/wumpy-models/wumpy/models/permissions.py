@@ -3,19 +3,19 @@ from typing import Any, Callable, Dict, Optional, SupportsInt, Union
 
 from typing_extensions import Self
 
-from .base import Object
-from .flags import BaseFlags, flag
+from .base import Model
+from .flags import DiscordFlags, flag
 
 __all__ = ('Permissions', 'PermissionTarget', 'PermissionOverwrite')
 
 
-class Permissions(BaseFlags):
+class Permissions(DiscordFlags):
     """A bitfield for wrapping Discord permissions."""
 
     __slots__ = ()
 
     @flag
-    def create_instant_invite(_) -> int:
+    def create_instant_invite() -> int:
         """Whether the permission allows creating instant invites."""
         return 1 << 0
 
@@ -24,17 +24,17 @@ class Permissions(BaseFlags):
     create_instant_invites = create_instant_invite
 
     @flag
-    def kick_members(_) -> int:
+    def kick_members() -> int:
         """Whether the permission allows kicking members from the guild."""
         return 1 << 1
 
     @flag
-    def ban_members(_) -> int:
+    def ban_members() -> int:
         """Whether the permission allows banning members from the guild."""
         return 1 << 2
 
     @flag
-    def administrator(_) -> int:
+    def administrator() -> int:
         """Whether the permisson gives the user administrator permissions.
 
         An administrator gets all other permissions, and
@@ -43,37 +43,37 @@ class Permissions(BaseFlags):
         return 1 << 3
 
     @flag
-    def manage_channels(_) -> int:
+    def manage_channels() -> int:
         """Whether the permission allows managing channels."""
         return 1 << 4
 
     @flag
-    def manage_guild(_) -> int:
+    def manage_guild() -> int:
         """Whether the permission allows managing guild settings."""
         return 1 << 5
 
     @flag
-    def add_reactions(_) -> int:
+    def add_reactions() -> int:
         """Whether the permission allows adding new reactions to a message."""
         return 1 << 6
 
     @flag
-    def view_audit_log(_) -> int:
+    def view_audit_log() -> int:
         """Whether the permission allows viewing the audit log entries."""
         return 1 << 7
 
     @flag
-    def priority_speaker(_) -> int:
+    def priority_speaker() -> int:
         """Whether the permission allows using priority speaker in a voice channel."""
         return 1 << 8
 
     @flag
-    def stream(_) -> int:
+    def stream() -> int:
         """Whether the permission allows streaming in voice channels."""
         return 1 << 9
 
     @flag
-    def view_channel(_) -> int:
+    def view_channel() -> int:
         """Whether the permission allows viewing the channel."""
         return 1 << 10
 
@@ -81,37 +81,37 @@ class Permissions(BaseFlags):
     view_channels = view_channel
 
     @flag
-    def send_messages(_) -> int:
+    def send_messages() -> int:
         """Whether the permission allows sending messages in that channel."""
         return 1 << 11
 
     @flag
-    def send_tts_messages(_) -> int:
+    def send_tts_messages() -> int:
         """Whether the permission allows sending text-to-speech messages."""
         return 1 << 12
 
     @flag
-    def manage_messages(_) -> int:
+    def manage_messages() -> int:
         """Whether the permission allows managing messages."""
         return 1 << 13
 
     @flag
-    def embed_links(_) -> int:
+    def embed_links() -> int:
         """Whether the permission allows embedding links."""
         return 1 << 14
 
     @flag
-    def attach_files(_) -> int:
+    def attach_files() -> int:
         """Whether the permission allows attaching files to messages."""
         return 1 << 15
 
     @flag
-    def read_message_history(_) -> int:
+    def read_message_history() -> int:
         """Whether the permission allows reading the message history."""
         return 1 << 16
 
     @flag
-    def mention_everyone(_) -> int:
+    def mention_everyone() -> int:
         """Whether the permission allows mentioning @everyone and @here roles.
 
         Members with this permission can mention roles with
@@ -120,97 +120,97 @@ class Permissions(BaseFlags):
         return 1 << 17
 
     @flag
-    def use_external_emojis(_) -> int:
+    def use_external_emojis() -> int:
         """Whether the permission allows sending external emojis."""
         return 1 << 18
 
     @flag
-    def view_guild_insights(_) -> int:
+    def view_guild_insights() -> int:
         """Whether the permission allows viewing guild insights."""
         return 1 << 19
 
     @flag
-    def connect(_) -> int:
+    def connect() -> int:
         """Whether the permission allows connecting to voice channels."""
         return 1 << 20
 
     @flag
-    def speak(_) -> int:
+    def speak() -> int:
         """Whether the permission allows speaking in voice channels."""
         return 1 << 21
 
     @flag
-    def mute_members(_) -> int:
+    def mute_members() -> int:
         """Whether the permission allows server muting members."""
         return 1 << 22
 
     @flag
-    def deafen_members(_) -> int:
+    def deafen_members() -> int:
         """Whether the permission allows server deafening members."""
         return 1 << 23
 
     @flag
-    def move_members(_) -> int:
+    def move_members() -> int:
         """Whether the permission allows moving members to different voice channels."""
         return 1 << 24
 
     @flag
-    def use_vad(_) -> int:
+    def use_vad() -> int:
         """Whether the permission allows using voice activity."""
         return 1 << 25
 
     @flag
-    def change_nickname(_) -> int:
+    def change_nickname() -> int:
         """Whether the permission allows changing own nickname."""
         return 1 << 26
 
     @flag
-    def manage_nicknames(_) -> int:
+    def manage_nicknames() -> int:
         """Whether the permission allows managing others' nicknames."""
         return 1 << 27
 
     @flag
-    def manage_roles(_) -> int:
+    def manage_roles() -> int:
         """Whether the permission allows managing roles and permissions."""
         return 1 << 28
 
     @flag
-    def manage_webhooks(_) -> int:
+    def manage_webhooks() -> int:
         """Whether the permission allows managing webhooks and integrations."""
         return 1 << 29
 
     @flag
-    def manage_emojis_and_stickers(_) -> int:
+    def manage_emojis_and_stickers() -> int:
         """Whether the permission allows managing emojis and stickers."""
         return 1 << 30
 
     @flag
-    def use_slash_commands(_) -> int:
+    def use_slash_commands() -> int:
         """Whether the permission allows using slash commands."""
         return 1 << 31
 
     @flag
-    def request_to_speak(_) -> int:
+    def request_to_speak() -> int:
         """Whether the permission allows requesting to speak in stage channels."""
         return 1 << 32
 
     @flag
-    def manage_threads(_) -> int:
+    def manage_threads() -> int:
         """Whether the permission allows managing threads."""
         return 1 << 33
 
     @flag
-    def use_public_threads(_) -> int:
+    def use_public_threads() -> int:
         """Whether the permission allows creating and participating in public threads."""
         return 1 << 34
 
     @flag
-    def use_private_threads(_) -> int:
+    def use_private_threads() -> int:
         """Whether the permission allows creating and being invited to private threads."""
         return 1 << 35
 
     @flag
-    def use_external_stickers(_) -> int:
+    def use_external_stickers() -> int:
         """Whether the permission allows using external stickers."""
         return 1 << 36
 
@@ -258,9 +258,9 @@ class TriBitMask:
             raise TypeError(f'Expected type bool or None but got {type(value).__name__}.')
 
 
-def triflag(func: Callable[[Any], int]) -> TriBitMask:
+def triflag(func: Callable[[], int]) -> TriBitMask:
     """The equivalent of the normal `flag` decorator, but for TriBitMask."""
-    return TriBitMask(func(None))
+    return TriBitMask(func())
 
 
 class PermissionTarget(Enum):
@@ -268,7 +268,7 @@ class PermissionTarget(Enum):
     member = 1
 
 
-class PermissionOverwrite(Object):
+class PermissionOverwrite(Model):
     """"Discord permission overwrite object.
 
     Compared to many other Wumpy models, this one will often be initialized
@@ -330,7 +330,7 @@ class PermissionOverwrite(Object):
     # the decorator changed to be the tribool version.
 
     @triflag
-    def create_instant_invite(_) -> int:
+    def create_instant_invite() -> int:
         """Whether the permission allows creating instant invites."""
         return 1 << 0
 
@@ -338,17 +338,17 @@ class PermissionOverwrite(Object):
     create_instant_invites = create_instant_invite
 
     @triflag
-    def kick_members(_) -> int:
+    def kick_members() -> int:
         """Whether the permission allows kicking members from the guild."""
         return 1 << 1
 
     @triflag
-    def ban_members(_) -> int:
+    def ban_members() -> int:
         """Whether the permission allows banning members from the guild."""
         return 1 << 2
 
     @triflag
-    def administrator(_) -> int:
+    def administrator() -> int:
         """Whether the permisson gives the user administrator permissions.
 
         An administrator gets all other permissions, and
@@ -357,74 +357,74 @@ class PermissionOverwrite(Object):
         return 1 << 3
 
     @triflag
-    def manage_channels(_) -> int:
+    def manage_channels() -> int:
         """Whether the permission allows managing channels."""
         return 1 << 4
 
     @triflag
-    def manage_guild(_) -> int:
+    def manage_guild() -> int:
         """Whether the permission allows managing guild settings."""
         return 1 << 5
 
     @triflag
-    def add_reactions(_) -> int:
+    def add_reactions() -> int:
         """Whether the permission allows adding new reactions to a message."""
         return 1 << 6
 
     @triflag
-    def view_audit_log(_) -> int:
+    def view_audit_log() -> int:
         """Whether the permission allows viewing the audit log entries."""
         return 1 << 7
 
     @triflag
-    def priority_speaker(_) -> int:
+    def priority_speaker() -> int:
         """Whether the permission allows using priority speaker in a voce channel."""
         return 1 << 8
 
     @triflag
-    def stream(_) -> int:
+    def stream() -> int:
         """Whether the permission allows streaming in voice channels."""
         return 1 << 9
 
     @triflag
-    def view_channel(_) -> int:
+    def view_channel() -> int:
         """Whether the permission allows viewing the channel."""
         return 1 << 10
 
     view_channels = view_channel  # Alias
 
     @triflag
-    def send_messages(_) -> int:
+    def send_messages() -> int:
         """Whether the permission allows sending messages in that channel."""
         return 1 << 11
 
     @triflag
-    def send_tts_messages(_) -> int:
+    def send_tts_messages() -> int:
         """Whether the permission allows sending text-to-speech messages."""
         return 1 << 12
 
     @triflag
-    def manage_messages(_) -> int:
+    def manage_messages() -> int:
         """Whether the permission allows managing messages."""
         return 1 << 13
 
     @triflag
-    def embed_links(_) -> int:
+    def embed_links() -> int:
         """Whether the permission allows embedding links."""
         return 1 << 14
 
     @triflag
-    def attach_files(_) -> int:
+    def attach_files() -> int:
         """Whether the permission allows attaching files to messages."""
         return 1 << 15
 
     @triflag
-    def read_message_history(_) -> int:
+    def read_message_history() -> int:
         """Whether the permission allows reading the message history."""
         return 1 << 16
 
     @triflag
-    def mention_everyone(_) -> int:
+    def mention_everyone() -> int:
         """Whether the permission allows mentioning @everyone and @here roles.
 
         Members with this permission can mention roles with
@@ -433,96 +433,96 @@ class PermissionOverwrite(Object):
         return 1 << 17
 
     @triflag
-    def use_external_emojis(_) -> int:
+    def use_external_emojis() -> int:
         """Whether the permission allows sending external emojis."""
         return 1 << 18
 
     @triflag
-    def view_guild_insights(_) -> int:
+    def view_guild_insights() -> int:
         """Whether the permission allows viewing guild insights."""
         return 1 << 19
 
     @triflag
-    def connect(_) -> int:
+    def connect() -> int:
         """Whether the permission allows connecting to voice channels."""
         return 1 << 20
 
     @triflag
-    def speak(_) -> int:
+    def speak() -> int:
         """Whether the permission allows speaking in voice channels."""
         return 1 << 21
 
     @triflag
-    def mute_members(_) -> int:
+    def mute_members() -> int:
         """Whether the permission allows server muting members."""
         return 1 << 22
 
     @triflag
-    def deafen_members(_) -> int:
+    def deafen_members() -> int:
         """Whether the permission allows server deafening members."""
         return 1 << 23
 
     @triflag
-    def move_members(_) -> int:
+    def move_members() -> int:
         """Whether the permission allows moving members to different voice channels."""
         return 1 << 24
 
     @triflag
-    def use_vad(_) -> int:
+    def use_vad() -> int:
         """Whether the permission allows using voice activity."""
         return 1 << 25
 
     @triflag
-    def change_nickname(_) -> int:
+    def change_nickname() -> int:
         """Whether the permission allows changing own nickname."""
         return 1 << 26
 
     @triflag
-    def manage_nicknames(_) -> int:
+    def manage_nicknames() -> int:
         """Whether the permission allows managing others' nicknames."""
         return 1 << 27
 
     @triflag
-    def manage_roles(_) -> int:
+    def manage_roles() -> int:
         """Whether the permission allows managing roles and permissions."""
         return 1 << 28
 
     @triflag
-    def manage_webhooks(_) -> int:
+    def manage_webhooks() -> int:
         """Whether the permission allows managing webhooks and integrations."""
         return 1 << 29
 
     @triflag
-    def manage_emojis_and_stickers(_) -> int:
+    def manage_emojis_and_stickers() -> int:
         """Whether the permission allows managing emojis and stickers."""
         return 1 << 30
 
     @triflag
-    def use_slash_commands(_) -> int:
+    def use_slash_commands() -> int:
         """Whether the permission allows using slash commands."""
         return 1 << 31
 
     @triflag
-    def request_to_speak(_) -> int:
+    def request_to_speak() -> int:
         """Whether the permission allows requesting to speak in stage channels."""
         return 1 << 32
 
     @triflag
-    def manage_threads(_) -> int:
+    def manage_threads() -> int:
         """Whether the permission allows managing threads."""
         return 1 << 33
 
     @triflag
-    def use_public_threads(_) -> int:
+    def use_public_threads() -> int:
         """Whether the permission allows creating and participating in public threads."""
         return 1 << 34
 
     @triflag
-    def use_private_threads(_) -> int:
+    def use_private_threads() -> int:
         """Whether the permission allows creating and being invited to private threads."""
         return 1 << 35
 
     @triflag
-    def use_external_stickers(_) -> int:
+    def use_external_stickers() -> int:
         """Whether the permission allows using external stickers."""
         return 1 << 36
