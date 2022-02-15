@@ -1,17 +1,15 @@
+import dataclasses
 from datetime import datetime, timezone
 from typing import SupportsInt
 
-import cython
-from cython import dataclasses
 from typing_extensions import Self
 
 __all__ = ('DISCORD_EPOCH', 'Model', 'Snowflake')
 
 
-DISCORD_EPOCH: cython.ulonglong = 1420070400000
+DISCORD_EPOCH = 1420070400000
 
 
-@cython.cclass
 @dataclasses.dataclass(frozen=True)
 class Model:
     """The root for all Wumpy objects, a Discord object with an ID.
@@ -25,7 +23,7 @@ class Model:
         id: The underlying integer value representing the Discord snowflake.
     """
 
-    id: cython.ulonglong
+    id: int
 
     __slots__ = ('id',)
     __match_args__ = ('id',)
@@ -83,7 +81,7 @@ class Model:
         return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
 
 
-@cython.cclass
+@dataclasses.dataclass()
 class Snowflake(Model):
     """Standalone Discord snowflake.
 
