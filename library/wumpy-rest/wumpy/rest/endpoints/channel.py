@@ -309,7 +309,7 @@ class ChannelRequester(Requester):
         tts: bool = MISSING,
         embeds: Iterable[EmbedData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
-        files: RequestFiles = None,
+        files: Optional[RequestFiles] = None,
         stickers: Iterable[SupportsInt] = MISSING
     ) -> MessageData:
         """Send a message into a channel.
