@@ -6,7 +6,7 @@ __all__ = (
 )
 
 
-class BaseFlags:
+class DiscordFlags:
     """The base for all bitfield wrappers.
 
     Supports bitwise operators which will propogate the operation to
@@ -108,13 +108,23 @@ class BitMask:
         else:
             raise TypeError(f'Expected type bool but got {type(value)}.')
 
+def flag(func: Callable[[], int]) -> BitMask:
+    """Flag decorator, converting a method into a BitMask descriptor instance.
 
-def flag(func: Callable[[Any], int]) -> BitMask:
-    """Flag decorator, converting a method into a Bit descriptor instance.
+    This decorator can only be used on DiscordFlags instances that have a
+    `value` attribute, if used on another instance it will fail when trying to
+    check a flag.
 
-    This decorator can only be used on BaseFlags instances that have a `value` attribute.
+    The benefit of this decorator over directly instantiating a BitMask is how
+    it allows for a docstring to be set for documentation purposes.
+
+    Parameters:
+        func: The function containing the bit mask to use.
+
+    Returns:
+        A descriptor that will see if the bitfield contains the bit mask.
     """
-    return BitMask(func(None))
+    return BitMask(func())
 
 
 class AllowedMentions:
@@ -192,230 +202,240 @@ class AllowedMentions:
         return data
 
 
-class ApplicationFlags(BaseFlags):
-    """Flags for a Discord application."""
+class ApplicationFlags(DiscordFlags):
+    """Bitfield flags for a Discord application."""
 
     __slots__ = ()
 
     @flag
-    def gateway_presence(_) -> int:
+    def gateway_presence() -> int:
         """Whether the application is verified and is allowed to receive
         presence information over the gateway.
         """
         return 1 << 12
 
     @flag
-    def gateway_presence_limited(_) -> int:
+    def gateway_presence_limited() -> int:
         """Whether the application is allowed to receive limited presence
         information over the gateway.
         """
         return 1 << 13
 
     @flag
-    def gateway_guild_members(_) -> int:
+    def gateway_guild_members() -> int:
         """Whether the application is verified and is allowed to receive
         member information over the gateway.
         """
         return 1 << 14
 
     @flag
-    def gateway_guild_members_limited(_) -> int:
+    def gateway_guild_members_limited() -> int:
         """Whether the application is allowed to receive limited member
         information over the gateway.
         """
         return 1 << 15
 
     @flag
-    def verification_pending_guild_limit(_) -> int:
-        """Whether the application has hit the guild limit, and is
+    def verification_pending_guild_limit() -> int:
+        """Whether the application has hit the guild limit, and its
         verification is currently pending.
         """
         return 1 << 16
 
     @flag
-    def embedded(_) -> int:
+    def embedded() -> int:
         """Whether the application is embedded within the Discord client."""
         return 1 << 17
 
 
-class Intents(BaseFlags):
-    """Discord's gateway flags for managing what events will be received."""
+class Intents(DiscordFlags):
+    """Bitfield for Discord gateway intents.
+
+    At scale, the amount of data you're expected to be process can make it very
+    hard to maintain a stateful application. Gatway intents allow you to filter
+    out groups of specific events from being sent over the gateway - lowering
+    your computational burden.
+
+    This intents class is immutable (dataclass frozen) which means that you
+    cannot construct intents the same way done in discord.py.
+    """
 
     __slots__ = ()
 
     @flag
-    def guilds(_) -> int:
+    def guilds() -> int:
         return 1 << 0
 
     @flag
-    def guild_members(_) -> int:
+    def guild_members() -> int:
         return 1 << 1
 
     @flag
-    def guild_bans(_) -> int:
+    def guild_bans() -> int:
         return 1 << 2
 
     @flag
-    def guild_emojis_and_stickers(_) -> int:
+    def guild_emojis_and_stickers() -> int:
         return 1 << 3
 
     @flag
-    def guild_integrations(_) -> int:
+    def guild_integrations() -> int:
         return 1 << 4
 
     @flag
-    def guild_webhooks(_) -> int:
+    def guild_webhooks() -> int:
         return 1 << 5
 
     @flag
-    def guild_invites(_) -> int:
+    def guild_invites() -> int:
         return 1 << 6
 
     @flag
-    def guild_voice_states(_) -> int:
+    def guild_voice_states() -> int:
         return 1 << 7
 
     @flag
-    def guild_presences(_) -> int:
+    def guild_presences() -> int:
         return 1 << 8
 
     @flag
-    def guild_messages(_) -> int:
+    def guild_messages() -> int:
         return 1 << 9
 
     @flag
-    def guild_message_reactions(_) -> int:
+    def guild_message_reactions() -> int:
         return 1 << 10
 
     @flag
-    def guild_message_typing(_) -> int:
+    def guild_message_typing() -> int:
         return 1 << 11
 
     @flag
-    def direct_messages(_) -> int:
+    def direct_messages() -> int:
         return 1 << 12
 
     @flag
-    def direct_message_reactions(_) -> int:
+    def direct_message_reactions() -> int:
         return 1 << 13
 
     @flag
-    def direct_message_typing(_) -> int:
+    def direct_message_typing() -> int:
         return 1 << 14
 
 
-class MessageFlags(BaseFlags):
-    """Flags for a message object."""
+class MessageFlags(DiscordFlags):
+    """Flags for a message object sent by Discord."""
 
     __slots__ = ()
 
     @flag
-    def crossposted(_) -> int:
+    def crossposted() -> int:
         """Whether this message has been published to subscribed channels."""
         return 1 << 0
 
     @flag
-    def is_crosspost(_) -> int:
+    def is_crosspost() -> int:
         """Whether this message is a crosspost from a message in another channel."""
         return 1 << 1
 
     @flag
-    def supress_embeds(_) -> int:
+    def supress_embeds() -> int:
         """Whether this message does not include embeds when serializing."""
         return 1 << 2
 
     @flag
-    def source_message_deleted(_) -> int:
+    def source_message_deleted() -> int:
         """Whether the source message for this crosspost has been deleted."""
         return 1 << 3
 
     @flag
-    def urgent(_) -> int:
+    def urgent() -> int:
         """Whether this message came from the urgent message system."""
         return 1 << 4
 
     @flag
-    def has_thread(_) -> int:
+    def has_thread() -> int:
         """Whether this message is associated with a thread."""
         return 1 << 5
 
     @flag
-    def ephemeral(_) -> int:
+    def ephemeral() -> int:
         """Whether this message is only visible to the user who invoked the interaction."""
         return 1 << 6
 
     @flag
-    def loading(_) -> int:
+    def loading() -> int:
         """Whether this message is an interaction response with the bot "thinking"."""
         return 1 << 7
 
 
-class UserFlags(BaseFlags):
-    """Flags for a Discord user object."""
+
+class UserFlags(DiscordFlags):
+    """Bitfield flags for a Discord user object."""
 
     __slots__ = ()
 
     @flag
-    def employee(_) -> int:
+    def employee() -> int:
         """Whether the user is a Discord employee."""
         return 1 << 0
 
     @flag
-    def partner(_) -> int:
+    def partner() -> int:
         """Whether the user is a partnered Server owner."""
         return 1 << 1
 
     @flag
-    def hypesquad_events(_) -> int:
+    def hypesquad_events() -> int:
         """Whether the user is a member of the HypeSquad Events team."""
         return 1 << 2
 
     @flag
-    def bug_hunter_level_1(_) -> int:
+    def bug_hunter_level_1() -> int:
         """Whether the user is a level 1 Discord bug hunter."""
         return 1 << 3
 
     @flag
-    def bravery(_) -> int:
+    def bravery() -> int:
         """Whether the user is part of the HypeSquad Bravery house."""
         return 1 << 6
 
     @flag
-    def brilliance(_) -> int:
+    def brilliance() -> int:
         """Whether the user is part of the HypeSquad Brilliance house."""
         return 1 << 7
 
     @flag
-    def balance(_) -> int:
+    def balance() -> int:
         """Whether the user is part of the HypeSquad Balance house."""
         return 1 << 8
 
     @flag
-    def early_supporter(_) -> int:
+    def early_supporter() -> int:
         """Whether the user is an early support of Discord."""
         return 1 << 9
 
     @flag
-    def team_user(_) -> int:
+    def team_user() -> int:
         """Whether the user is a special Discord application team user."""
         return 1 << 10
 
     @flag
-    def bug_hunter_level_2(_) -> int:
+    def bug_hunter_level_2() -> int:
         """Whether the user is a level 2 Discord bug hunter."""
         return 1 << 14
 
     @flag
-    def verified_bot(_) -> int:
+    def verified_bot() -> int:
         """Whether the user is a verified Discord bot."""
         return 1 << 16
 
     @flag
-    def verified_bot_developer(_) -> int:
+    def verified_bot_developer() -> int:
         """Whether the user is the owner of a Discord bot that was verified early on."""
         return 1 << 17
 
     @flag
-    def certified_moderator(_) -> int:
+    def certified_moderator() -> int:
         """Whether the user is a Discord certified moderator."""
         return 1 << 18
