@@ -407,6 +407,10 @@ class MessageFlags(DiscordFlags):
         """Whether this message is an interaction response with the bot "thinking"."""
         return 1 << 7
 
+    @flag
+    def failed_role_mention_in_thread() -> int:
+        """Whether this message failed to mention some roles and add their members to a thead."""
+        return 1 << 8
 
 
 class UserFlags(DiscordFlags):
@@ -478,3 +482,8 @@ class UserFlags(DiscordFlags):
     def certified_moderator() -> int:
         """Whether the user is a Discord certified moderator."""
         return 1 << 18
+
+    @flag
+    def http_interactions_bot() -> int:
+        """Whether the user is an HTTP-only interactions bot."""
+        return 1 << 19
