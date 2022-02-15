@@ -1,4 +1,7 @@
-from typing import Any, Callable, Dict, List, Optional, Union
+import dataclasses
+from typing import Any, Callable, Dict, List, Optional, Type, Union, overload
+
+from typing_extensions import Self
 
 __all__ = (
     'AllowedMentions', 'ApplicationFlags', 'Intents',
@@ -6,21 +9,22 @@ __all__ = (
 )
 
 
+@dataclasses.dataclass(frozen=True)
 class DiscordFlags:
     """The base for all bitfield wrappers.
 
-    Supports bitwise operators which will propogate the operation to
-    the underlying 32-bit integer.
+    This class supports all common bitwise operations which will propagate to
+    the underlying integer value. Used for Discord flags and intents.
+
+    Attributes:
+        value: The underlying integer value of the flag.
     """
 
     value: int
 
     __slots__ = ('value',)
 
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
             value = other.value
         elif isinstance(other, int):
@@ -30,7 +34,7 @@ class DiscordFlags:
 
         return self.value == value
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
             value = other.value
         elif isinstance(other, int):
@@ -49,7 +53,7 @@ class DiscordFlags:
     def __hash__(self) -> int:
         return hash(self.value)
 
-    def __and__(self, other: Any) -> Any:
+    def __and__(self, other: object) -> Self:
         if isinstance(other, self.__class__):
             value = other.value
         elif isinstance(other, int):
@@ -59,7 +63,7 @@ class DiscordFlags:
 
         return self.__class__(self.value & value)
 
-    def __xor__(self, other: Any) -> Any:
+    def __xor__(self, other: object) -> Self:
         if isinstance(other, self.__class__):
             value = other.value
         elif isinstance(other, int):
@@ -69,7 +73,7 @@ class DiscordFlags:
 
         return self.__class__(self.value ^ value)
 
-    def __or__(self, other: Any) -> Any:
+    def __or__(self, other: object) -> Self:
         if isinstance(other, self.__class__):
             value = other.value
         elif isinstance(other, int):
@@ -80,33 +84,39 @@ class DiscordFlags:
         return self.__class__(self.value | value)
 
 
+@dataclasses.dataclass(frozen=True)
 class BitMask:
     """Representing one bit of a bitfield, using discriptors.
 
     The memory usage of this class is O(1), n being the amount of instances
     of the BitField class this is attached to.
+
+    Attributes:
+        mask: The integer mask of this bit.
     """
 
     mask: int
 
     __slots__ = ('mask',)
 
-    def __init__(self, mask: int) -> None:
-        self.mask = mask
+    @overload
+    def __get__(self, instance: None, cls: Type[DiscordFlags]) -> int:
+        ...
 
-    def __get__(self, instance: BaseFlags, _: Optional[type]) -> Union[bool, int]:
+    @overload
+    def __get__(self, instance: DiscordFlags, cls: Type[DiscordFlags]) -> bool:
+        ...
+
+    def __get__(
+        self,
+        instance: Optional[DiscordFlags],
+        cls: Optional[type] = None
+    ) -> Union[bool, int]:
         if instance is None:
             return self.mask
 
         return (instance.value & self.mask) == self.mask
 
-    def __set__(self, instance: BaseFlags, value: bool) -> None:
-        if value is True:
-            instance.value |= self.mask
-        elif value is False:
-            instance.value &= ~self.mask
-        else:
-            raise TypeError(f'Expected type bool but got {type(value)}.')
 
 def flag(func: Callable[[], int]) -> BitMask:
     """Flag decorator, converting a method into a BitMask descriptor instance.
@@ -258,6 +268,23 @@ class Intents(DiscordFlags):
 
     This intents class is immutable (dataclass frozen) which means that you
     cannot construct intents the same way done in discord.py.
+
+    Usage:
+
+        ```python
+        from wumpy.models import Intents
+
+        intents = Intents(
+            Intents.guilds | Intents.guild_messages | Intents.guild_bans
+        )
+        ```
+
+        ```python
+        from wumpy.models import Intents
+
+        # All intents except for direct messages
+        intents = Intents.all() ^ Intents.direct_messages
+        ```
     """
 
     __slots__ = ()
@@ -321,6 +348,18 @@ class Intents(DiscordFlags):
     @flag
     def direct_message_typing() -> int:
         return 1 << 14
+
+    @flag
+    def messages() -> int:
+        return 1 << 15
+
+    @classmethod
+    def all(cls) -> Self:
+        return cls(0b1111111111111111)  # 65355
+
+    @classmethod
+    def default(cls) -> Self:
+        return cls.all() ^ cls.guild_presences ^ cls.guild_members ^ cls.messages
 
 
 class MessageFlags(DiscordFlags):
