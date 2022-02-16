@@ -353,6 +353,10 @@ class Intents(DiscordFlags):
     def messages() -> int:
         return 1 << 15
 
+    @flag
+    def guild_scheduled_events() -> int:
+        return 1 << 16
+
     @classmethod
     def all(cls) -> Self:
         return cls(0b1111111111111111)  # 65355
