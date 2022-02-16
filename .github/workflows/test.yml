@@ -54,8 +54,8 @@ jobs:
           path: ~/.cache/pip
           key: 'test-cache-v${{ matrix.python-version }}'
 
-      - name: Install Pytest
-        run: pip install pytest
+      - name: Install Pytest and flit
+        run: pip install pytest flit
 
       - name: Install all subpackages
         run: |
