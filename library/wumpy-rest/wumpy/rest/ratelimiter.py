@@ -210,8 +210,8 @@ class _RouteRatelimit:
         await self._parent.global_event.wait()
 
         try:
-            await self._lock.acquire()
-            yield self.update
+            async with self._lock:
+                yield self.update
         except ServerException as exc:
             if exc.status_code == 503:
                 raise
