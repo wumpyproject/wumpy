@@ -1,5 +1,5 @@
 import pytest
-from wumpy.models.flags import DiscordFlags, BitMask
+from wumpy.models.flags import BitMask, DiscordFlags
 from wumpy.models.permissions import TriBitMask
 
 

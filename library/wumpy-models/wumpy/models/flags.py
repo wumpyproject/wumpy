@@ -1,11 +1,10 @@
 import dataclasses
-from typing import Any, Callable, Dict, List, Optional, Type, Union, overload
+from typing import Callable, Optional, Type, Union, overload
 
 from typing_extensions import Self
 
 __all__ = (
-    'AllowedMentions', 'ApplicationFlags', 'Intents',
-    'MessageFlags', 'UserFlags'
+    'ApplicationFlags', 'Intents', 'MessageFlags', 'UserFlags'
 )
 
 
@@ -135,81 +134,6 @@ def flag(func: Callable[[], int]) -> BitMask:
         A descriptor that will see if the bitfield contains the bit mask.
     """
     return BitMask(func())
-
-
-class AllowedMentions:
-    """Discord allowed mentions object."""
-
-    roles: Union[bool, List[int], None]
-    users: Union[bool, List[int], None]
-
-    everyone: Optional[bool]
-    replied_user: Optional[bool]
-
-    __slots__ = ('roles', 'users', 'everyone', 'replied_user')
-
-    def __init__(
-        self,
-        *,
-        roles: Union[bool, List[int], None] = None,
-        users: Union[bool, List[int], None] = None,
-        everyone: Optional[bool] = None,
-        replied_user: Optional[bool] = None
-    ) -> None:
-        self.roles = roles
-        self.users = users
-        self.everyone = everyone
-        self.replied_user = replied_user
-
-    @staticmethod
-    def _merge(one: Optional[Any], other: Optional[Any]) -> Optional[Any]:
-        """Helper function when merging to optional values."""
-        if one is None or other is None:
-            # Find and return the one that isn't None
-            return other if one is None else one
-        else:
-            # If both are set, we prioritize the right-hand
-            # because it should be the most recent
-            return other
-
-    # It's hard to type the return type of this, because of NotImplemented
-    def __or__(self, other: Any) -> Any:
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-
-        roles = self._merge(self.roles, other.roles)
-        users = self._merge(self.users, other.users)
-
-        everyone = self._merge(self.everyone, other.everyone)
-        replied_user = self._merge(self.replied_user, other.replied_user)
-
-        return self.__class__(roles=roles, users=users, everyone=everyone, replied_user=replied_user)
-
-    @property
-    def _data(self) -> Dict[str, Any]:
-        """The dictionary representation of this allowed mentions.
-
-        This is used when sending the object over the Discord API.
-        """
-        data: Dict[str, Any] = {'parse': []}
-
-        if isinstance(self.roles, list):
-            data['roles'] = self.roles
-        elif self.roles:
-            data['parse'].append('roles')
-
-        if isinstance(self.users, list):
-            data['users'] = self.users
-        elif self.users:
-            data['parse'].append('users')
-
-        if self.everyone:
-            data['parse'].append('everyone')
-
-        if self.replied_user:
-            data['replied_user'] = self.replied_user
-
-        return data
 
 
 class ApplicationFlags(DiscordFlags):
