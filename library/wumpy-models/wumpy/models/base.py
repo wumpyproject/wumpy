@@ -31,12 +31,6 @@ class Model:
     def __repr__(self) -> str:
         return f'wumpy.models.Model(id={self.id})'
 
-    def __str__(self) -> str:
-        return str(self.id)
-
-    def __bytes__(self) -> bytes:
-        return bytes(self.id)
-
     def __hash__(self) -> int:
         return self.id >> 22
 
@@ -81,7 +75,7 @@ class Model:
         return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class Snowflake(Model):
     """Standalone Discord snowflake.
 
