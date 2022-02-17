@@ -1,12 +1,16 @@
-from typing import Any, Dict, Optional
+import dataclasses
+from typing import Optional
 
-from ..utils import _get_as_snowflake
-from .base import Object, Snowflake
+from discord_typings import RoleData, RoleTagsData
+from typing_extensions import Self
+
+from .base import Model, Snowflake
 from .permissions import Permissions
 
 __all__ = ('RoleTags', 'Role')
 
 
+@dataclasses.dataclass(frozen=True)
 class RoleTags:
     """Tabs on a particular Discord role.
 
@@ -21,16 +25,25 @@ class RoleTags:
 
     __slots__ = ('bot_id', 'integration_id', 'premium_subscriber')
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.bot_id = _get_as_snowflake(data, 'bot_id')
-        self.integration_id = _get_as_snowflake(data, 'integration_id')
+    @classmethod
+    def from_data(cls, data: RoleTagsData) -> Self:
+        bot_id = data.get('bot_id')
+        if bot_id is not None:
+            bot_id = Snowflake(bot_id)
 
-        # If this is present (null in JSON converted to None) that means the
-        # role is the premium subscriber role.
-        self.premium_subscriber = data.get('premium_subscriber', False) is None
+        integration_id = data.get('integration_id')
+        if integration_id is not None:
+            integration_id = Snowflake(integration_id)
+
+        return cls(
+            bot_id=bot_id,
+            integration_id=integration_id,
+            premium_subscriber=data.get('premium_subscriber', False) is None
+        )
 
 
-class Role(Object):
+@dataclasses.dataclass(frozen=True)
+class Role(Model):
     """Representation of a Discord role with permissions.¨
 
     A role represents a set of permissions attached to a group of members.
@@ -66,19 +79,6 @@ class Role(Object):
         'managed', 'mentionable', 'tags'
     )
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(int(data['id']))
-
-        self.name = data['name']
-        self.color = data['color']
-        self.position = data['position']
-        self.permissions = Permissions(data['permissions'])
-
-        self.hoist = data['hoist']
-        self.managed = data['managed']
-        self.mentionable = data['mentionable']
-        self.tags = RoleTags(data.get('tags', {}))
-
     @property
     def premium_subscriber(self) -> bool:
         """Whether this role is the role that premium subscribers get.
@@ -87,3 +87,17 @@ class Role(Object):
         RoleTags object.
         """
         return self.tags.premium_subscriber
+
+    @classmethod
+    def from_data(cls, data: RoleData) -> Self:
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            color=data['color'],
+            position=data['position'],
+            permissions=Permissions(int(data['permissions'])),
+            hoist=data['hoist'],
+            managed=data['managed'],
+            mentionable=data['mentionable'],
+            tags=RoleTags.from_data(data.get('tags', {}))
+        )
