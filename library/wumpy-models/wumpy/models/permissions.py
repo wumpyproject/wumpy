@@ -240,23 +240,6 @@ class TriBitMask:
         else:
             return None
 
-    def __set__(self, instance: 'PermissionOverwrite', value: bool) -> None:
-        # This isn't the prettiest, but there's no better way to do it. When we
-        # set one to True, we need to set the other to False. In the case of None
-        # we set both to False.
-
-        if value is True:
-            instance.allow |= self.mask
-            instance.deny &= ~self.mask
-        elif value is False:
-            instance.allow &= ~self.mask
-            instance.deny |= self.mask
-        elif value is None:
-            instance.allow &= ~self.mask
-            instance.deny &= ~self.mask
-        else:
-            raise TypeError(f'Expected type bool or None but got {type(value).__name__}.')
-
 
 def triflag(func: Callable[[], int]) -> TriBitMask:
     """The equivalent of the normal `flag` decorator, but for TriBitMask."""
