@@ -1,16 +1,19 @@
 import collections
 import contextlib
+import dataclasses
 from typing import (
     Any, Deque, Dict, Iterable, List, Optional, SupportsInt, Tuple, overload
 )
 
 import anyio.lowlevel
-from discord_typings import MessageData, PartialChannelData
-from discord_typings.resources.channel import ChannelData, DMChannelData
+from discord_typings import (
+    ChannelData, DMChannelData, MessageData, PartialChannelData
+)
 from typing_extensions import Self
 from wumpy.rest import Forbidden
 
-from .base import Object, Snowflake
+from .base import Model, Snowflake
+from .message import AllowedMentions
 from .permissions import PermissionOverwrite, Permissions, PermissionTarget
 from .utils import MISSING, STATELESS, _get_as_snowflake
 
@@ -20,7 +23,8 @@ __all__ = (
 )
 
 
-class PartialChannel(Object):
+@dataclasses.dataclass(frozen=True, eq=False)
+class PartialChannel(Model):
     """Channel with only a handful of fields.
 
     This is passed in interactions and invites because Discord sends extremely
@@ -35,15 +39,16 @@ class PartialChannel(Object):
     name: str
     type: int
 
-    __slots__ = ('name', 'type')
+    @classmethod
+    def from_data(cls, data: PartialChannelData) -> Self:
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            type=data['type'],
+        )
 
-    def __init__(self, data: PartialChannelData) -> None:
-        super().__init__(int(data['id']))
 
-        self.name = data['name']
-        self.type = data['type']
-
-
+@dataclasses.dataclass(frozen=True, eq=False)
 class InteractionChannel(PartialChannel):
     """Channel with only a handful of fields.
 
@@ -58,10 +63,16 @@ class InteractionChannel(PartialChannel):
 
     __slots__ = ('permissions',)
 
-    def __init__(self, data: PartialChannelData) -> None:
-        super().__init__(data)
+    @classmethod
+    def from_data(cls, data: PartialChannelData) -> Self:
+        permissions = Permissions(int(data.get('permissions', 0)))
 
-        self.permissions = Permissions(int(data.get('permissions', 0)))
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            type=data['type'],
+            permissions=permissions
+        )
 
 
 class ChannelHistory:
@@ -194,7 +205,7 @@ class ChannelHistory:
         return self.messages.popleft()
 
 
-class SendableChannel(Object):
+class SendableChannel(Model):
     """Discord text-based channel that you can message.
 
     The point of this class is to be a shared mixin for all models that have

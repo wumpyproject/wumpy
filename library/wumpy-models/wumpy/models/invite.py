@@ -1,33 +1,27 @@
+import dataclasses
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Optional
+
+from discord_typings import InviteData
+from typing_extensions import Self
 
 from .channels import PartialChannel
+from .user import User
 
 __all__ = ('Invite',)
 
 
+@dataclasses.dataclass(frozen=True, eq=False)
 class Invite:
     """Representation of a Discord invite."""
 
     code: str
-
-    channel: PartialChannel
-    inviter: Optional[Dict[str, Any]]
-
     expires_at: Optional[datetime]
 
-    __slots__ = ('code', 'channel', 'inviter', 'expires_at')
+    inviter: Optional[User]
+    channel: Optional[PartialChannel]
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.code = data['code']
-
-        self.channel = PartialChannel(data['channel'])
-        self.inviter = data.get('inviter')
-
-        expires_at = data.get('expires_at')
-        if expires_at:
-            expires_at = datetime.fromtimestamp(expires_at, tz=timezone.utc)
-        self.expires_at = expires_at
+    __slots__ = ('code', 'expires_at', 'inviter')
 
     def __str__(self) -> str:
         return self.url
@@ -44,3 +38,24 @@ class Invite:
             return False
 
         return self.expires_at < datetime.now(timezone.utc)
+
+    @classmethod
+    def from_data(cls, data: InviteData) -> Self:
+        expires_at = data.get('expires_at')
+        if expires_at is not None:
+            expires_at = datetime.fromisoformat(expires_at)
+
+        inviter = data.get('inviter')
+        if inviter is not None:
+            inviter = User.from_data(inviter)
+
+        channel = data.get('channel')
+        if channel is not None:
+            channel = PartialChannel.from_data(channel)
+
+        return cls(
+            code=data['code'],
+            expires_at=expires_at,
+            inviter=inviter,
+            channel=channel
+        )
