@@ -19,10 +19,6 @@ class Permissions(DiscordFlags):
         """Whether the permission allows creating instant invites."""
         return 1 << 0
 
-    # All other permissions use plural, but this one is weirdly singular
-    # so we alias it
-    create_instant_invites = create_instant_invite
-
     @flag
     def kick_members() -> int:
         """Whether the permission allows kicking members from the guild."""
@@ -76,9 +72,6 @@ class Permissions(DiscordFlags):
     def view_channel() -> int:
         """Whether the permission allows viewing the channel."""
         return 1 << 10
-
-    # Another singular permission
-    view_channels = view_channel
 
     @flag
     def send_messages() -> int:
@@ -317,9 +310,6 @@ class PermissionOverwrite(Model):
         """Whether the permission allows creating instant invites."""
         return 1 << 0
 
-    # Alias in plural
-    create_instant_invites = create_instant_invite
-
     @triflag
     def kick_members() -> int:
         """Whether the permission allows kicking members from the guild."""
@@ -373,8 +363,6 @@ class PermissionOverwrite(Model):
     def view_channel() -> int:
         """Whether the permission allows viewing the channel."""
         return 1 << 10
-
-    view_channels = view_channel  # Alias
 
     @triflag
     def send_messages() -> int:
