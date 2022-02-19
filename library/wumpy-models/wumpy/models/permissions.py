@@ -1,6 +1,8 @@
+import dataclasses
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, SupportsInt, Union
+from typing import Any, Callable, Optional, SupportsInt, Union, overload
 
+from discord_typings import PermissionOverwriteData
 from typing_extensions import Self
 
 from .base import Model
@@ -13,6 +15,119 @@ class Permissions(DiscordFlags):
     """A bitfield for wrapping Discord permissions."""
 
     __slots__ = ()
+
+    @overload
+    @classmethod
+    def build(  # type: ignore  # @overload *should* have multiple signatures
+        cls,
+        *,
+        create_instant_invite: bool = ...,
+        kick_members: bool = ...,
+        ban_members: bool = ...,
+        administrator: bool = ...,
+        manage_channels: bool = ...,
+        manage_guild: bool = ...,
+        add_reactions: bool = ...,
+        view_audit_log: bool = ...,
+        priority_speaker: bool = ...,
+        stream: bool = ...,
+        view_channel: bool = ...,
+        send_messages: bool = ...,
+        send_tts_messages: bool = ...,
+        manage_messages: bool = ...,
+        embed_links: bool = ...,
+        attach_files: bool = ...,
+        read_message_history: bool = ...,
+        mention_everyone: bool = ...,
+        use_external_emojis: bool = ...,
+        view_guild_insights: bool = ...,
+        connect: bool = ...,
+        speak: bool = ...,
+        mute_members: bool = ...,
+        deafen_members: bool = ...,
+        move_members: bool = ...,
+        use_vad: bool = ...,
+        change_nickname: bool = ...,
+        manage_nicknames: bool = ...,
+        manage_roles: bool = ...,
+        manage_webhooks: bool = ...,
+        manage_emojis_and_stickers: bool = ...,
+        use_slash_commands: bool = ...,
+        request_to_speak: bool = ...,
+        manage_threads: bool = ...,
+        use_public_threads: bool = ...,
+        use_private_threads: bool = ...,
+        use_external_stickers: bool = ...,
+    ) -> Self:
+        ...
+
+    @classmethod
+    def build(cls, **kwargs: bool) -> Self:
+        perms = 0
+
+        for option, value in [(k, v) for (k, v) in kwargs.items() if isinstance(v, bool)]:
+            flag = getattr(cls, option)
+            if value is True:
+                perms |= flag
+
+        return cls(perms)
+
+    @overload
+    def replace(  # type: ignore  # @overload *should* have multiple signatures
+        self,
+        *,
+        create_instant_invite: bool = ...,
+        kick_members: bool = ...,
+        ban_members: bool = ...,
+        administrator: bool = ...,
+        manage_channels: bool = ...,
+        manage_guild: bool = ...,
+        add_reactions: bool = ...,
+        view_audit_log: bool = ...,
+        priority_speaker: bool = ...,
+        stream: bool = ...,
+        view_channel: bool = ...,
+        send_messages: bool = ...,
+        send_tts_messages: bool = ...,
+        manage_messages: bool = ...,
+        embed_links: bool = ...,
+        attach_files: bool = ...,
+        read_message_history: bool = ...,
+        mention_everyone: bool = ...,
+        use_external_emojis: bool = ...,
+        view_guild_insights: bool = ...,
+        connect: bool = ...,
+        speak: bool = ...,
+        mute_members: bool = ...,
+        deafen_members: bool = ...,
+        move_members: bool = ...,
+        use_vad: bool = ...,
+        change_nickname: bool = ...,
+        manage_nicknames: bool = ...,
+        manage_roles: bool = ...,
+        manage_webhooks: bool = ...,
+        manage_emojis_and_stickers: bool = ...,
+        use_slash_commands: bool = ...,
+        request_to_speak: bool = ...,
+        manage_threads: bool = ...,
+        use_public_threads: bool = ...,
+        use_private_threads: bool = ...,
+        use_external_stickers: bool = ...,
+    ) -> Self:
+        ...
+
+    def replace(self, **kwargs: bool) -> Self:
+        cls = self.__class__
+        perms = self.value
+
+        for option, value in [(k, v) for (k, v) in kwargs.items() if isinstance(v, bool)]:
+            flag = getattr(cls, option)
+            if value is True:
+                perms |= flag
+            else:
+                perms &= ~flag
+
+        return cls(perms)
 
     @flag
     def create_instant_invite() -> int:
@@ -244,6 +359,7 @@ class PermissionTarget(Enum):
     member = 1
 
 
+@dataclasses.dataclass(frozen=True, eq=False)
 class PermissionOverwrite(Model):
     """"Discord permission overwrite object.
 
@@ -258,37 +374,6 @@ class PermissionOverwrite(Model):
 
     __slots__ = ('type', 'allow', 'deny')
 
-    def __init__(
-        self,
-        target: SupportsInt,
-        *,
-        type: Optional[PermissionTarget] = None,
-        **options: bool
-    ) -> None:
-        super().__init__(int(target))
-
-        self.allow = Permissions(0)
-        self.deny = Permissions(0)
-        self.type = type
-
-        for name, value in options.items():
-            setattr(self, name, value)
-
-    @classmethod
-    def from_data(cls, data: Dict) -> Self:
-        """Initialize a permission overwrite object from Discord data.
-
-        This is used because a PermissionOverwrite object is often initialized by users.
-        """
-        self = cls.__new__(cls)
-
-        self.type = PermissionTarget(data['type'])
-
-        self.allow = Permissions(int(data['allow']))
-        self.deny = Permissions(int(data['deny']))
-
-        return self
-
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
             return False
@@ -301,9 +386,157 @@ class PermissionOverwrite(Model):
 
         return super().__ne__(other) or self.allow != other.allow or self.deny != other.deny
 
+    @classmethod
+    def from_data(cls, data: PermissionOverwriteData) -> Self:
+        """Initialize a permission overwrite object from Discord data.
+
+        This is used because a PermissionOverwrite object is often initialized by users.
+        """
+        return cls(
+            id=int(data['id']),
+            type=PermissionTarget(int(data['type'])),
+            allow=Permissions(int(data['allow'])),
+            deny=Permissions(int(data['deny'])),
+        )
+
+    @overload
+    @classmethod
+    def build(  # type: ignore  # @overload *should* have multiple signatures
+        cls,
+        id: SupportsInt,
+        type: PermissionTarget,
+        *,
+        # This is a copy of each permission of a permission overwrite, since
+        # you can build a permission with any of those options.
+        create_instant_invite: Optional[bool] = ...,
+        kick_members: Optional[bool] = ...,
+        ban_members: Optional[bool] = ...,
+        administrator: Optional[bool] = ...,
+        manage_channels: Optional[bool] = ...,
+        manage_guild: Optional[bool] = ...,
+        add_reactions: Optional[bool] = ...,
+        view_audit_log: Optional[bool] = ...,
+        priority_speaker: Optional[bool] = ...,
+        stream: Optional[bool] = ...,
+        view_channel: Optional[bool] = ...,
+        send_messages: Optional[bool] = ...,
+        send_tts_messages: Optional[bool] = ...,
+        manage_messages: Optional[bool] = ...,
+        embed_links: Optional[bool] = ...,
+        attach_files: Optional[bool] = ...,
+        read_message_history: Optional[bool] = ...,
+        mention_everyone: Optional[bool] = ...,
+        use_external_emojis: Optional[bool] = ...,
+        view_guild_insights: Optional[bool] = ...,
+        connect: Optional[bool] = ...,
+        speak: Optional[bool] = ...,
+        mute_members: Optional[bool] = ...,
+        deafen_members: Optional[bool] = ...,
+        move_members: Optional[bool] = ...,
+        use_vad: Optional[bool] = ...,
+        change_nickname: Optional[bool] = ...,
+        manage_nicknames: Optional[bool] = ...,
+        manage_roles: Optional[bool] = ...,
+        manage_webhooks: Optional[bool] = ...,
+        manage_emojis_and_stickers: Optional[bool] = ...,
+        use_slash_commands: Optional[bool] = ...,
+        request_to_speak: Optional[bool] = ...,
+        manage_threads: Optional[bool] = ...,
+        use_public_threads: Optional[bool] = ...,
+        use_private_threads: Optional[bool] = ...,
+        use_external_stickers: Optional[bool] = ...,
+    ) -> Self:
+        ...
+
+    @classmethod
+    def build(cls, id: SupportsInt, type: PermissionTarget, **kwargs: Optional[bool]) -> Self:
+        allow, deny = 0, 0
+
+        for option, value in [(k, v) for (k, v) in kwargs.items() if isinstance(v, bool)]:
+            flag = getattr(cls, option)
+            if value is True:
+                allow |= flag
+                deny &= ~flag
+            else:
+                allow &= ~flag
+                deny |= flag
+
+        return cls(
+            id=int(id),
+            type=type,
+            allow=Permissions(allow),
+            deny=Permissions(deny),
+        )
+
+    @overload
+    def replace(  # type: ignore  # @overload *should* have multiple signatures
+        self,
+        *,
+        # This is a copy of each permission of a permission overwrite, since
+        # you can build a permission
+        create_instant_invite: Optional[bool] = ...,
+        kick_members: Optional[bool] = ...,
+        ban_members: Optional[bool] = ...,
+        administrator: Optional[bool] = ...,
+        manage_channels: Optional[bool] = ...,
+        manage_guild: Optional[bool] = ...,
+        add_reactions: Optional[bool] = ...,
+        view_audit_log: Optional[bool] = ...,
+        priority_speaker: Optional[bool] = ...,
+        stream: Optional[bool] = ...,
+        view_channel: Optional[bool] = ...,
+        send_messages: Optional[bool] = ...,
+        send_tts_messages: Optional[bool] = ...,
+        manage_messages: Optional[bool] = ...,
+        embed_links: Optional[bool] = ...,
+        attach_files: Optional[bool] = ...,
+        read_message_history: Optional[bool] = ...,
+        mention_everyone: Optional[bool] = ...,
+        use_external_emojis: Optional[bool] = ...,
+        view_guild_insights: Optional[bool] = ...,
+        connect: Optional[bool] = ...,
+        speak: Optional[bool] = ...,
+        mute_members: Optional[bool] = ...,
+        deafen_members: Optional[bool] = ...,
+        move_members: Optional[bool] = ...,
+        use_vad: Optional[bool] = ...,
+        change_nickname: Optional[bool] = ...,
+        manage_nicknames: Optional[bool] = ...,
+        manage_roles: Optional[bool] = ...,
+        manage_webhooks: Optional[bool] = ...,
+        manage_emojis_and_stickers: Optional[bool] = ...,
+        use_slash_commands: Optional[bool] = ...,
+        request_to_speak: Optional[bool] = ...,
+        manage_threads: Optional[bool] = ...,
+        use_public_threads: Optional[bool] = ...,
+        use_private_threads: Optional[bool] = ...,
+        use_external_stickers: Optional[bool] = ...,
+    ) -> Self:
+        ...
+
+    def replace(self, **kwargs: Optional[bool]) -> Self:
+        cls = self.__class__
+        allow, deny = self.allow.value, self.deny.value
+
+        for option, value in [(k, v) for (k, v) in kwargs.items() if isinstance(v, bool)]:
+            flag = getattr(cls, option)
+            if value is True:
+                allow |= flag
+                deny &= ~flag
+            else:
+                allow &= ~flag
+                deny |= flag
+
+        return cls(
+            id=self.id,
+            type=self.type,
+            allow=Permissions(allow),
+            deny=Permissions(deny),
+        )
+
     # As painful as it may be, it is necessary to play nice with documentation
-    # and auto-completion. This is a copy from the Permissions class above, with
-    # the decorator changed to be the tribool version.
+    # and auto-completion. This is a copy from the Permissions class above,
+    # with the decorator changed to be the tribool version.
 
     @triflag
     def create_instant_invite() -> int:
