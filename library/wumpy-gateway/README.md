@@ -19,7 +19,7 @@ poetry add wumpy-gateway
 
 ## Quickstart
 
-The easiest - and recommended - way to get started is using `Shard.connect()`:
+The API of wumpy-gateway is very simple:
 
 ```python
 from wumpy.gateway import Shard
@@ -32,11 +32,7 @@ TOKEN = 'ABC123.XYZ789'
 async def main():
     # Connect to the URI wss://gateway.discord.gg/ with the token
     # ABC123.XYZ8789 and all intents.
-    async with Shard.connect('wss://gateway.discord.gg/', TOKEN, INTENTS) as ws:
+    async with Shard('wss://gateway.discord.gg/', TOKEN, INTENTS) as ws:
         async for event in ws:
             print(event)  # The deserialized JSON event payload
 ```
-
-The `connect()` classmethod is an abstraction that also spawns a task to handle
-the heartbeating. If you wish to handle this yourself use `create_connection()`
-and create an instance from the return value.
