@@ -789,4 +789,3 @@ class PermissionOverwrite(Model):
     def moderate_members() -> int:
         """Whether the permission allows timing out other members."""
         return 1 << 40
-
