@@ -46,18 +46,22 @@ class Permissions(DiscordFlags):
         mute_members: bool = ...,
         deafen_members: bool = ...,
         move_members: bool = ...,
-        use_vad: bool = ...,
+        use_voice_activity: bool = ...,
         change_nickname: bool = ...,
         manage_nicknames: bool = ...,
         manage_roles: bool = ...,
         manage_webhooks: bool = ...,
         manage_emojis_and_stickers: bool = ...,
-        use_slash_commands: bool = ...,
+        use_application_commands: bool = ...,
         request_to_speak: bool = ...,
+        manage_events: bool = ...,
         manage_threads: bool = ...,
-        use_public_threads: bool = ...,
-        use_private_threads: bool = ...,
+        create_public_threads: bool = ...,
+        create_private_threads: bool = ...,
+        send_messages_in_threads: bool = ...,
         use_external_stickers: bool = ...,
+        start_embedded_activities: bool = ...,
+        moderate_members: bool = ...,
     ) -> Self:
         ...
 
@@ -101,18 +105,22 @@ class Permissions(DiscordFlags):
         mute_members: bool = ...,
         deafen_members: bool = ...,
         move_members: bool = ...,
-        use_vad: bool = ...,
+        use_voice_activity: bool = ...,
         change_nickname: bool = ...,
         manage_nicknames: bool = ...,
         manage_roles: bool = ...,
         manage_webhooks: bool = ...,
         manage_emojis_and_stickers: bool = ...,
-        use_slash_commands: bool = ...,
+        use_application_commands: bool = ...,
         request_to_speak: bool = ...,
+        manage_events: bool = ...,
         manage_threads: bool = ...,
-        use_public_threads: bool = ...,
-        use_private_threads: bool = ...,
+        create_public_threads: bool = ...,
+        create_private_threads: bool = ...,
+        send_messages_in_threads: bool = ...,
         use_external_stickers: bool = ...,
+        start_embedded_activities: bool = ...,
+        moderate_members: bool = ...,
     ) -> Self:
         ...
 
@@ -263,8 +271,8 @@ class Permissions(DiscordFlags):
         return 1 << 24
 
     @flag
-    def use_vad() -> int:
-        """Whether the permission allows using voice activity."""
+    def use_voice_activity() -> int:
+        """Whether the permission allows using voice activity detection."""
         return 1 << 25
 
     @flag
@@ -293,7 +301,7 @@ class Permissions(DiscordFlags):
         return 1 << 30
 
     @flag
-    def use_slash_commands() -> int:
+    def use_application_commands() -> int:
         """Whether the permission allows using slash commands."""
         return 1 << 31
 
@@ -303,24 +311,44 @@ class Permissions(DiscordFlags):
         return 1 << 32
 
     @flag
-    def manage_threads() -> int:
-        """Whether the permission allows managing threads."""
+    def manage_events() -> int:
+        """Whether the permission allows managing scheduled events."""
         return 1 << 33
 
     @flag
-    def use_public_threads() -> int:
-        """Whether the permission allows creating and participating in public threads."""
+    def manage_threads() -> int:
+        """Whether the permission allows managing threads."""
         return 1 << 34
 
     @flag
-    def use_private_threads() -> int:
-        """Whether the permission allows creating and being invited to private threads."""
+    def create_public_threads() -> int:
+        """Whether the permission allows creating in public threads."""
         return 1 << 35
+
+    @flag
+    def create_private_threads() -> int:
+        """Whether the permission allows creating private threads."""
+        return 1 << 36
 
     @flag
     def use_external_stickers() -> int:
         """Whether the permission allows using external stickers."""
-        return 1 << 36
+        return 1 << 37
+
+    @flag
+    def send_messages_in_threads() -> int:
+        """Whether the permission allows participating in threads."""
+        return 1 << 38
+
+    @flag
+    def start_embedded_activities() -> int:
+        """Whether the permission allows starting embedded activities."""
+        return 1 << 39
+
+    @flag
+    def moderate_members() -> int:
+        """Whether the permission allows timing out other members."""
+        return 1 << 40
 
 
 class TriBitMask:
@@ -433,18 +461,22 @@ class PermissionOverwrite(Model):
         mute_members: Optional[bool] = ...,
         deafen_members: Optional[bool] = ...,
         move_members: Optional[bool] = ...,
-        use_vad: Optional[bool] = ...,
+        use_voice_activity: Optional[bool] = ...,
         change_nickname: Optional[bool] = ...,
         manage_nicknames: Optional[bool] = ...,
         manage_roles: Optional[bool] = ...,
         manage_webhooks: Optional[bool] = ...,
         manage_emojis_and_stickers: Optional[bool] = ...,
-        use_slash_commands: Optional[bool] = ...,
+        use_application_commands: Optional[bool] = ...,
         request_to_speak: Optional[bool] = ...,
+        manage_events: Optional[bool] = ...,
         manage_threads: Optional[bool] = ...,
-        use_public_threads: Optional[bool] = ...,
-        use_private_threads: Optional[bool] = ...,
+        create_public_threads: Optional[bool] = ...,
+        create_private_threads: Optional[bool] = ...,
         use_external_stickers: Optional[bool] = ...,
+        send_messages_in_threads: Optional[bool] = ...,
+        start_embedded_activities: Optional[bool] = ...,
+        moderate_members: Optional[bool] = ...,
     ) -> Self:
         ...
 
@@ -499,18 +531,22 @@ class PermissionOverwrite(Model):
         mute_members: Optional[bool] = ...,
         deafen_members: Optional[bool] = ...,
         move_members: Optional[bool] = ...,
-        use_vad: Optional[bool] = ...,
+        use_voice_activity: Optional[bool] = ...,
         change_nickname: Optional[bool] = ...,
         manage_nicknames: Optional[bool] = ...,
         manage_roles: Optional[bool] = ...,
         manage_webhooks: Optional[bool] = ...,
         manage_emojis_and_stickers: Optional[bool] = ...,
-        use_slash_commands: Optional[bool] = ...,
+        use_application_commands: Optional[bool] = ...,
         request_to_speak: Optional[bool] = ...,
+        manage_events: Optional[bool] = ...,
         manage_threads: Optional[bool] = ...,
-        use_public_threads: Optional[bool] = ...,
-        use_private_threads: Optional[bool] = ...,
+        create_public_threads: Optional[bool] = ...,
+        create_private_threads: Optional[bool] = ...,
         use_external_stickers: Optional[bool] = ...,
+        send_messages_in_threads: Optional[bool] = ...,
+        start_embedded_activities: Optional[bool] = ...,
+        moderate_members: Optional[bool] = ...,
     ) -> Self:
         ...
 
@@ -672,7 +708,7 @@ class PermissionOverwrite(Model):
         return 1 << 24
 
     @triflag
-    def use_vad() -> int:
+    def use_voice_activity() -> int:
         """Whether the permission allows using voice activity."""
         return 1 << 25
 
@@ -702,7 +738,7 @@ class PermissionOverwrite(Model):
         return 1 << 30
 
     @triflag
-    def use_slash_commands() -> int:
+    def use_application_commands() -> int:
         """Whether the permission allows using slash commands."""
         return 1 << 31
 
@@ -712,21 +748,42 @@ class PermissionOverwrite(Model):
         return 1 << 32
 
     @triflag
-    def manage_threads() -> int:
-        """Whether the permission allows managing threads."""
+    def manage_events() -> int:
+        """Whether the permission allows managing scheduled events."""
         return 1 << 33
 
     @triflag
-    def use_public_threads() -> int:
-        """Whether the permission allows creating and participating in public threads."""
+    def manage_threads() -> int:
+        """Whether the permission allows managing threads."""
         return 1 << 34
 
     @triflag
-    def use_private_threads() -> int:
-        """Whether the permission allows creating and being invited to private threads."""
+    def create_public_threads() -> int:
+        """Whether the permission allows creating in public threads."""
         return 1 << 35
+
+    @triflag
+    def create_private_threads() -> int:
+        """Whether the permission allows creating private threads."""
+        return 1 << 36
 
     @triflag
     def use_external_stickers() -> int:
         """Whether the permission allows using external stickers."""
-        return 1 << 36
+        return 1 << 37
+
+    @triflag
+    def send_messages_in_threads() -> int:
+        """Whether the permission allows participating in threads."""
+        return 1 << 38
+
+    @triflag
+    def start_embedded_activities() -> int:
+        """Whether the permission allows starting embedded activities."""
+        return 1 << 39
+
+    @triflag
+    def moderate_members() -> int:
+        """Whether the permission allows timing out other members."""
+        return 1 << 40
+
