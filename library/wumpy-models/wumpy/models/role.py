@@ -29,11 +29,11 @@ class RoleTags:
     def from_data(cls, data: RoleTagsData) -> Self:
         bot_id = data.get('bot_id')
         if bot_id is not None:
-            bot_id = Snowflake(bot_id)
+            bot_id = Snowflake(int(bot_id))
 
         integration_id = data.get('integration_id')
         if integration_id is not None:
-            integration_id = Snowflake(integration_id)
+            integration_id = Snowflake(int(integration_id))
 
         return cls(
             bot_id=bot_id,
