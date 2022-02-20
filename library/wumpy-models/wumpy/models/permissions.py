@@ -554,14 +554,17 @@ class PermissionOverwrite(Model):
         cls = self.__class__
         allow, deny = self.allow.value, self.deny.value
 
-        for option, value in [(k, v) for (k, v) in kwargs.items() if isinstance(v, bool)]:
+        for option, value in kwargs.items():
             flag = getattr(cls, option)
             if value is True:
                 allow |= flag
                 deny &= ~flag
-            else:
+            elif value is False:
                 allow &= ~flag
                 deny |= flag
+            else:
+                allow &= ~flag
+                deny &= ~flag
 
         return cls(
             id=self.id,
