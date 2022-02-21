@@ -18,7 +18,7 @@ class Emoji(str):
     id: Optional[Snowflake]
     name: str
 
-    roles: Tuple[Snowflake]
+    roles: Tuple[Snowflake, ...]
     user: Optional[User]
 
     require_colons: bool

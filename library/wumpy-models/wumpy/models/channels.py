@@ -74,7 +74,7 @@ class DMChannel(Model):
 
     type: Literal[1]
 
-    recipients: Tuple[User]
+    recipients: Tuple[User, ...]
     last_message_id: Optional[Snowflake]
     last_pin_timestamp: Optional[datetime]
 
@@ -103,7 +103,7 @@ class TextChannel(PartialChannel):
     parent_id: Optional[Snowflake]
 
     position: int
-    overwrites: Tuple[PermissionOverwrite]
+    overwrites: Tuple[PermissionOverwrite, ...]
     topic: Optional[str]
     nsfw: bool
     slowmode_delay: int
@@ -271,7 +271,7 @@ class VoiceChannel(PartialChannel):
     parent_id: Optional[Snowflake]
 
     position: int
-    overwrites: Tuple[PermissionOverwrite]
+    overwrites: Tuple[PermissionOverwrite, ...]
     nsfw: bool
     bitrate: int
     user_limit: int
@@ -308,7 +308,7 @@ class Category(PartialChannel):
     guild_id: Optional[Snowflake]
 
     position: int
-    overwrites: Tuple[PermissionOverwrite]
+    overwrites: Tuple[PermissionOverwrite, ...]
     nsfw: bool
 
     @classmethod
