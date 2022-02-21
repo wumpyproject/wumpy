@@ -1,81 +1,105 @@
+import dataclasses
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Optional, Tuple
 
-from ..utils import _get_as_snowflake
-from .asset import Asset
+from discord_typings import GuildMemberData, UserData
+from typing_extensions import Self
+
 from .base import Snowflake
+from .flags import UserFlags
 from .permissions import Permissions
-from .user import InteractionUser
+from .user import User
 
-__all__ = ('InteractionMember', 'ThreadMember')
+__all__ = ('Member', 'InteractionMember')
 
 
-class InteractionMember(InteractionUser):
-    """Uncached member received from an interaction."""
-
+@dataclasses.dataclass(frozen=True, eq=False)
+class Member(User):
     nick: Optional[str]
-    roles: List[Snowflake]
-    guild_avatar: Optional[Asset]
+    pending: bool
+
+    roles: Tuple[Snowflake, ...]
 
     joined_at: datetime
     premium_since: Optional[datetime]
-    pending: bool
+    timed_out_until: Optional[datetime]
 
+    @classmethod
+    def from_data(cls, user: Optional[UserData], data: GuildMemberData) -> Self:
+        if user is None and 'user' in data:
+            user = data['user']
+        else:
+            raise ValueError('Cannot create a member without a user.')
+
+        premium_since = data.get('premium_since')
+        if premium_since is not None:
+            premium_since = datetime.fromisoformat(premium_since)
+
+        timed_out_until = data.get('premium_since')
+        if timed_out_until is not None:
+            timed_out_until = datetime.fromisoformat(timed_out_until)
+
+        return cls(
+            id=int(user['id']),
+            name=user['username'],
+            discriminator=int(user['discriminator']),
+            bot=user.get('bot', False),
+            system=user.get('system', False),
+            public_flags=UserFlags(user.get('public_flags', 0)),
+
+            nick=data.get('nick'),
+            pending=data.get('pending', False),
+
+            roles=tuple(Snowflake(int(s)) for s in data['roles']),
+
+            joined_at=datetime.fromisoformat(data['joined_at']),
+            premium_since=premium_since,
+            timed_out_until=timed_out_until,
+        )
+
+    @property
+    def timed_out(self) -> bool:
+        if self.timed_out_until is None:
+            return False
+
+        return self.timed_out_until > datetime.now(timezone.utc)
+
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class InteractionMember(Member):
     permissions: Permissions
 
-    __slots__ = (
-        'nick', 'roles', 'guild_avatar', 'joined_at', 'premium_since',
-        'pending', 'permissions'
-    )
-
-    def __init__(self, rest, guild_id: int, data: Dict[str, Any]) -> None:
-        super().__init__(rest, data['user'])
-
-        self.nick = data.get('nick')
-        self.roles = [Snowflake(int(id_)) for id_ in data['roles']]
-        avatar = data.get('avatar')
-        if avatar:
-            self.guild_avatar = Asset(
-                rest,
-                f'guilds/{guild_id}/users/{self.id}/avatars/{avatar}'
-            )
+    @classmethod
+    def from_data(cls, user: Optional[UserData], data: GuildMemberData) -> Self:
+        if user is None and 'user' in data:
+            user = data['user']
         else:
-            self.guild_avatar = None
+            raise ValueError('Cannot create a member without a user.')
 
-        self.joined_at = data['joined_at']
-        self.premium_since = data.get('premium_since')
-        self.pending = data.get('pending', False)
+        premium_since = data.get('premium_since')
+        if premium_since is not None:
+            premium_since = datetime.fromisoformat(premium_since)
 
-        self.permissions = Permissions(data['permissions'])
+        timed_out_until = data.get('premium_since')
+        if timed_out_until is not None:
+            timed_out_until = datetime.fromisoformat(timed_out_until)
 
+        return cls(
+            id=int(user['id']),
+            name=user['username'],
+            discriminator=int(user['discriminator']),
+            bot=user.get('bot', False),
+            system=user.get('system', False),
+            public_flags=UserFlags(user.get('public_flags', 0)),
 
-class ThreadMember:
-    """State of a member in a thread.
+            nick=data.get('nick'),
+            pending=data.get('pending', False),
 
-    The ThreadMember object is used to indicate whether a user has joined a
-    thread or not, it has details about how long a member has been in a thread.
+            roles=tuple(Snowflake(int(s)) for s in data['roles']),
 
-    Attributes:
-        thread_id:
-            The thread the member is in, None when constructed from
-            the GUILD_CREATE event.
-        user_id:
-            The user ID of the member, None when constructed from
-            the GUILD_CREATE event.
-        joined_at: Timestamp that the member joined the thread.
-        flags: User thread settings (currently only used for notifications).
-    """
+            joined_at=datetime.fromisoformat(data['joined_at']),
+            premium_since=premium_since,
+            timed_out_until=timed_out_until,
 
-    thread_id: Optional[Snowflake]
-    user_id: Optional[Snowflake]
-    joined_at: datetime
-    flags: int
-
-    __slots__ = ('thread_id', 'user_id', 'joined_at', 'flags')
-
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.thread_id = _get_as_snowflake(data, 'id')
-        self.user_id = _get_as_snowflake(data, 'user_id')
-
-        self.joined_at = datetime.fromtimestamp(data['join_timestamp'], tz=timezone.utc)
-        self.flags = data['flags']
+            permissions=Permissions(int(data.get('permissions', 0))),
+        )
