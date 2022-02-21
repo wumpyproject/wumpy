@@ -1,10 +1,17 @@
-from datetime import datetime, timezone
+import dataclasses
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Optional
 
-from ..utils import _get_as_snowflake
-from .base import Object, Snowflake
+from discord_typings import (
+    DiscordIntegrationData, IntegrationAccountData, IntegrationApplicationData,
+    StreamingIntegrationData
+)
+from typing_extensions import Self
+
+from .base import Model, Snowflake
 from .user import User
+from .utils import _get_as_snowflake
 
 __all__ = ('IntegrationExpire', 'IntegrationAccount', 'IntegrationApplication')
 
@@ -15,11 +22,12 @@ class IntegrationExpire(Enum):
 
 
 class IntegrationType(str, Enum):
-    TWITCH = 'twitch'
-    YOUTUBE = 'youtube'
-    DISCORD = 'discord'
+    twitch = 'twitch'
+    youtube = 'youtube'
+    discord = 'discord'
 
 
+@dataclasses.dataclass(frozen=True)
 class IntegrationAccount:
     """Information about the account associated with an integration.
 
@@ -33,12 +41,13 @@ class IntegrationAccount:
 
     __slots__ = ('id', 'name')
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.id = data['id']
-        self.name = data['name']
+    @classmethod
+    def from_data(cls, data: IntegrationAccountData) -> Self:
+        return cls(data['id'], data['name'])
 
 
-class IntegrationApplication(Object):
+@dataclasses.dataclass(frozen=True, eq=False)
+class IntegrationApplication(Model):
     """Information about a bot/OAuth2 application.
 
     Attributes:
@@ -57,70 +66,62 @@ class IntegrationApplication(Object):
 
     __slots__ = ('name', 'icon', 'description', 'summary', 'user')
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(int(data['id']))
-
-        self.name = data['name']
-        self.icon = data['icon']
-        self.description = data['description']
-        self.summary = data['summary']
-
+    @classmethod
+    def from_data(cls, data: IntegrationApplicationData) -> Self:
         user = data.get('bot')
-        self.user = User(user) if user is not None else None
+        if user is not None:
+            user = User.from_data(user)
+
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            icon=data.get('icon'),
+            description=data['description'],
+            summary=data['summary'],
+            user=user
+        )
 
 
-class Integration(Object):
-    """Representation of a guild integration.
-
-    This class only contains data that both BotIntegrations and
-    StreamIntegration share.
-
-    Attributes:
-        name: The name of the integration.
-        type: The type of integration (twitch or youtube).
-        enabled: Whether the integration is enabled.
-        account: Account information about the integration.
-    """
-
-    name: str
-    type: str
-    enabled: bool
-    account: IntegrationAccount
-
-    __slots__ = ('name', 'type', 'enabled', 'account')
-
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(int(data['id']))
-
-        self.name = data['name']
-        self.type = data['type']
-        self.enabled = data['enabled']
-        self.account = IntegrationAccount(data['account'])
-
-
-class BotIntegration(Integration):
+@dataclasses.dataclass(frozen=True, eq=False)
+class BotIntegration(Model):
     """Representation of a bot integration in a guild.
 
     Attributes:
         application: The application associated with the integration.
     """
 
-    application: IntegrationApplication
+    name: str
+    type: IntegrationType
+    enabled: bool
+    account: IntegrationAccount
 
-    __slots__ = ('application',)
+    application: Optional[IntegrationApplication]
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(data)
+    __slots__ = ('name', 'type', 'enabled', 'account', 'application')
 
-        self.application = IntegrationApplication(data['application'])
+    @classmethod
+    def from_data(cls, data: DiscordIntegrationData) -> Self:
+        application = data.get('application')
+        if application is not None:
+            application = IntegrationApplication.from_data(application)
+
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            type=IntegrationType(data['type']),
+            enabled=data['enabled'],
+            account=IntegrationAccount.from_data(data['account']),
+            application=application
+        )
 
     @property
     def user(self) -> Optional[User]:
         """The user associated with the integration."""
-        return self.application.user
+        return None if self.application is None else self.application.user
 
 
-class StreamIntegration(Integration):
+@dataclasses.dataclass(frozen=True, eq=False)
+class StreamIntegration(Model):
     """Representation of a guild integration for Twitch or YouTube.
 
     Attributes:
@@ -137,6 +138,11 @@ class StreamIntegration(Integration):
         revoked: Whether the integration has been revoked.
     """
 
+    name: str
+    type: IntegrationType
+    enabled: bool
+    account: IntegrationAccount
+
     syncing: bool
     role_id: Optional[Snowflake]
     enable_emoticons: bool
@@ -145,19 +151,29 @@ class StreamIntegration(Integration):
     user: User
     synced_at: datetime
     subscriber_count: int
+    revoked: bool
 
     __slots__ = (
-        'syncing', 'role_id', 'enable_emoticons', 'expire_behavior',
-        'expire_grace_period', 'user', 'synced_at', 'subscriber_count',
+        'name', 'type', 'enabled', 'account', 'syncing', 'role_id',
+        'enable_emoticons', 'expire_behavior', 'expire_grace_period', 'user',
+        'synced_at', 'subscriber_count', 'revoked'
     )
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(data)
-
-        self.syncing = data['syncing']
-        self.role_id = _get_as_snowflake(data, 'role_id')
-        self.enable_emoticons = data['enable_emoticons']
-        self.expire_behavior = IntegrationExpire(data['expire_behavior'])
-        self.user = User(data['user'])
-        self.synced_at = datetime.fromtimestamp(data['synced_at'], timezone.utc)
-        self.subscriber_count = data['subscriber_count']
+    @classmethod
+    def from_data(cls, data: StreamingIntegrationData) -> Self:
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            type=IntegrationType(data['type']),
+            enabled=data['enabled'],
+            account=IntegrationAccount.from_data(data['account']),
+            syncing=data['syncing'],
+            role_id=_get_as_snowflake(data, 'role_id'),
+            enable_emoticons=data['enable_emoticons'],
+            expire_behavior=IntegrationExpire(data['expire_behavior']),
+            expire_grace_period=data['expire_grace_period'],
+            user=User.from_data(data['user']),
+            synced_at=datetime.fromisoformat(data['synced_at']),
+            subscriber_count=data['subscriber_count'],
+            revoked=data['revoked'],
+        )

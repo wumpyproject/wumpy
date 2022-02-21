@@ -1,89 +1,25 @@
+import dataclasses
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional, Tuple
 
-from ..utils import _get_as_snowflake
+from discord_typings import EmojiData
+from typing_extensions import Self
+
 from .base import Snowflake
+from .user import User
+from .utils import _get_as_snowflake
 
-__all__ = ('Reaction', 'Emoji')
+__all__ = ('Emoji',)
 
 
-class Reaction(str):
-    """Representation of a Discord reaction.
+@dataclasses.dataclass(frozen=True)
+class Emoji(str):
 
-    A Discord reaction is an emoji with only a handful of fields - sent during
-    reaction events.
-
-    This is a subclass of a string for convenience, which means that an
-    instance of this class can be passed anywhere a string can be and that any
-    methods on strings work on an instance of this class.
-
-    Attributes:
-        id:
-            Optionally a snowflake of the emoji's ID. Built-in unicode emojis
-            do not have an ID.
-        name:
-            The name of the emoji. **Defaults to `_`** when no name is passed.
-            Discord currently allows any name to be used for any emoji, so
-            Wumpy creates a string such as this one: `<:_:41771983429993937>`.
-        animated: Whether the emoji is animated.
-    """
     id: Optional[Snowflake]
     name: str
-    animated: bool
 
-    __slots__ = ('id', 'name', 'animated')
-
-    def __new__(cls, data: Dict[str, Any]) -> 'Reaction':
-        id_ = _get_as_snowflake(data, 'id')
-        name = data.get('name', '_')
-        animated = data.get('animated', False)
-
-        # If id_ is None then it is default Emoji and only consists of the
-        # emoji name (which is a unicode eomji).
-        return super().__new__(cls, name) if id_ is None else super().__new__(
-                cls,
-                '<' + ('a' if animated else '') + ':' +
-                name + ':' + str(id_) + '>'
-            )
-
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.id = _get_as_snowflake(data, 'id')
-        self.name = data.get('name', '_')
-        self.animated = data.get('animated', False)
-
-    @property
-    def created_at(self) -> Optional[datetime]:
-        """When the emoji was created extracted from the ID.
-
-        This is None when the emoji does not have an ID; when it is a built-in
-        unicode emoji.
-        """
-        if self.id is None:
-            return None
-
-        return self.id.created_at
-
-
-class Emoji(Reaction):
-    """Full Discord emoji representation.
-
-    Because this is a subclass of `Reaction` that means that this is also a
-    subclass of string.
-
-    Attributes:
-        roles: A list of snowflakes representing roles that can use this emoji.
-        user: The user who created this emoji.
-        require_colons: Whether this emoji requires colons to be used.
-        managed: Whether this emoji is managed by an integration.
-        animated: Whether this emoji is animated.
-        available:
-            Whether this emoji is available; can be False when a guild looses
-            Server Boosts and the new custom emoji limit is less than the
-            amount of custom emojis the guild has.
-    """
-
-    roles: List[Snowflake]
-    user: Optional[Dict]
+    roles: Tuple[Snowflake]
+    user: Optional[User]
 
     require_colons: bool
     managed: bool
@@ -91,17 +27,36 @@ class Emoji(Reaction):
     available: bool
 
     __slots__ = (
-        'roles', 'user', 'require_colons',
-        'managed', 'animated', 'available',
+        'id', 'name', 'animated', 'roles', 'user', 'require_colons', 'managed',
+        'animated', 'available',
     )
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(data)
+    @classmethod
+    def from_data(cls, data: EmojiData) -> Self:
+        user = data.get('user')
+        if user is not None:
+            user = User.from_data(user)
 
-        self.roles = [Snowflake(role) for role in data.get('roles', [])]
-        self.user = data.get('user')
+        return cls(
+            id=_get_as_snowflake(data, 'id'),
+            name=data.get('name') or '_',
+            roles=tuple(Snowflake(int(s)) for s in data.get('roles', [])),
+            user=user,
+            require_colons=data.get('require_colons', True),
+            managed=data.get('managed', False),
+            animated=data.get('animated', False),
+            available=data.get('available', True),
+        )
 
-        self.require_colons = data.get('require_colons', True)
-        self.managed = data.get('managed', False)
-        self.animated = data.get('animated', False)
-        self.available = data.get('available', True)
+    @property
+    def created_at(self) -> datetime:
+        """When the emoji was created extracted from the ID.
+
+        This raises `ValueError` if there is no ID because the emoji is a
+        default Discord emoji. This is so that you don't need to deal with
+        None when you know that this should return a datetime.
+        """
+        if self.id is None:
+            raise ValueError('Cannot extract a datetime from an emoji without an ID.')
+
+        return self.id.created_at
