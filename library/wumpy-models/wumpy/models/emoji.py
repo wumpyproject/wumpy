@@ -2,14 +2,14 @@ import dataclasses
 from datetime import datetime
 from typing import Optional, Tuple
 
-from discord_typings import EmojiData
+from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
 from .base import Snowflake
 from .user import User
 from .utils import _get_as_snowflake
 
-__all__ = ('Emoji',)
+__all__ = ('Emoji', 'MessageReaction')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -60,3 +60,20 @@ class Emoji(str):
             raise ValueError('Cannot extract a datetime from an emoji without an ID.')
 
         return self.id.created_at
+
+
+@dataclasses.dataclass(frozen=True)
+class MessageReaction:
+    count: int
+    me: bool
+    emoji: Emoji
+
+    __slots__ = ('count', 'me', 'emoji')
+
+    @classmethod
+    def from_data(cls, data: MessageReactionData) -> Self:
+        return cls(
+            count=data['count'],
+            me=data['me'],
+            emoji=Emoji.from_data(data['emoji'])
+        )
