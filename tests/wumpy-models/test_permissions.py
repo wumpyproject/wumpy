@@ -1,4 +1,4 @@
-from wumpy.models import Permissions, PermissionOverwrite, PermissionTarget
+from wumpy.models import PermissionOverwrite, Permissions, PermissionTarget
 
 
 def test_permission_build() -> None:

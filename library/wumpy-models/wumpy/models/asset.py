@@ -23,7 +23,12 @@ class Asset:
     def from_path(cls, path: str) -> Self:
         return cls(cls.BASE + path)
 
-    def replace(self, *, fmt: Optional[Literal['jpeg', 'jpg', 'png', 'webp', 'gif', 'json']] = None, size: Optional[int] = None) -> Self:
+    def replace(
+        self,
+        *,
+        fmt: Optional[Literal['jpeg', 'jpg', 'png', 'webp', 'gif', 'json']] = None,
+        size: Optional[int] = None
+    ) -> Self:
         url = urlsplit(self.url)
         path = url.path
         query = url.query

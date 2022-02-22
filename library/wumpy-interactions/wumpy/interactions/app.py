@@ -7,7 +7,7 @@ import anyio
 from wumpy.rest import InteractionRequester
 
 from .base import CommandInteraction, ComponentInteraction, InteractionType
-from .commands.registrar import CommandRegistrar
+from .commands import CommandRegistrar, SlashCommand
 from .components.handler import ComponentHandler
 from .utils import DiscordRequestVerifier
 
@@ -197,8 +197,8 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             command = found[0]
 
             if (
-                    (isinstance(local, SlashCommand) and local.description != command['description']) or
-                    local.to_dict()['options'] != command.get('options', [])
+                    (isinstance(local, SlashCommand) and local.description != command['description'])
+                    or local.to_dict()['options'] != command.get('options', [])
             ):
                 await self.rest.edit_global_command(command['id'], local.to_dict())
                 continue

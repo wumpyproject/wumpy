@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Union
 
 from typing_extensions import Final, NoReturn, final
 from wumpy.rest.utils import MISSING
@@ -9,16 +9,24 @@ from .base import Snowflake
 __all__ = ('MISSING', 'STATELESS', '_get_as_snowflake')
 
 
-def _get_as_snowflake(data: Optional[Mapping], key: str) -> Optional[Snowflake]:
+def _get_as_snowflake(data: Optional[Mapping[str, Any]], key: str) -> Optional[Snowflake]:
     """Get a key as a snowflake.
 
     Returns None if `data` is None or does not have the key.
+
+    Parameters:
+        data: The optional mapping to get the key from.
+        key: The key to attempt to look up.
+
+    Returns:
+        The value of the key wrapped in a Snowflake, if there was a mapping
+        passed and the key could be found.
     """
     if data is None:
         return None
 
-    value = data.get(key)
-    return Snowflake(value) if value is not None else None
+    value: Union[str, int, None] = data.get(key)
+    return Snowflake(int(value)) if value is not None else None
 
 
 class SatelessException(RuntimeError):
@@ -29,7 +37,7 @@ class SatelessException(RuntimeError):
     static typing or complicating code with if-statements.
 
     The purpose of this is to allow models to be user-constructed with nothing
-    but the payload from Discord,
+    but the payload from Discord (not requiring the APIClient).
     """
     def __init__(self) -> None:
         super().__init__('Cannot call make an API call on a stateless model')

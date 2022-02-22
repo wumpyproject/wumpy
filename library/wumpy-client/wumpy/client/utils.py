@@ -6,7 +6,6 @@ from typing import (
 )
 
 import anyio.abc
-from wumpy.models import Snowflake
 
 __all__ = (
     'ErrorHandlerMixin', 'Event', 'EventDispatcher'

@@ -70,8 +70,8 @@ class Subcommand(CommandCallback[P, RT]):
                 if (
                     # issubclass() raises a TypeError if not all arguments are
                     # instances of 'type'
-                    annotation is not param.empty and
-                    not issubclass(annotation, CommandInteraction)
+                    annotation is not param.empty
+                    and not issubclass(annotation, CommandInteraction)
                 ):
                     raise TypeError(
                         "The first paramer of 'callback' has to be annotated "

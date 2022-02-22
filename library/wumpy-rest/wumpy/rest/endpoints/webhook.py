@@ -1,5 +1,5 @@
 from typing import (
-    Any, Dict, List, Literal, Optional, Sequence, SupportsInt, Union, overload
+    List, Literal, Optional, Sequence, SupportsInt, Union, overload
 )
 
 from discord_typings import (
