@@ -78,7 +78,7 @@ class Extension(CommandRegistrar, EventDispatcher):
                 target.register_command(command)
 
 
-def _is_submodule(a: str, b: str, /) -> bool:
+def _is_submodule(a: str, b: str) -> bool:
     """Check if 'a' is a submodule of 'b'."""
     # The latter condition doesn't work when a == b so we need to add it
     # explicitly. We also need to add a trailing period so that 'abc' doesn't
