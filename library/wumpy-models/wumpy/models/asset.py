@@ -1,116 +1,86 @@
-from functools import partial
-from typing import Any, Callable, Coroutine, Generator, Literal
+import dataclasses
+from typing import Literal, Optional
+from urllib.parse import parse_qs, urlencode, urlsplit
 
-import httpx
+from discord_typings.resources.channel import AttachmentData
 from typing_extensions import Self
 
-from .utils import STATELESS
+from .base import Model
 
-__all__ = ('Asset',)
-
-
-class AssetData:
-    """Awaitable and asynchronous iterator for asset data.
-
-    The purpose of this class is to allow both iterating and awaiting to get
-    the data from the asset. It is not use meant to be instantiated directly,
-    use the `read()` method.
-    """
-
-    __slots__ = ('coro', '_aiter')
-
-    def __init__(self, coro: Callable[[], Coroutine[Any, Any, httpx.Response]]) -> None:
-        self.coro = coro
-        self._aiter = None
-
-    def __await__(self) -> Generator[Any, None, bytes]:
-        return self.read().__await__()
-
-    def __aiter__(self) -> Self:
-        return self
-
-    async def __anext__(self) -> bytes:
-        if self._aiter is None:
-            resp = await self.coro()
-            self._aiter = resp.aiter_bytes()
-
-        return await self._aiter.__anext__()
-
-    async def read(self) -> bytes:
-        if self._aiter is not None:
-            raise RuntimeError('Cannot await and iterate asset data at the same time')
-
-        resp = await self.coro()
-        return await resp.aread()
+__all__ = ('Asset', 'Attachment')
 
 
+@dataclasses.dataclass(frozen=True)
 class Asset:
-    """Simple wrapper over a Discord CDN asset that can be read.
 
-    """
-
-    path: str
-
-    __slots__ = ('api', 'path')
+    url: str
 
     BASE = 'https://cdn.discordapp.com'
 
-    def __init__(self, path: str, *, api=STATELESS) -> None:
-        self.api = api
-        self.path = path
+    __slots__ = ('url',)
 
-    def __eq__(self, other: Any) -> bool:
-        return isinstance(other, self.__class__) and other.path == self.path
+    @classmethod
+    def from_path(cls, path: str) -> Self:
+        return cls(cls.BASE + path)
 
-    def __ne__(self, other: Any) -> bool:
-        return not isinstance(other, self.__class__) or other.path != self.path
+    def replace(self, *, fmt: Optional[Literal['jpeg', 'jpg', 'png', 'webp', 'gif', 'json']] = None, size: Optional[int] = None) -> Self:
+        url = urlsplit(self.url)
+        path = url.path
+        query = url.query
 
-    def __hash__(self):
-        return hash(self.path)
+        if size is not None:
+            if not (4096 >= size >= 16):
+                raise ValueError('size argument must be between 16 and 4096.')
 
-    def __repr__(self) -> str:
-        return f'<Asset path={self.path}>'
+            elif size & (size - 1) != 0:
+                # All powers of two only have one bit set: 1000
+                # if we subtract 1, then (0111) AND it we should get 0 (0000).
+                raise ValueError('size argument must be a power of two.')
 
-    def __str__(self) -> str:
-        return self.url
+            query = parse_qs(url.query)
+            query['size'] = [str(size)]
+            query = urlencode(query, doseq=True)
 
-    def __aiter__(self) -> Self:
-        return self
+        if fmt is not None:
+            if fmt not in {'jpeg', 'jpg', 'png', 'webp', 'gif', 'json'}:
+                raise ValueError(
+                    "Image format must be one of: 'jpeg', 'jpg', 'png', 'webp', "
+                    "'gif, or 'json' (for Lottie)"
+                )
 
-    @property
-    def url(self) -> str:
-        return self.BASE + self.path
+            destination, _, _ = path.rpartition('.')
+            path = f'{destination}.{fmt}'
 
-    def read(
-        self,
-        *,
-        fmt: Literal['jpeg', 'jpg', 'png', 'webp', 'gif', 'json'],
-        size: int
-    ) -> AssetData:
-        """Read the content of this asset.
+        return self.__class__(f'{url.scheme}://{url.netloc}{path}?{query}')
 
-        Parameters:
-            fmt: The format of the asset.
-            size:
-                The preferred size of the asset, has to be a power of two
-                between 16 and 4096.
 
-        Returns:
-            A special awaitable and iterable object - depending on how you wish
-            to receive the bytes.
-        """
-        if fmt not in {'jpeg', 'jpg', 'png', 'webp', 'gif', 'json'}:
-            raise ValueError(
-                "Image format must be one of: 'jpeg', 'jpg', 'png', 'webp', "
-                "'gif, or 'json' for Lottie"
-            )
+@dataclasses.dataclass(frozen=True, eq=False)
+class Attachment(Model):
+    filename: str
+    content_type: Optional[str]
+    description: Optional[str]
 
-        elif not (4096 >= size >= 16):
-            raise ValueError('size argument must be between 16 and 4096.')
+    size: int
+    url: str
+    proxy_url: str
 
-        elif size & (size - 1) != 0:
-            # All powers of two only have one bit set: 1000
-            # if we subtract 1, then (0111) AND it we should get 0 (0000).
-            raise ValueError('size argument must be a power of two.')
+    height: Optional[int]
+    width: Optional[int]
+    ephemeral: bool
 
-        return AssetData(partial(self.api.read_asset, self.url + f'.{fmt}', size=size))
+    @classmethod
+    def from_data(cls, data: AttachmentData) -> Self:
+        return cls(
+            id=int(data['id']),
+            filename=data['filename'],
+            content_type=data.get('content_type'),
+            description=data.get('description'),
+
+            size=int(data['size']),
+            url=data['url'],
+            proxy_url=data['proxy_url'],
+
+            height=data.get('height'),
+            width=data.get('width'),
+            ephemeral=data.get('ephemeral', False)
+        )
