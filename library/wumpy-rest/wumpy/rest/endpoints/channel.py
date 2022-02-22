@@ -935,8 +935,7 @@ class ChannelRequester(Requester):
                 payload['invitable'] = invitable
 
         return await self.request(
-            Route('POST', path + '/threads', **params),
-            json=payload, reason=reason
+            Route('POST', f'{path}/threads', **params), json=payload, reason=reason
         )
 
     async def join_thread(self, channel: SupportsInt) -> None:

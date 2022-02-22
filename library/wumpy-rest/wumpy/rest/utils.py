@@ -1,13 +1,19 @@
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Callable
 
 from typing_extensions import Final, final
 
 __all__ = ('MISSING', 'dump_json', 'load_json')
 
+
+dump_json: Callable[[Any], str]
+load_json: Callable[[str], Any]
+
 try:
     import orjson
 
-    dump_json = orjson.dumps
+    def orjson_compat(obj: Any) -> str:
+        return orjson.dumps(obj).decode('utf-8')
+    dump_json = orjson_compat
     load_json = orjson.loads
 
 except ImportError:

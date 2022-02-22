@@ -128,12 +128,12 @@ class Requester:
         self,
         route: Route,
         headers: Dict[str, str],
-        ratelimit: Callable[[Mapping[str, str]], Awaitable],
+        ratelimit: Callable[[Mapping[str, str]], Awaitable[object]],
         attempt: int,
         *,
         json: Optional[Any] = None,
         data: Optional[Dict[Any, Any]] = None,
-        files: RequestFiles = None,
+        files: Optional[RequestFiles] = None,
         params: Optional[Dict[str, Any]] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None
     ) -> Optional[Any]:

@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import TracebackType
 from typing import (
-    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Coroutine, Dict,
-    Mapping, Optional, Type
+    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict, Mapping,
+    Optional, Type
 )
 from weakref import WeakValueDictionary
 
@@ -21,7 +21,7 @@ __all__ = ('Ratelimiter', 'DictRatelimiter')
 # The type allows the usage to the right of the code.
 Ratelimiter = AsyncContextManager[  # async with ratelimiter as rl:
     Callable[[Route], AsyncContextManager[  # async with rl(route) as lock:
-        Callable[[Mapping[str, str]], Awaitable]  # await lock(headers)
+        Callable[[Mapping[str, str]], Awaitable[object]]  # await lock(headers)
     ]]
 ]
 """Complete typing information of a rate limiter as a type alias.
@@ -206,7 +206,7 @@ class _RouteRatelimit:
         self.deferred = False
 
     @asynccontextmanager
-    async def acquire(self) -> AsyncGenerator[Callable[[Mapping[str, str]], Coroutine], None]:
+    async def acquire(self) -> AsyncGenerator[Callable[[Mapping[str, str]], Awaitable[object]], None]:
         await self._parent.global_event.wait()
 
         try:
@@ -307,8 +307,8 @@ class DictRatelimiter:
     global_event: anyio.Event
 
     buckets: Dict[str, str]
-    limiters: WeakValueDictionary
-    fallbacks: WeakValueDictionary
+    limiters: 'WeakValueDictionary[str, Ratelimit]'
+    fallbacks: 'WeakValueDictionary[str, Ratelimit]'
 
     __slots__ = ('_tasks', 'global_event', 'buckets', 'locks', 'fallbacks')
 
@@ -323,14 +323,14 @@ class DictRatelimiter:
         # don't have to deal with any form of LRU structure.
         # This is important as each bucket + major parameters gets a lock in
         # this dictionary, even if you only send one request.
-        self.locks = WeakValueDictionary()
+        self.locks: 'WeakValueDictionary[str, Ratelimit]' = WeakValueDictionary()
 
         # Fallback locks before buckets get populated
         self.fallbacks = WeakValueDictionary()
 
     async def __aenter__(self) -> Callable[
         [Route], AsyncContextManager[
-            Callable[[Mapping[str, str]], Awaitable]
+            Callable[[Mapping[str, str]], Awaitable[object]]
         ]
     ]:
         self._tasks = await anyio.create_task_group().__aenter__()
@@ -350,7 +350,7 @@ class DictRatelimiter:
     def get_lock(
         self,
         route: Route
-    ) -> AsyncContextManager[Callable[[Mapping[str, str]], Awaitable]]:
+    ) -> AsyncContextManager[Callable[[Mapping[str, str]], Awaitable[object]]]:
         """Get a ratelimit lock by its endpoint."""
         bucket = self.buckets.get(route.endpoint)
         if not bucket:

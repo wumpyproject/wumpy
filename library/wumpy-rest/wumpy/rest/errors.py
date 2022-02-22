@@ -40,7 +40,7 @@ class RequestException(HTTPException):
     status_phrase: str
     headers: Mapping[str, str]
 
-    data: Union[str, Dict, None]
+    data: Union[str, Dict[str, Any], None]
 
     errors: Optional[Dict[str, Any]]
     message: str
@@ -57,7 +57,7 @@ class RequestException(HTTPException):
         self,
         status_code: int,
         headers: Mapping[str, str],
-        data: Union[str, Dict, None] = None,
+        data: Union[str, Dict[str, Any], None] = None,
         *,
         attempt: int = 0
     ) -> None:
