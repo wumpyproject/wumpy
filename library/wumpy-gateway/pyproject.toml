@@ -41,7 +41,7 @@ dependencies = ["discord-gateway >=0.3.0, <1", "anyio >= 3.3.4, <4"]
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
-Repository = "https://github.com/wumpyproject/wumpy/main/library/wumpy-gateway"
+Repository = "https://github.com/wumpyproject/wumpy/tree/main/library/wumpy-gateway"
 Documentation = "https://wumpy.rtfd.io"
 
 [build-system]

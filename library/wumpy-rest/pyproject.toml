@@ -51,5 +51,5 @@ build-backend = "flit_core.buildapi"
 [tool.flit.module]
 # This is a subpackage under the wumpy namespace package,
 # we need to tell flit this otherwise it tries to make the
-# import wumpy-gateway rather than wumpy.gateway
+# import wumpy-rest rather than wumpy.rest
 name = "wumpy.rest"
