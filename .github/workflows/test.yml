@@ -65,6 +65,7 @@ jobs:
             flit install
             cd ..
           done
+          cd ..
 
       - name: Run pytest tests
         run: pytest tests/
