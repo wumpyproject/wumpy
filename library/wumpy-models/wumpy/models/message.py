@@ -1,9 +1,20 @@
-from typing import Iterable, Optional, Sequence, SupportsInt, Union
+import dataclasses
+from enum import Enum
+from typing import Iterable, Optional, Sequence, SupportsInt, Tuple, Union
 
-from discord_typings import AllowedMentionsData
+from discord_typings import AllowedMentionsData, MessageData
 from typing_extensions import Self
 
-__all__ = ('AllowedMentions',)
+from .asset import Attachment
+from .base import Model, Snowflake
+from .channels import ChannelMention
+from .embed import Embed
+from .emoji import MessageReaction
+from .member import Member
+from .user import User
+from .utils import _get_as_snowflake
+
+__all__ = ('AllowedMentions', 'MessageMentions', 'MessageType', 'Message')
 
 
 class AllowedMentions:
@@ -161,3 +172,95 @@ class AllowedMentions:
     @classmethod
     def all(cls) -> Self:
         return cls(everyone=True, users=True, roles=True, replied_user=True)
+
+
+@dataclasses.dataclass(frozen=True)
+class MessageMentions:
+    users: Union[Tuple[User, ...], Tuple[Member, ...]]
+    channels: Tuple[ChannelMention, ...]
+    roles: Tuple[Snowflake, ...]
+
+    __slots__ = ('users', 'channels', 'roles')
+
+    @classmethod
+    def from_message(cls, data: MessageData) -> Self:
+        if data['mentions'] and 'member' in data['mentions'][0]:
+            # Pyright doesn't understand that the type has narrowed down to
+            # List[UserMentionData] with the 'member' key.
+            users = tuple(Member.from_data(m, m['member']) for m in data['mentions'])  # type: ignore
+        else:
+            users = tuple(User.from_data(u) for u in data['mentions'])
+
+        return cls(
+            users=users,
+            channels=tuple(ChannelMention.from_data(c) for c in data['mention_channels']),
+            roles=tuple(Snowflake(int(r)) for r in data['mention_roles']),
+        )
+
+
+class MessageType(Enum):
+    default = 0
+    recipient_add = 1
+    recipient_remove = 2
+    call = 3
+    channel_name_change = 4
+    channel_icon_change = 5
+    pins_add = 6
+    new_member = 7
+    premium_guild_subscription = 8
+    premium_guild_tier_1 = 9
+    premium_guild_tier_2 = 10
+    premium_guild_tier_3 = 11
+    channel_follow_add = 12
+    guild_discovery_disqualified = 14
+    guild_discovery_requalified = 15
+    guild_discovery_grace_period_initial_warning = 16
+    guild_discovery_grace_period_final_warning = 17
+    thread_created = 18
+    reply = 19
+    application_command = 20
+    guild_invite_reminder = 21
+    thread_starter_message = 22
+
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class Message(Model):
+    type: MessageType
+
+    channel_id: Snowflake
+    guild_id: Optional[Snowflake]
+    author: Union[User, Member]
+
+    content: str
+    tts: bool
+    attachments: Tuple[Attachment, ...]
+    embeds: Tuple[Embed, ...]
+    reactions: Tuple[MessageReaction, ...]
+    mentions: MessageMentions
+
+    pinned: bool
+
+    @classmethod
+    def from_data(cls, data: MessageData) -> Self:
+        if 'member' in data:
+            author = Member.from_data(data['author'], data['member'])
+        else:
+            author = User.from_data(data['author'])
+
+        return cls(
+            id=int(data['id']),
+            type=MessageType(data['type']),
+
+            channel_id=Snowflake(int(data['channel_id'])),
+            guild_id=_get_as_snowflake(data, 'guild_id'),
+            author=author,
+
+            content=data['content'],
+            tts=data['tts'],
+            attachments=tuple(Attachment.from_data(a) for a in data['attachments']),
+            embeds=tuple(Embed.from_data(e) for e in data['embeds']),
+            reactions=tuple(MessageReaction.from_data(r) for r in data['reactions']),
+            mentions=MessageMentions.from_message(data),
+
+            pinned=data['pinned'],
+        )

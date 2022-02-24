@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from typing import Literal, Optional, Tuple
 
 from discord_typings import (
-    CategoryChannelData, DMChannelData, PartialChannelData, TextChannelData,
-    ThreadChannelData, ThreadMemberData, VoiceChannelData
+    CategoryChannelData, ChannelMentionData, DMChannelData, PartialChannelData,
+    TextChannelData, ThreadChannelData, ThreadMemberData, VoiceChannelData
 )
 from typing_extensions import Self
 
@@ -41,6 +41,22 @@ class PartialChannel(Model):
             id=int(data['id']),
             name=data['name'],
             type=data['type'],
+        )
+
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class ChannelMention(PartialChannel):
+    guild_id: Snowflake
+
+    __slots__ = ('guild_id',)
+
+    @classmethod
+    def from_data(cls, data: ChannelMentionData) -> Self:
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            type=data['type'],
+            guild_id=Snowflake(int(data['guild_id']))
         )
 
 
