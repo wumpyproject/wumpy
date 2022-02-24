@@ -1,10 +1,8 @@
 import json
-from typing import (
-    Any, Awaitable, Callable, Dict, List, Optional, Tuple, overload
-)
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import anyio
-from wumpy.rest import InteractionRequester
+from wumpy.rest import ApplicationCommandRequester
 
 from .base import CommandInteraction, ComponentInteraction, InteractionType
 from .commands import CommandRegistrar, SlashCommand
@@ -21,31 +19,11 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     what's absolutely necessary for the Discord API.
     """
 
-    rest: InteractionRequester
+    rest: ApplicationCommandRequester
     verification: DiscordRequestVerifier
 
     token: Optional[str]
     secret: Optional[str]
-
-    @overload
-    def __init__(
-        self,
-        application_id: int,
-        public_key: str,
-        *,
-        token: Optional[str] = None
-    ) -> None:
-        ...
-
-    @overload
-    def __init__(
-        self,
-        application_id: int,
-        public_key: str,
-        *,
-        secret: Optional[str] = None
-    ) -> None:
-        ...
 
     def __init__(
         self,
@@ -53,19 +31,14 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         public_key: str,
         *,
         token: Optional[str] = None,
-        secret: Optional[str] = None,
         register_commands: bool = True,
     ) -> None:
         super().__init__()
 
-        self.rest = InteractionRequester(application_id)
+        self.rest = ApplicationCommandRequester(headers={'Authorization': f'Bot {token}'})
         self.verification = DiscordRequestVerifier(public_key)
 
-        self.token = token
-        self.secret = secret
-
-        self.rest = InteractionRequester(application_id, token=token, secret=secret)
-
+        self.application_id = application_id
         self.register_commands = register_commands
 
     async def process_interaction(
@@ -191,7 +164,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         for local in self.commands.values():
             found = [c for c in commands if c['name'] == local.name]
             if not found:
-                await self.rest.create_global_command(local.to_dict())
+                await self.rest.create_global_command(self.application_id, local.to_dict())
                 continue
 
             command = found[0]
@@ -200,12 +173,12 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
                     (isinstance(local, SlashCommand) and local.description != command['description'])
                     or local.to_dict()['options'] != command.get('options', [])
             ):
-                await self.rest.edit_global_command(command['id'], local.to_dict())
+                await self.rest.edit_global_command(self.application_id, command['id'], local.to_dict())
                 continue
 
         for command in commands:
             if command['name'] not in self.commands:
-                await self.rest.delete_global_command(command['id'])
+                await self.rest.delete_global_command(self.application_id, command['id'])
 
     async def lifespan(
         self,
@@ -216,7 +189,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         event = await receive()
         if event['type'] == 'lifespan.startup':
             if self.register_commands:
-                commands = await self.rest.fetch_global_commands()
+                commands = await self.rest.fetch_global_commands(self.application_id)
                 await self.sync_commands(commands)
 
             await send({'type': 'lifespan.startup.complete'})

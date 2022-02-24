@@ -2,8 +2,9 @@ from typing import Union
 
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
+from wumpy.rest import MISSING
 
-__all__ = ('DiscordRequestVerifier',)
+__all__ = ('DiscordRequestVerifier', 'MISSING')
 
 
 class DiscordRequestVerifier:

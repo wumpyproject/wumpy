@@ -2,13 +2,13 @@ import enum
 import json
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
 
-from ..models import (
-    AllowedMentions, InteractionChannel, InteractionMember, InteractionUser,
-    Object
+from wumpy.models import (
+    AllowedMentions, InteractionChannel, InteractionMember, Model, User
 )
-from ..utils import MISSING
+from wumpy.models.member import Member
+from wumpy.rest.utils import MISSING
+
 from .components import ComponentList
-from .rest import InteractionRequester
 
 __all__ = (
     'InteractionType', 'ComponentType', 'ApplicationCommandOption',
@@ -45,7 +45,7 @@ class ApplicationCommandOption(enum.Enum):
 class ResolvedInteractionData:
     """Asynchronously resolved data from Discord."""
 
-    users: Dict[int, InteractionUser]
+    users: Dict[int, User]
     members: Dict[int, InteractionMember]
 
     roles: Dict[int, Dict[str, Any]]
@@ -55,21 +55,20 @@ class ResolvedInteractionData:
 
     __slots__ = ('users', 'members', 'roles', 'channels', 'messages')
 
-    def __init__(self, rest: InteractionRequester, data: Dict[str, Any]) -> None:
-        self.users = {}
-        self.members = {}
+    def __init__(self, data: Dict[str, Any]) -> None:
+        self.users = {int(k): User.from_data(v) for k, v in data.get('users', {}).items()}
 
-        for id_, user in data.get('users', {}).items():
-            self.users[id_] = InteractionUser(rest, user)
-            member = data.get('members', {}).get(id_)
-            if member:
-                # Discord doesn't repeat the member information inside the
-                # member so we need to modify the dictionary (hence this loop)
-                member['user'] = user
-                self.members[id_] = InteractionMember(rest, 123, member)
+        self.members = {
+            int(k): InteractionMember.from_data(data.get('users', {}).get(k), v)
+            for k, v in data.get('members', {}).items()
+            if data.get('users', {}).get(k)
+        }
 
         self.roles = {int(k): v for k, v in data.get('roles', {}).items()}
-        self.channels = {int(k): InteractionChannel(v) for k, v in data.get('channels', {}).items()}
+        self.channels = {
+            int(k): InteractionChannel.from_data(v)
+            for k, v in data.get('channels', {}).items()
+        }
 
         self.messages = {int(k): v for k, v in data.get('messages', {}).items()}
 
@@ -117,11 +116,10 @@ class SelectInteractionValue:
         self.emoji = data.get('default')
 
 
-class Interaction(Object):
+class Interaction(Model):
     """Base for all interaction objects."""
 
     _send: Callable[[Dict[str, Any]], Awaitable[None]]
-    _rest: InteractionRequester
 
     application_id: int
     type: InteractionType
@@ -129,7 +127,7 @@ class Interaction(Object):
     guild_id: Optional[int]
     channel_id: Optional[int]
 
-    user: InteractionUser
+    user: User
     token: str
 
     __slots__ = (
@@ -141,7 +139,6 @@ class Interaction(Object):
         self,
         app: Any,
         send: Callable[[Dict[str, Any]], Awaitable[None]],
-        rest: InteractionRequester,
         data: Dict[str, Any]
     ) -> None:
         super().__init__(int(data['id']))
@@ -149,7 +146,6 @@ class Interaction(Object):
         self.app = app
 
         self._send = send
-        self._rest = rest
 
         self.application_id = data['application_id']
         self.type = data['type']
@@ -159,9 +155,9 @@ class Interaction(Object):
 
         member = data.get('member')
         if member:
-            self.user = InteractionUser(member['user'])
+            self.user = Member.from_data(None, member)
         else:
-            self.user = InteractionUser(data['user'])
+            self.user = User.from_data(data['user'])
 
         self.token = data['token']
         self.version = data['version']
@@ -184,7 +180,7 @@ class Interaction(Object):
             'content': content,
             'tts': tts,
             'embeds': embeds,
-            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'allowed_mentions': allowed_mentions.data() if allowed_mentions else allowed_mentions,
             'components': components.to_dict() if components else components
         }
         if ephemeral:
@@ -232,16 +228,15 @@ class CommandInteraction(Interaction):
         self,
         app: Any,
         send: Callable[[Dict[str, Any]], Awaitable[None]],
-        rest: InteractionRequester,
         data: Dict[str, Any]
     ) -> None:
-        super().__init__(app, send, rest, data)
+        super().__init__(app, send, data)
 
         self.name = data['data']['name']
         self.invoked = data['data']['id']
         self.invoked_type = ApplicationCommandOption(data['data']['type'])
 
-        self.resolved = ResolvedInteractionData(rest, data['data'].get('resolved', {}))
+        self.resolved = ResolvedInteractionData(data['data'].get('resolved', {}))
 
         target_id = data['data'].get('target_id')
         self.target_id = int(target_id) if target_id else None
@@ -265,10 +260,9 @@ class ComponentInteraction(Interaction):
         self,
         app: Any,
         send: Callable[[Dict[str, Any]], Awaitable[None]],
-        rest: InteractionRequester,
         data: Dict[str, Any]
     ) -> None:
-        super().__init__(app, send, rest, data)
+        super().__init__(app, send, data)
 
         self.message = data['message']
 
@@ -310,7 +304,7 @@ class ComponentInteraction(Interaction):
             'content': content,
             'tts': tts,
             'embeds': embeds,
-            'allowed_mentions': allowed_mentions._data if allowed_mentions else allowed_mentions,
+            'allowed_mentions': allowed_mentions.data() if allowed_mentions else allowed_mentions,
             'components': components.to_dict() if components else components
         }
         if ephemeral:
