@@ -41,7 +41,6 @@ class ASGIMiddleware:
         self._sent = False
 
     async def __call__(self, scope: Mapping[str, Any], receive: Receive, send: Send) -> None:
-
         signature: Optional[bytes] = None
         timestamp: Optional[bytes] = None
 
@@ -122,9 +121,8 @@ class SanicMiddleware:
         # create a blueprint for only the interactions endpoint.
         @app.route('/interactions')
         async def interactions_route(request):
-            response = await verification.verify(request)
-            if response:
-                return response
+            # Will raise a response if the request could not be verified.
+            await verification.verify(request)
 
             ...  # The rest of your interactions logic
         ```

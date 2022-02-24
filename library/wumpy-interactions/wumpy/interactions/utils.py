@@ -12,6 +12,7 @@ class DiscordRequestVerifier:
     This is designed to verify Discord interactions requests. See the
     documentation for middlewares for specific libraries wrapping this class.
     """
+
     def __init__(self, public_key: str) -> None:
         self._verifier = VerifyKey(bytes.fromhex(public_key))
 

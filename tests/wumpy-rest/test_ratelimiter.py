@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 import pytest
 from wumpy.rest import DictRatelimiter
 
-
 if TYPE_CHECKING:
     from wumpy.testing.suites import RatelimiterSuite
 else:
