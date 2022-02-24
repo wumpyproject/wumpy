@@ -78,9 +78,15 @@ class FloatType(OptionType):
 
 
 # This is sentinel value used for one particular purpose - the option default
-@(lambda cls: cls())
-class _MISSING_DEFAULT:
+#    @(lambda cls: cls())
+#    class _MISSING_DEFAULT:
+#        pass
+class _MISSING_DEFAULT_TYPE:
     pass
+
+
+_MISSING_DEFAULT = _MISSING_DEFAULT_TYPE()
+del _MISSING_DEFAULT_TYPE
 
 
 class OptionClass:
