@@ -1,9 +1,10 @@
-from typing import Literal, Optional, Sequence, SupportsInt, overload
+from typing import Optional, Sequence, SupportsInt, overload
 
 from discord_typings import (
     AllowedMentionsData, AttachmentData, AutocompleteOptionData, ComponentData,
     EmbedData, MessageData
 )
+from typing_extensions import Literal
 
 from ..route import Route
 from ..utils import MISSING, dump_json

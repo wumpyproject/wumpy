@@ -1,5 +1,5 @@
 from typing import (
-    Any, Dict, Iterable, List, Literal, Optional, SupportsInt, Union, overload
+    Any, Dict, Iterable, List, Optional, SupportsInt, Union, overload
 )
 
 from discord_typings import (
@@ -7,6 +7,7 @@ from discord_typings import (
     FollowedChannelData, InviteData, ListThreadsData, MessageData,
     PermissionOverwriteData, ThreadMemberData, UserData
 )
+from typing_extensions import Literal
 
 from ..route import Route
 from ..utils import MISSING, dump_json

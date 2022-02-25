@@ -1,6 +1,4 @@
-from typing import (
-    Any, List, Literal, Optional, Sequence, SupportsInt, Union, overload
-)
+from typing import Any, List, Optional, Sequence, SupportsInt, Union, overload
 
 from discord_typings import (
     AuditLogData, BanData, ChannelData, ChannelPositionData, EmojiData,
@@ -9,6 +7,7 @@ from discord_typings import (
     PermissionOverwriteData, RoleData, RolePositionData, StageInstanceData,
     VoiceRegionData, WelcomeChannelData, WelcomeScreenData
 )
+from typing_extensions import Literal
 
 from ..route import Route
 from ..utils import MISSING
