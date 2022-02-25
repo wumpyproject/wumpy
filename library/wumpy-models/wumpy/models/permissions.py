@@ -60,7 +60,7 @@ class Permissions(DiscordFlags):
         create_private_threads: bool = ...,
         send_messages_in_threads: bool = ...,
         use_external_stickers: bool = ...,
-        start_embedded_activities: bool = ...,
+        use_embedded_activities: bool = ...,
         moderate_members: bool = ...,
     ) -> Self:
         ...
@@ -119,7 +119,7 @@ class Permissions(DiscordFlags):
         create_private_threads: bool = ...,
         send_messages_in_threads: bool = ...,
         use_external_stickers: bool = ...,
-        start_embedded_activities: bool = ...,
+        use_embedded_activities: bool = ...,
         moderate_members: bool = ...,
     ) -> Self:
         ...
@@ -341,8 +341,8 @@ class Permissions(DiscordFlags):
         return 1 << 38
 
     @flag
-    def start_embedded_activities() -> int:
-        """Whether the permission allows starting embedded activities."""
+    def use_embedded_activities() -> int:
+        """Whether the permission allows using embedded activities."""
         return 1 << 39
 
     @flag
@@ -475,7 +475,7 @@ class PermissionOverwrite(Model):
         create_private_threads: Optional[bool] = ...,
         use_external_stickers: Optional[bool] = ...,
         send_messages_in_threads: Optional[bool] = ...,
-        start_embedded_activities: Optional[bool] = ...,
+        use_embedded_activities: Optional[bool] = ...,
         moderate_members: Optional[bool] = ...,
     ) -> Self:
         ...
@@ -545,7 +545,7 @@ class PermissionOverwrite(Model):
         create_private_threads: Optional[bool] = ...,
         use_external_stickers: Optional[bool] = ...,
         send_messages_in_threads: Optional[bool] = ...,
-        start_embedded_activities: Optional[bool] = ...,
+        use_embedded_activities: Optional[bool] = ...,
         moderate_members: Optional[bool] = ...,
     ) -> Self:
         ...
@@ -781,8 +781,8 @@ class PermissionOverwrite(Model):
         return 1 << 38
 
     @triflag
-    def start_embedded_activities() -> int:
-        """Whether the permission allows starting embedded activities."""
+    def use_embedded_activities() -> int:
+        """Whether the permission allows using embedded activities."""
         return 1 << 39
 
     @triflag
