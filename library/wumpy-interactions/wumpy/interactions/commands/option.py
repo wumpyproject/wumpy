@@ -6,12 +6,12 @@ from typing import (
 )
 
 from typing_extensions import Annotated
+from wumpy.models import InteractionChannel, InteractionMember, User
 
-from ...errors import CommandSetupError
-from ...models import InteractionChannel, InteractionMember, InteractionUser
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
+from ..errors import CommandSetupError
 
 __all__ = ('CommandType', 'OptionClass')
 
@@ -141,7 +141,7 @@ class OptionClass:
         int: ApplicationCommandOption.integer,
         bool: ApplicationCommandOption.boolean,
         float: ApplicationCommandOption.number,
-        InteractionUser: ApplicationCommandOption.user,
+        User: ApplicationCommandOption.user,
         InteractionChannel: ApplicationCommandOption.channel,
         InteractionMember: ApplicationCommandOption.user,
     }
@@ -214,7 +214,7 @@ class OptionClass:
             self.type = OptionType(ApplicationCommandOption.number)
             return True
 
-        elif len(args) == 2 and InteractionUser in args and InteractionMember in args:
+        elif len(args) == 2 and User in args and InteractionMember in args:
             self.type = MemberUserUnion()
             return True
 

@@ -3,8 +3,9 @@ import importlib.util
 import sys
 from typing import Any, Callable, Dict, Optional, Union
 
+from wumpy.interactions import CommandRegistrar
+
 from .errors import ExtensionFailure
-from .interactions import CommandRegistrar
 from .utils import EventDispatcher
 
 __all__ = ('Extension', 'ExtensionLoader')

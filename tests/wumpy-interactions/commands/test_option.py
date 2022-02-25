@@ -6,9 +6,8 @@ import pytest
 from typing_extensions import Annotated
 from wumpy.interactions import ApplicationCommandOption
 from wumpy.interactions.commands.option import OptionClass, OptionType
-from wumpy.models.member import InteractionMember
-from wumpy.models.user import InteractionUser
-from wumpy.utils import MISSING
+from wumpy.interactions.utils import MISSING
+from wumpy.models import InteractionMember, User
 
 
 def test_implicit_required():
@@ -76,7 +75,7 @@ class TestDetermineType:
         assert option.type == ApplicationCommandOption.number
 
     def test_union_user_member(self):
-        option = OptionClass(type=Union[InteractionUser, InteractionMember])
+        option = OptionClass(type=Union[User, InteractionMember])
         assert option.type == ApplicationCommandOption.user
 
     def test_unknown_union(self):

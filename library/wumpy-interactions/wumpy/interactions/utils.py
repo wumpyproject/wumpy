@@ -1,5 +1,5 @@
 import functools
-from typing import Union, Any, Dict, Callable
+from typing import Any, Callable, Dict, Union
 
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey

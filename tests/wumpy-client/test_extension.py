@@ -1,10 +1,8 @@
 import pytest
-
-from wumpy.client.extension
-from wumpy.extension import Extension, ExtensionLoader, _is_submodule
-from wumpy.utils import Event, EventDispatcher
-
-from wumpy import ExtensionFailure
+from wumpy.client import (
+    Event, EventDispatcher, Extension, ExtensionFailure, ExtensionLoader
+)
+from wumpy.client.extension import _is_submodule
 
 
 def test_is_submodule():

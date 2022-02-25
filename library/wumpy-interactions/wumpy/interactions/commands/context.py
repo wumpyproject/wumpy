@@ -4,10 +4,10 @@ from typing import Any, Dict, Optional, TypeVar
 
 import anyio.abc
 from typing_extensions import ParamSpec
+from wumpy.models import InteractionMember, User
 
-from ...errors import CommandSetupError
-from ...models import InteractionMember, InteractionUser
 from ..base import CommandInteraction
+from ..errors import CommandSetupError
 from .base import Callback, CommandCallback
 from .option import CommandType
 
@@ -128,7 +128,7 @@ class UserCommand(ContextMenuCommand[P, RT]):
     """
 
     def _verify_annotation(self, annotation: Any) -> None:
-        if annotation in {CommandInteraction, InteractionUser, InteractionMember}:
+        if annotation in {CommandInteraction, User, InteractionMember}:
             return
 
         raise TypeError(f"Invalid parameter annotation '{annotation}'")
@@ -149,7 +149,7 @@ class UserCommand(ContextMenuCommand[P, RT]):
 
         # ContextMenuCommand saves the argument in preperation for real support
         # of differentiating between InteractionUser and InteractionMember
-        if isinstance(self.argument, InteractionUser):
+        if isinstance(self.argument, User):
             target = interaction.resolved.users.get(interaction.target_id)
         elif isinstance(self.argument, InteractionMember):
             target = interaction.resolved.members.get(interaction.target_id)

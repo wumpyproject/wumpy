@@ -7,11 +7,11 @@ from typing import (
 import anyio.abc
 from typing_extensions import ParamSpec
 
-from ...errors import CommandSetupError
-from ...utils import _eval_annotations
 from ..base import (
     ApplicationCommandOption, CommandInteraction, CommandInteractionOption
 )
+from ..errors import CommandSetupError
+from ..utils import _eval_annotations
 from .base import Callback, CommandCallback
 from .option import CommandType, OptionClass
 
