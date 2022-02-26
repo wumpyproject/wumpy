@@ -4,7 +4,7 @@ description: Open a new issue with the library. Consider picking the other optio
 body:
   - type: markdown
     attributes:
-      value: |
+      value: >
         **Use [GitHub Discussions][discussions] for miscellaneous support and development.**
 
         Thanks for taking the time to open an issue. Issues are used to track verified bugs,
