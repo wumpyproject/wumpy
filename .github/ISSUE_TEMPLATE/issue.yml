@@ -3,7 +3,10 @@ description: Open a new issue with the library. Consider picking the other optio
 
 body:
   - type: markdown
+    # '>' means that single newlines are turned into spaces - like with Markdown
     attributes:
+      # We use double-newlines here so that they appear as empty newlines in
+      # the final markdown that GitHub renders.
       value: >
         **Use [GitHub Discussions][discussions] for miscellaneous support and development.**
 
@@ -28,7 +31,6 @@ body:
   - type: textarea
     attributes:
       label: Summary
-      # '>' means that single newlines are turned into spaces - like with Markdown
       description: >
         A Tl;Dr-style summary of why the issue is opened. Please keep this short and use one of
         the other text areas below to elaborate.
@@ -54,4 +56,4 @@ body:
       description: >
         A list of things to do before closing this issue. Please use checkboxes as shown in the
         placeholder below, these can be marked as completed individually.
-      placeholder: '- [] ...'
+      placeholder: '- [ ] ...'
