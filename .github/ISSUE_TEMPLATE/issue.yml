@@ -46,7 +46,7 @@ body:
       description: Instructions for how to locally run into the issue. How did you run into it?
 
   - type: textarea
-    attribues:
+    attributes:
       label: Tasks
       description: >
         A list of things to do before closing this issue. Please use checkboxes as shown in the
