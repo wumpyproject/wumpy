@@ -51,4 +51,4 @@ body:
       description: >
         A list of things to do before closing this issue. Please use checkboxes as shown in the
         placeholder below, these can be marked as completed individually.
-      placeholder: - [] ...
+      placeholder: '- [] ...'
