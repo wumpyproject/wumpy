@@ -1,0 +1,54 @@
+name: Open an Issue
+description: Open a new issue with the library. Consider picking the other options first
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Use [GitHub Discussions][discussions] for miscellaneous support and development.**
+
+        Thanks for taking the time to open an issue. Issues are used to track verified bugs,
+        feature requests that should be worked on, and to track API support.
+
+        All issues and subsequent pull requests get tracked in the
+        [organization project][org-project] so that they are triaged and one can follow its
+        progress. This means that support queries should not go into the issue tracker - for
+        that [GitHub Discussions][discussions] are used!
+
+          [discussions]: https://github.com/wumpyproject/wumpy/discussions
+          [org-project]: https://github.com/orgs/wumpyproject/projects/1
+
+        This text is not included in the final issue, please fill out the form below:
+
+        ---
+
+  - type: textarea
+    attributes:
+      label: Summary
+      # '>' means that single newlines are turned into spaces - like with Markdown
+      description: >
+        A Tl;Dr-style summary of why the issue is opened. Please keep this short and use one of
+        the other text areas below to elaborate.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: >
+        Longer description and full explanation of the issue. If this is a feature request
+        explain the underlying problem - or if it is an API feature explain it more in detail
+        and how it could be implemented into the library.
+
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+      description: Instructions for how to locally run into the issue. How did you run into it?
+
+  - type: textarea
+    attribues:
+      label: Tasks
+      description: >
+        A list of things to do before closing this issue. Please use checkboxes as shown in the
+        placeholder below, these can be marked as completed individually.
+      placeholder: - [] ...

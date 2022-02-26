@@ -3,6 +3,11 @@
 A Discord API wrapper for Python. Wumpy aims to be easy enough for Wumpus, and
 extensible enough for Clyde!
 
+## Community
+
+There is a [development Discord server](https://discord.gg/ZWpjYdKKTF) you can
+join. GitHub Discussions is used for support.
+
 ## Usage
 
 If you are new to Wumpy consider [reading the documentation](https://wumpy.rtfd.io).

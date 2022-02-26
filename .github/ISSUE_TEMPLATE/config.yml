@@ -3,15 +3,23 @@ contact_links:
   - name: Read the Documentation
     url: https://wumpy.readthedocs.io/
     about: Refer to the documentation before asking for help
+
   - name: Questions or Support
     url: https://github.com/wumpyproject/wumpy/discussions/new?category=questions-and-support
     about: Ask the community for help with a question or report a problem with the library
+
   - name: Discord API Feature Request
-    url: https://github.com/discord/discord-api-docs/discussions/new?category=api-feature-requests-ideas
+    url: https://github.com/discord/discord-api-docs/discussions/new
     about: Suggest a new feature to the Discord API
+
   - name: Library Feature Request
     url: https://github.com/wumpyproject/wumpy/discussions/new?category=feature-requests
-    about: Suggest a new feature to be implemented into Wumpy
+    about: Discuss a new feature to be implemented into Wumpy
+
   - name: Development Discussion
     url: https://github.com/wumpyproject/wumpy/discussions/new?category=development
     about: Open a discussion about development of the library
+
+  - name: Join the Discord server
+    url: https://discord.gg/ZWpjYdKKTF
+    about: There is a development server for IRC-style discussion
