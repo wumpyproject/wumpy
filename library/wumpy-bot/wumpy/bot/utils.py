@@ -46,3 +46,39 @@ def _eval_annotations(obj: Callable) -> Dict[str, Any]:
         }
     except (NameError, SyntaxError) as e:
         raise ValueError(f'Could not evaluate the annotations of {unwrapped!r}') from e
+
+
+class RuntimeVar(Generic[T]):
+    """Descriptor for attributes that are set during runtime.
+
+    This descriptor raises a `RuntimeError` if the attribute is accessed before
+    it has been set - the benefit of which is that you can have attributes that
+    should usualy use `Optional[T]` but without the unnecessary runtime checks
+    to pass type hinting.
+
+    This is a generic for the type of the underlying value.
+    """
+
+    name: Optional[str]
+    value: T
+
+    def __init__(self, name: Optional[str] = None) -> None:
+        self.name = name
+
+    def __set_name__(self, owner: Type[object], name: str) -> None:
+        if self.name is not None:
+            self.name = name
+
+    def __get__(self, instance: Optional[object], cls: Type[object]) -> T:
+        if instance is None:
+            raise AttributeError(f'{cls.__name__!r} object has no attribute {self.name!r}')
+
+        if not hasattr(self, 'value'):
+            raise RuntimeError(
+                f'Cannot access runtime variable {self.name!r} before bot is running'
+            )
+
+        return self.value
+
+    def __set__(self, instance: object, value: T) -> None:
+        self.value = value
