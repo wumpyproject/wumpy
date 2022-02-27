@@ -4,7 +4,7 @@ import anyio
 from wumpy.gateway import Shard
 from wumpy.rest import APIClient
 
-from .utils import EventDispatcher
+from .dispatch import EventDispatcher
 
 __all__ = ('Bot',)
 
