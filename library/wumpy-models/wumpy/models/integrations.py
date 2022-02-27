@@ -99,6 +99,11 @@ class BotIntegration(Model):
 
     __slots__ = ('name', 'type', 'enabled', 'account', 'application')
 
+    @property
+    def user(self) -> Optional[User]:
+        """The user associated with the integration."""
+        return None if self.application is None else self.application.user
+
     @classmethod
     def from_data(cls, data: DiscordIntegrationData) -> Self:
         application = data.get('application')
@@ -113,11 +118,6 @@ class BotIntegration(Model):
             account=IntegrationAccount.from_data(data['account']),
             application=application
         )
-
-    @property
-    def user(self) -> Optional[User]:
-        """The user associated with the integration."""
-        return None if self.application is None else self.application.user
 
 
 @dataclasses.dataclass(frozen=True, eq=False)
