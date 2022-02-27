@@ -63,7 +63,7 @@ jobs:
       matrix:
         subpackage:
           - cache
-          - client
+          - bot
           - gateway
           - interactions
           - models

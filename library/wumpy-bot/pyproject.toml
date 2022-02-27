@@ -1,5 +1,5 @@
 [project]
-name = "wumpy-client"
+name = "wumpy-bot"
 version = "0.0.1"
 description = "Highly abstracted and easy to use wrapper over the Wumpy project"
 readme = {file = "README.md", content-type="text/markdown"}
@@ -39,7 +39,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
-Repository = "https://github.com/wumpyproject/wumpy/tree/main/library/wumpy-client"
+Repository = "https://github.com/wumpyproject/wumpy/tree/main/library/wumpy-bot"
 Documentation = "https://wumpy.rtfd.io"
 
 [build-system]
@@ -50,4 +50,4 @@ build-backend = "flit_core.buildapi"
 # This is a subpackage under the wumpy namespace package,
 # we need to tell flit this otherwise it tries to make the
 # import wumpy-client rather than wumpy.client
-name = "wumpy.client"
+name = "wumpy.bot"

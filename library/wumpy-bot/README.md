@@ -1,4 +1,4 @@
-# Wumpy-client
+# Wumpy-bot
 
 Easy to use high abstraction over other Wumpy subpackages.
 
@@ -13,10 +13,10 @@ run the bot under either:
 
 ```python
 import anyio
-from wumpy.client import GatewayBot
+from wumpy.bot import Bot
 
 
-bot = GatewayBot('ABC123.XYZ789')  # Replace with your token and keep it safe!
+bot = Bot('ABC123.XYZ789')  # Replace with your token and keep it safe!
 
 # This runs the bot with Trio as the event loop (recommended),
 # use backend='asyncio' to run it under asyncio.
@@ -30,10 +30,10 @@ events using Wumpy's rich event listeners:
 
 ```python
 import anyio
-from wumpy.client import GatewayBot, MessageDeleteEvent
+from wumpy.bot import Bot, MessageDeleteEvent
 
 
-bot = GatewayBot('ABC123.XYZ789')
+bot = Bot('ABC123.XYZ789')
 
 
 @bot.listener()

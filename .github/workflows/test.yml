@@ -38,7 +38,7 @@ jobs:
       # This is ordered from lowlevel to toplevel, such that any subpackages
       # that depend on other subpackages are installed last (so that it isn't
       # installed from PyPI).
-      subpackages: 'gateway rest models cache interactions client'
+      subpackages: 'gateway rest models cache interactions bot'
 
     steps:
       - uses: actions/checkout@v2
