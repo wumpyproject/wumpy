@@ -6,7 +6,6 @@ import pytest
 from typing_extensions import Annotated
 from wumpy.interactions import ApplicationCommandOption
 from wumpy.interactions.commands.option import OptionClass, OptionType
-from wumpy.interactions.utils import MISSING
 from wumpy.models import InteractionMember, User
 
 
@@ -80,7 +79,7 @@ class TestDetermineType:
 
     def test_unknown_union(self):
         option = OptionClass(type=Union[frozenset, bool])
-        assert option.type is MISSING
+        assert option.type is None
 
     def test_annotated(self):
         cases = [
@@ -97,7 +96,7 @@ class TestDetermineType:
     def test_bad_annotated(self):
         option = OptionClass(type=Annotated[int, frozenset])
 
-        assert option.type is MISSING
+        assert option.type is None
 
     def test_literal_typeerror(self):
         with pytest.raises(TypeError):

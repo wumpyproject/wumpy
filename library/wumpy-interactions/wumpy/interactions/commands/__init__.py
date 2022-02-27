@@ -1,10 +1,9 @@
-from typing import Any, Callable, Dict, List, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 
-from ..utils import MISSING
 from . import option as __option
 from .base import *
 from .context import *
-from .option import CommandType
+from .option import _MISSING_DEFAULT, CommandType
 from .registrar import *
 from .slash import *
 
@@ -16,15 +15,15 @@ T = TypeVar('T', bound=Union[SlashCommand, Subcommand])
 # def command(number: int = Option(description='A number'))
 # 'int' and 'Option' is incompatible. This function avoids that
 def Option(
-    default: Any = MISSING,
+    default: Any = _MISSING_DEFAULT,
     *,
-    name: str = MISSING,
-    description: str = MISSING,
-    required: bool = MISSING,
-    choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
-    min: int = MISSING,
-    max: int = MISSING,
-    type: Type[Any] = MISSING,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    required: Optional[bool] = None,
+    choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]], None] = None,
+    min: Optional[int] = None,
+    max: Optional[int] = None,
+    type: Optional[Any] = None,
     cls: Type[Any] = __option.OptionClass
 ) -> Any:
     """Interaction option, should be set as a default to a parameter.
@@ -67,13 +66,13 @@ def Option(
 # to be used on command instances.
 def option(
     param: str,
-    name: str = MISSING,
-    description: str = MISSING,
-    required: bool = MISSING,
-    choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]]] = MISSING,
-    min: int = MISSING,
-    max: int = MISSING,
-    type: Type[Any] = MISSING
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    required: Optional[bool] = None,
+    choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]], None] = None,
+    min: Optional[int] = None,
+    max: Optional[int] = None,
+    type: Optional[Any] = None
 ) -> Callable[[T], T]:
     """Option decorator for updating an option.
 
@@ -111,5 +110,5 @@ def option(
 
 
 # Clean up as we don't want users importing these from here
-del Any, Callable, Dict, List, T, Type, Union
-del MISSING, __option
+del Any, Callable, Dict, List, Optional, T, Type, Union
+del _MISSING_DEFAULT, __option

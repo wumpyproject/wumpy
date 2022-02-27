@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, TypeVar
 
 import anyio.abc
 from typing_extensions import ParamSpec
-from wumpy.models import InteractionMember, User
+from wumpy.models import InteractionMember, Message, User
 
 from ..base import CommandInteraction
 from ..errors import CommandSetupError
@@ -92,7 +92,10 @@ class MessageCommand(ContextMenuCommand[P, RT]):
     """
 
     def _verify_annotation(self, annotation: Any) -> None:
-        ...  # TODO: Implement this once there is an InteractionMessage object
+        if annotation in {CommandInteraction, Message}:
+            return
+
+        raise TypeError(f"Invalid parameter annotation '{annotation}'")
 
     def resolve_value(self, interaction: CommandInteraction) -> Any:
         """Resolve the message to pass to the callback.

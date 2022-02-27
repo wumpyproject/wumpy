@@ -287,7 +287,7 @@ class SubcommandGroup:
 
     def command(
         self,
-        callback: Callback[P, RT] = None,
+        callback: Optional[Callback[P, RT]] = None,
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,

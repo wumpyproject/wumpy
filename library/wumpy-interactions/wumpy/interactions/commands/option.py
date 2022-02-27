@@ -158,7 +158,7 @@ class OptionClass:
         choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]], None] = None,
         min: Optional[int] = None,
         max: Optional[int] = None,
-        type: Optional[Type[Any]] = None
+        type: Optional[Any] = None
     ) -> None:
         self.name = name
         self.description = description
@@ -317,7 +317,7 @@ class OptionClass:
         if param.default is not param.empty and not isinstance(param.default, self.__class__):
             # If the parameter has a default other than an Option class we can
             # use it for the option default
-            self.default = param.default if self.default is None else self.default
+            self.default = param.default if self.default is _MISSING_DEFAULT else self.default
             self.required = False if self.required is None else self.required
 
         self.kind = param.kind
@@ -327,15 +327,16 @@ class OptionClass:
 
     def _update_values(
         self,
-        name: str = None,
-        description: str = None,
-        required: bool = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        required: Optional[bool] = None,
         choices: Union[
             List[Union[str, int, float]],
-            Dict[str, Union[str, int, float]]
+            Dict[str, Union[str, int, float]],
+            None
         ] = None,
-        min: int = None,
-        max: int = None,
+        min: Optional[int] = None,
+        max: Optional[int] = None,
         type: Any = None
     ) -> None:
         """Update internal values of the option.
