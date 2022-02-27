@@ -117,13 +117,13 @@ class AllowedMentions:
 
         if self._users:
             if isinstance(self._users, tuple):
-                data['users'] = self._users
+                data['users'] = list(self._users)
             else:
                 data['parse'].append('users')
 
         if self._roles:
             if isinstance(self._roles, tuple):
-                data['roles'] = self._roles
+                data['roles'] = list(self._roles)
             else:
                 data['parse'].append('roles')
 
