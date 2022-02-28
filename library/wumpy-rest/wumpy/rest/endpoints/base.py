@@ -20,7 +20,7 @@ from ..ratelimiter import DictRatelimiter, Ratelimiter
 from ..route import Route
 from ..utils import MISSING, dump_json, load_json
 
-__all__ = ('build_user_agent', 'Requester')
+__all__ = ('Requester',)
 
 
 # The following type variables are copied from HTTPX so that the annotations
@@ -35,15 +35,6 @@ FileTypes = Union[
     Tuple[Optional[str], FileContent, Optional[str]],
 ]
 RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
-
-
-def build_user_agent() -> str:
-    """Build a User-Agent to use in making requests."""
-
-    agent = 'DiscordBot (https://github.com/wumpyproject/wumpy, version: 0.0.1)'
-    agent += f" Python/{'.'.join([str(i) for i in sys.version_info])}"
-
-    return agent
 
 
 class Requester:
@@ -72,7 +63,7 @@ class Requester:
     ) -> None:
         # Headers global to the requester
         self.headers: Dict[str, str] = {
-            'User-Agent': build_user_agent(),
+            'User-Agent': self.build_user_agent(),
             'X-RateLimit-Precision': 'millisecond',
             **headers,
         }
@@ -122,6 +113,23 @@ class Requester:
         MISSING value left.
         """
         return {k: v for k, v in mapping.items() if v is not MISSING}
+
+    @staticmethod
+    def build_user_agent() -> str:
+        """Build a User-Agent to use in making requests.
+
+        If `wumpy-rest` is used to build another library, this method should be
+        overriden so that Discord receives metrics for this library. Please do
+        not do so otherwise as it messes with Discord's metrics.
+
+        Returns:
+            The value for the `User-Agent` header field.
+        """
+
+        agent = 'DiscordBot (https://github.com/wumpyproject/wumpy, version: 0.0.1)'
+        agent += f" Python/{'.'.join([str(i) for i in sys.version_info])}"
+
+        return agent
 
     async def _request(
         self,
