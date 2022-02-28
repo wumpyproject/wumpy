@@ -136,7 +136,6 @@ class Requester:
         route: Route,
         headers: Dict[str, str],
         ratelimit: Callable[[Mapping[str, str]], Awaitable[object]],
-        attempt: int,
         *,
         json: Optional[Any] = None,
         data: Optional[Dict[Any, Any]] = None,
@@ -150,21 +149,21 @@ class Requester:
             route: The route to make the request to.
             headers: Headers to use when making the request.
             ratelimit: Ratelimit lock for this route.
-            attempt: How many attempts have been made at this route.
             json: Dictionary to serialize to JSON and send as the request body.
             data: Dictionary to send as a multipart form-data request body.
+            files: Additional files to include in the request.
+            params: Query string parameters for the request.
             auth:
                 Tuple with two items: (username, password) to authorize with
-                using BASIC. This parameter is not used, as Discord primarily
-                authenticates using the Authorization header.
+                using BASIC. This parameter is not often used, as Discord
+                primarily authenticates using the Authorization header.
 
         Raises:
             Forbidden: The request received a 403 Forbidden response.
             NotFound: The request received a 404 Not Found response.
             ServerException:
-                The request received a 503 Service Unavailable response, this
-                is different from 500, 502 or 504 responses as they are
-                gracefully retried.
+                The request received a 500, 502, 503 or 504 response.
+            Ratelimited: The request received a 429 Too Many Requests response.
             HTTPException:
                 The request received a non-successful unknown response. Simply
                 indicates a general failure.
@@ -235,8 +234,8 @@ class Requester:
     ) -> Any:
         """Send a request to the Discord API, respecting rate limits.
 
-        If the `json` keyword-argument contains values that are MISSING,
-        they will be removed before being passed to HTTPX.
+        If the `json`, `data` or `params` keyword-arguments contains values
+        that are MISSING, they will be removed before being passed to HTTPX.
 
         This function returns a deserialized JSON object if Content-Type is
         `application/json`, otherwise a string. Commonly it is known by the
@@ -249,11 +248,11 @@ class Requester:
             reason:
                 The reason to insert into the Audit Log for this change, not
                 supported by all endpoints.
-            headers: Headers to use when making the request.
-            ratelimit: Ratelimit lock for this route.
-            attempt: How many attempts have been made at this route.
             json: Dictionary to serialize to JSON and send as the request body.
             data: Dictionary to send as a multipart form-data request body.
+            files: Additional files to include in the request.
+            params: Query string parameters for the request.
+            headers: Headers to use when making the request.
             auth:
                 Tuple with two items: (username, password) to authorize with
                 using BASIC. This parameter is not used, as Discord primarily
@@ -273,8 +272,7 @@ class Requester:
                 at the request was successful.
 
         Returns:
-            The JSON deserialized body of the response, or None if the request
-            was unsuccessful and should be retried.
+            The JSON deserialized body of the response.
         """
 
         # Clean up MISSING values
@@ -293,7 +291,7 @@ class Requester:
             async with self._ratelimiter(route) as rl:
                 try:
                     res = await self._request(
-                        route, rheaders, rl, attempt,
+                        route, rheaders, rl,
                         json=json, data=data, files=files, params=params,
                         auth=auth
                     )
@@ -328,7 +326,8 @@ class Requester:
         Parameters:
             method: The HTTP method to use.
             url: The URL to make the request to.
-            kwargs: Keyword arguments to pass to HTTPX.
+            json: JSON body for the request.
+            params: Query string parameters to use in the request.
 
         Returns:
             The response body read as bytes.
