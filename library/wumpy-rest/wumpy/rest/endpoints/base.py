@@ -61,7 +61,7 @@ class Requester:
     _session: httpx.AsyncClient
 
     __slots__ = (
-        'headers', '_user_ratelimiter', '_ratelimiter', '_session', '_tasks', '_stack'
+        'headers', '_user_ratelimiter', '_ratelimiter', '_session', '_stack'
     )
 
     def __init__(
@@ -86,7 +86,6 @@ class Requester:
         self._stack = contextlib.AsyncExitStack()
 
         try:
-            self._tasks = await self._stack.enter_async_context(anyio.create_task_group())
             self._session = await self._stack.enter_async_context(
                 httpx.AsyncClient(headers=self.headers, http2=True, follow_redirects=True)
             )
