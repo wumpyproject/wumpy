@@ -77,7 +77,7 @@ class TestAddListener:
         dispatcher.add_listener(extra_defaulted)
         dispatcher.add_listener(extra_kwargs)
 
-        assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 5
+        assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 4
 
     def test_wrong_signatures(self, cls):
         dispatcher = cls()
