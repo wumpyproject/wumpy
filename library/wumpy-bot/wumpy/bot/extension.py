@@ -136,7 +136,7 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
 
         try:
             resolved = importlib.util.resolve_name(name, package)
-        except ImportError as err:
+        except (ImportError, ValueError) as err:
             if not package:
                 raise TypeError(
                     "'package' is a required argument when 'path' is relative"
@@ -221,7 +221,7 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
 
         try:
             resolved = importlib.util.resolve_name(name, package)
-        except ImportError as err:
+        except (ImportError, ValueError) as err:
             if not package:
                 raise TypeError(
                     "'package' is a required argument when 'path' is relative"
