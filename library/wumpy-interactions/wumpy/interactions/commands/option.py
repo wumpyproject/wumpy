@@ -1,11 +1,10 @@
 import inspect
 from enum import Enum
 from typing import (
-    Any, AnyStr, ClassVar, Dict, List, Literal, Optional, Tuple, Type, Union,
-    get_args, get_origin
+    Any, AnyStr, ClassVar, Dict, List, Optional, Tuple, Type, Union
 )
 
-from typing_extensions import Annotated
+from typing_extensions import Annotated, Literal, get_args, get_origin
 from wumpy.models import InteractionChannel, InteractionMember, User
 
 from ..base import (

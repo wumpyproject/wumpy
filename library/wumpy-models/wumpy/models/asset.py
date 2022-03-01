@@ -1,9 +1,9 @@
 import dataclasses
-from typing import Literal, Optional
+from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from discord_typings.resources.channel import AttachmentData
-from typing_extensions import Self
+from discord_typings import AttachmentData
+from typing_extensions import Literal, Self
 
 from .base import Model
 

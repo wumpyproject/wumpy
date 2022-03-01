@@ -1,12 +1,12 @@
 import dataclasses
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Tuple
+from typing import Optional, Tuple
 
 from discord_typings import (
     CategoryChannelData, ChannelMentionData, DMChannelData, PartialChannelData,
     TextChannelData, ThreadChannelData, ThreadMemberData, VoiceChannelData
 )
-from typing_extensions import Self
+from typing_extensions import Literal, Self
 
 from .base import Model, Snowflake
 from .permissions import PermissionOverwrite, Permissions

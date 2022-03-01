@@ -1,7 +1,7 @@
-from typing import Callable, Dict, Literal, Optional, TypeVar, Union, overload
+from typing import Callable, Dict, Optional, TypeVar, Union, overload
 
 import anyio.abc
-from typing_extensions import ParamSpec
+from typing_extensions import Literal, ParamSpec
 
 from ..base import CommandInteraction
 from .base import Callback
