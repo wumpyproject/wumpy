@@ -5,7 +5,6 @@ from typing import Any, Generator, NoReturn, Optional, Type
 import anyio
 import anyio.abc
 from typing_extensions import Self
-from wumpy.cache import Cache
 from wumpy.gateway import Shard
 from wumpy.rest import APIClient
 
@@ -46,7 +45,6 @@ class Bot(EventDispatcher):
 
     async def main() -> None:
         async with bot:
-            await bot.enter_cache()
             await bot.login()
 
             # This will run the bot and only exit once the gateway has closed.
@@ -56,7 +54,6 @@ class Bot(EventDispatcher):
     ```
     """
 
-    cache: RuntimeVar[Cache] = RuntimeVar()
     api: RuntimeVar[APIClient] = RuntimeVar()
     gateway: RuntimeVar[Shard] = RuntimeVar()
 
@@ -87,14 +84,6 @@ class Bot(EventDispatcher):
         self._started = False
 
         return await self._stack.__aexit__(exc_type, exc_val, traceback)
-
-    async def enter_cache(self) -> None:
-        if not self._started:
-            raise RuntimeError(
-                "Cannot enter cache outside of 'run()' or the asynchronous context manager"
-            )
-
-        self.cache = await self._stack.enter_async_context(Cache())
 
     async def login(self) -> None:
         if not self._started:
@@ -157,7 +146,6 @@ class Bot(EventDispatcher):
 
         try:
             async with self._stack:
-                await self.enter_cache()
                 await self.login()
 
                 await self.run_gateway()
