@@ -8,6 +8,8 @@ import anyio.abc
 
 from .utils import _eval_annotations
 
+__all__ = ('Event', 'ErrorHandlerMixin', 'EventDispatcher')
+
 
 class Event:
     """Parent class for events, meant to be read from annotations.

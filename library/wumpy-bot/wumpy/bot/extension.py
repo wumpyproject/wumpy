@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Optional, Union
 from wumpy.interactions import CommandRegistrar
 
 from .errors import ExtensionFailure
-from .utils import EventDispatcher
+from .dispatch import EventDispatcher
 
 __all__ = ('Extension', 'ExtensionLoader')
 

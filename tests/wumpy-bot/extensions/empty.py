@@ -1,3 +1,3 @@
-from wumpy.client import Extension
+from wumpy.bot import Extension
 
 ext = Extension()
