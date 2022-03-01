@@ -1,3 +1,4 @@
+import sys
 from time import perf_counter
 from typing import NoReturn
 from unittest import mock
@@ -25,6 +26,7 @@ class TestGatewayLimiter:
                         pass
 
     @pytest.mark.anyio
+    @pytest.mark.skipif(sys.version_info < (3, 8), reason='AsyncMock requires Python 3.8+')
     async def test_wait(self) -> None:
         slept = mock.AsyncMock()
 
