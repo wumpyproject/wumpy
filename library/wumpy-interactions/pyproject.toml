@@ -35,7 +35,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-dependencies = ["anyio >= 3.3.4, <4"]
+dependencies = ["anyio >= 3.3.4, <4", "pynacl > 1, < 2"]
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
