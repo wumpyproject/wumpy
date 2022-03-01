@@ -59,8 +59,8 @@ class TestAddListener:
         async def expected(event: DummyEvent):
             ...
 
-        async def pos_only(expected: DummyEvent, /):
-            ...
+        # async def pos_only(expected: DummyEvent, /):
+        #     ...
 
         async def defaulted(event: DummyEvent = None):
             ...
@@ -72,7 +72,7 @@ class TestAddListener:
             ...
 
         dispatcher.add_listener(expected)
-        dispatcher.add_listener(pos_only)
+        # dispatcher.add_listener(pos_only)
         dispatcher.add_listener(defaulted)
         dispatcher.add_listener(extra_defaulted)
         dispatcher.add_listener(extra_kwargs)
