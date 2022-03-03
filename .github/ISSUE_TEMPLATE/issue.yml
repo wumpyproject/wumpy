@@ -21,10 +21,15 @@ body:
         that [GitHub Discussions][discussions] are used!
 
 
+        If you're opening an issue to discuss and scope out a change or addition use
+        [GitHub Discussions][discussions] or join the [development Discord server][discord].
+
+
         This text is not included in the final issue, please fill out the form below:
 
           [discussions]: https://github.com/wumpyproject/wumpy/discussions
           [org-project]: https://github.com/orgs/wumpyproject/projects/1
+          [discord]: https://discord.gg/ZWpjYdKKTF
 
         ---
 
