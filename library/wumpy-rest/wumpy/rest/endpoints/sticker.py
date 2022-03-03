@@ -3,8 +3,8 @@ from typing import Any, Dict, List, SupportsInt
 from discord_typings import StickerData, StickerPackData
 
 from ..route import Route
-from ..utils import MISSING, File
-from .base import Requester
+from ..utils import MISSING
+from .base import Requester, RequestFiles
 
 __all__ = ('StickerRequester',)
 
@@ -70,7 +70,7 @@ class StickerRequester(Requester):
         name: str,
         description: str,
         tags: str,
-        file: File,
+        file: RequestFiles,
         reason: str = MISSING
     ) -> StickerData:
         """Create a new sticker for a guild.
