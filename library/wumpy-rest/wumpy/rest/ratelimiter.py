@@ -43,11 +43,17 @@ class Ratelimit:
     event allows the ratelimit to notify itself once another reset is known,
     because Discord does not provide a "per" header so it cannot be calculated
     in advance.
-
-    The last feature of the `Ratelimit` is the ability to move itself using the
-    `move()` method, which is used when two ratelimits are unexpectedly merged
-    because they share the same `X-RateLimit-Bucket` header.
     """
+
+    # Previously this class had a move() feature to handle two buckets merging
+    # while having multiple waiters. It introduced a lot of code complexity and
+    # was only there for an extremely rare condition that required:
+    # - Discord to merge two buckets
+    # - There to be multiple tasks waiting on the same route and major params
+    #
+    # When this is not handled, the worst that can happen is an 429 response
+    # from Discord, which in of itself will be handled correctly. This is not
+    # the end of the day really.
 
     _lock: anyio.Lock
     _ratelimited: anyio.Event
@@ -57,26 +63,22 @@ class Ratelimit:
     _remaining: int
     _reset_at: Optional[float]
 
-    _moved: Optional[Self]
-
     __slots__ = (
-        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at', '_moved',
-        '__weakref__'
+        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at', '__weakref__'
     )
 
     def __init__(self, limit: int = 1, remaining: int = 1) -> None:
         self._lock = anyio.Lock()
+
         self._ratelimited = anyio.Event()
         self._ratelimited.set()
+
         self._event = anyio.Event()
         self._event.set()
 
         self._limit = limit
         self._remaining = remaining
-
         self._reset_at = None
-
-        self._moved = None
 
     async def __aenter__(self) -> Self:
         await self.acquire()
@@ -124,18 +126,7 @@ class Ratelimit:
 
     async def acquire(self) -> None:
         """Decrement the semaphore value, blocking if necessary."""
-        if self._moved:
-            await self._moved.acquire()
-            return
-
         async with self._lock:
-            # This is duplicated because the ratelimit may not have moved when
-            # we first checked, but because there's a potential that it
-            # happened while we waited for the lock we need to check again.
-            if self._moved:
-                await self._moved.acquire()
-                return
-
             await self._ratelimited.wait()
 
             if self._remaining >= 1:
@@ -145,10 +136,10 @@ class Ratelimit:
             if self._reset_at is None:
                 await self._event.wait()
 
-                if self._reset_at is None:
-                    raise RuntimeError(
-                        'Ratelimit was notified of a new reset, but no reset time was set.'
-                    )
+            if self._reset_at is None:
+                raise RuntimeError(
+                    'Ratelimit was notified of a new reset, but no reset time was set.'
+                )
 
             if self._reset_at < time.perf_counter():
                 self._remaining = self._limit - 1
@@ -161,9 +152,6 @@ class Ratelimit:
                 self._remaining = self._limit - 1
                 self._reset_at = None
                 self._event = anyio.Event()
-
-    def move(self, target: Self) -> None:
-        self._moved = target
 
     def lock(self) -> None:
         self._ratelimited = anyio.Event()
@@ -233,12 +221,10 @@ class _RouteRatelimit:
             bucket = headers['X-RateLimit-Bucket']
         except KeyError:
             bucket = None
-
-        # Update the fallback if this route is this using.
-        old = self._lock
-        self._lock = self._parent.set_lock(self._route, bucket, self._lock)
-        if self._lock is not old:
-            old.move(self._lock)
+        else:
+            # Update the ratelimiter with the bucket and remove the fallback
+            # if present currently.
+            self._lock = self._parent.set_lock(self._route, bucket, self._lock)
 
         try:
             limit = headers['X-RateLimit-Limit']
