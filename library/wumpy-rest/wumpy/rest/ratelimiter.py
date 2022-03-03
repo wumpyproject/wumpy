@@ -349,9 +349,11 @@ class DictRatelimiter:
 
     def lock(self) -> None:
         """Globally lock all locks across the ratelimiter."""
-        self.global_event = anyio.Event()
+        # If the global event isn't set, then another task has already locked
+        # the ratelimiter.
+        if self.global_event.is_set():
+            self.global_event = anyio.Event()
 
     def unlock(self) -> None:
         """Unlock all locks across the ratelimiter."""
         self.global_event.set()  # Release the previous
-        self.global_event = anyio.Event()
