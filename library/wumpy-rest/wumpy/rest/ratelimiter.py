@@ -99,7 +99,10 @@ class Ratelimit:
 
     @remaining.setter
     def remaining(self, value: int) -> None:
-        self._remaining = value
+        # We only want to update the remaining tokens if they are less than
+        # what we track locally, since a request can be in-progress but not yet
+        # received by Discord (making the local count lower).
+        self._remaining = min(self._remaining, value)
 
     @property
     def limit(self) -> int:
