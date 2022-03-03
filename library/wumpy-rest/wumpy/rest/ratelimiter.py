@@ -337,15 +337,15 @@ class DictRatelimiter:
     def set_lock(
         self,
         route: Route,
-        bucket: Optional[str],
+        bucket: str,
         lock: Ratelimit
     ) -> Ratelimit:
         """Update and set a lock for a route."""
-        if bucket and self.fallbacks.pop(route.endpoint + route.major_params, None):
-            self.buckets[route.endpoint] = bucket
-            return self.locks.setdefault(bucket + route.major_params, lock)
 
-        return lock
+        self.fallbacks.pop(route.endpoint + route.major_params, None)
+
+        self.buckets[route.endpoint] = bucket
+        return self.locks.setdefault(bucket + route.major_params, lock)
 
     def lock(self) -> None:
         """Globally lock all locks across the ratelimiter."""
