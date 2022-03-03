@@ -24,27 +24,6 @@ Ratelimiter = AsyncContextManager[  # async with ratelimiter as rl:
         Callable[[Mapping[str, str]], Awaitable[object]]  # await lock(headers)
     ]]
 ]
-"""Complete typing information of a rate limiter as a type alias.
-
-Don't be discourage by the somewhat complicated signature. The ratelimiter
-itself is somewhat easy:
-
-It starts off with an asynchronous context manager that allows you to setup
-connections if you wish to. Inside this asynchronous context manager return a
-callable (like a method on the instance) that when called with a route that the
-requester will make a request towards returns another asynchronous context
-manager.
-
-This asynchronous context manager is now entered, and this is where you want to
-acquire the underlying lock however it is now implemented. This then returns
-another callable (but this time it will be `await`ed) that will take a mapping
-representing the request headers and allow you to update the ratelimiter with
-the rate limit headers from Discord.
-
-Lastly all context managers are exited with potential exception information
-depending on the status code which you should supress by returning a truthy
-value if you wish the requester retry the request.
-"""
 
 
 class Ratelimit:
