@@ -176,7 +176,9 @@ class _RouteRatelimit:
         self.deferred = False
 
     @asynccontextmanager
-    async def acquire(self) -> AsyncGenerator[Callable[[Mapping[str, str]], Awaitable[object]], None]:
+    async def acquire(self) -> AsyncGenerator[
+        Callable[[Mapping[str, str]], Awaitable[object]], None
+    ]:
         await self._parent.global_event.wait()
 
         try:
@@ -248,8 +250,7 @@ class _RouteRatelimit:
         except KeyError:
             return
         else:
-            dt = datetime.fromtimestamp(float(reset), timezone.utc)
-            self._lock.reset_at = dt
+            self._lock.reset_at = datetime.fromtimestamp(float(reset), timezone.utc)
 
 
 class DictRatelimiter:
@@ -266,16 +267,16 @@ class DictRatelimiter:
         buckets: A dictionary of endpoints to their ratelimit buckets.
         limiters:
             A weak dictionary of buckets + their major parameters to the
-            underlying capacity limiter.
+            underlying ratelimit locks.
         fallbacks:
-            Fallback capacity limiters to use before appropriate buckets are
+            Fallback ratelimit locks to use before appropriate buckets are
             known.
     """
 
     global_event: anyio.Event
 
     buckets: Dict[str, str]
-    limiters: 'WeakValueDictionary[str, Ratelimit]'
+    locks: 'WeakValueDictionary[str, Ratelimit]'
     fallbacks: 'WeakValueDictionary[str, Ratelimit]'
 
     __slots__ = ('_tasks', 'global_event', 'buckets', 'locks', 'fallbacks')
@@ -319,11 +320,18 @@ class DictRatelimiter:
         self,
         route: Route
     ) -> AsyncContextManager[Callable[[Mapping[str, str]], Awaitable[object]]]:
-        """Get a ratelimit lock by its endpoint."""
+        """Get a ratelimit lock by its endpoint.
+
+        Parameters:
+            route: The route that a request is about to be made to.
+
+        Returns:
+            A proxy ratelimit lock that continues the ratelimiter protocol.
+        """
         bucket = self.buckets.get(route.endpoint)
         if not bucket:
-            # Fallback until we get X-RateLimit-Bucket information in called
-            # with set_lock().
+            # Fallback until we get X-RateLimit-Bucket information with the
+            # 'bucket' parameter called in set_lock()
             lock = self.fallbacks.setdefault(
                 route.endpoint + route.major_params, Ratelimit()
             )
@@ -340,8 +348,17 @@ class DictRatelimiter:
         bucket: str,
         lock: Ratelimit
     ) -> Ratelimit:
-        """Update and set a lock for a route."""
+        """Update and set a lock for a route.
 
+        Parameters:
+            route: The route that the request was made to.
+            bucket: The received X-RateLimit-Bucket header value.
+            lock: The current ratelimit lock.
+
+        Returns:
+            The lock for the bucket. This is either another lock if the bucket
+            already had a lock, or the one passed into the method.
+        """
         self.fallbacks.pop(route.endpoint + route.major_params, None)
 
         self.buckets[route.endpoint] = bucket
