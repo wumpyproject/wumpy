@@ -311,7 +311,7 @@ class DictRatelimiter:
         # don't have to deal with any form of LRU structure.
         # This is important as each bucket + major parameters gets a lock in
         # this dictionary, even if you only send one request.
-        self.locks: 'WeakValueDictionary[str, Ratelimit]' = WeakValueDictionary()
+        self.locks = WeakValueDictionary()
 
         # Fallback locks before buckets get populated
         self.fallbacks = WeakValueDictionary()
