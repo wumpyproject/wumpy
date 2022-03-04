@@ -27,18 +27,11 @@ __all__ = ('Requester',)
 _log = logging.getLogger(__name__)
 
 
-# The following type variables are copied from HTTPX so that the annotations
-# are correct and as broad as HTTPX allows it:
+# The following type variables are adapted from HTTPX because of a conversion
+# done from a RequestFiles -> HTTPXFiles (the latter which HTTPX understands)
 FileContent = Union[IO[bytes], bytes]
-FileTypes = Union[
-    # file (or bytes)
-    FileContent,
-    # (filename, file (or bytes))
-    Tuple[Optional[str], FileContent],
-    # (filename, file (or bytes), content_type)
-    Tuple[Optional[str], FileContent, Optional[str]],
-]
-RequestFiles = Union[Mapping[str, FileTypes], Sequence[Tuple[str, FileTypes]]]
+RequestFiles = Sequence[FileContent]
+HTTPXFiles = Union[Mapping[str, FileContent], Sequence[Tuple[str, FileContent]]]
 
 
 class Requester:
@@ -143,7 +136,7 @@ class Requester:
         *,
         json: Optional[Any] = None,
         data: Optional[Dict[Any, Any]] = None,
-        files: Optional[RequestFiles] = None,
+        files: Optional[HTTPXFiles] = None,
         params: Optional[Dict[str, Any]] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None
     ) -> Optional[Any]:
@@ -294,12 +287,20 @@ class Requester:
         if reason is not MISSING:
             rheaders['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
+        # Files attached to Discord have to follow a special (odd) naming, so
+        # we convert the simpler API of a list of open files to what can be
+        # understood by both HTTPX and Discord.
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         for attempt in range(3):
             async with self._ratelimiter(route) as rl:
                 try:
                     res = await self._request(
                         route, rheaders, rl,
-                        json=json, data=data, files=files, params=params,
+                        json=json, data=data, files=httpxfiles, params=params,
                         auth=auth
                     )
                 except httpx.RequestError as error:
