@@ -5,6 +5,7 @@ from .base import Requester
 
 
 class GatewayRequester(Requester):
+    """Endpoints for getting Discord gateway information."""
 
     __slots__ = ()
 

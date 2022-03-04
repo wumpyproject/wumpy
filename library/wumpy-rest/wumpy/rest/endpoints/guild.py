@@ -15,6 +15,7 @@ from .base import Requester
 
 
 class GuildRequester(Requester):
+    """Guild-related endpoints under `/guilds/`."""
 
     __slots__ = ()
 

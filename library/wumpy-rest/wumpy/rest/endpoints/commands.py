@@ -14,7 +14,7 @@ __all__ = ('ApplicationCommandRequester',)
 
 
 class ApplicationCommandRequester(Requester):
-    """Requester wrapping application command endpoints."""
+    """Endpoints for managing application commands."""
 
     __slots__ = ()
 

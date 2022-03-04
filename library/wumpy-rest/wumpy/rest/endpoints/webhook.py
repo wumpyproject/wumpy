@@ -14,7 +14,7 @@ __all__ = ('WebhookRequester',)
 
 
 class WebhookRequester(Requester):
-    """Requester subclass for use with a Requester."""
+    """Endpoints for using and managing webhooks."""
 
     __slots__ = ()
 

@@ -8,6 +8,7 @@ from .base import Requester
 
 
 class GuildTemplateRequester(Requester):
+    """Endpoints for managing Guild Templates."""
 
     __slots__ = ()
 

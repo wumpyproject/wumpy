@@ -10,7 +10,7 @@ __all__ = ('UserRequester',)
 
 
 class UserRequester(Requester):
-    """Requester for Discord user endpoints."""
+    """Endpoints for interacting with user data."""
 
     __slots__ = ()
 

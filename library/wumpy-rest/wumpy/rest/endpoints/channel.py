@@ -17,11 +17,7 @@ __all__ = ('ChannelRequester',)
 
 
 class ChannelRequester(Requester):
-    """Requester containing all channel-related endpoints.
-
-    Like all other requesters this contains unique method names meaning it is
-    safe to inherit with other requesters.
-    """
+    """Channel-related endpoints under `/channels/`."""
 
     __slots__ = ()
 

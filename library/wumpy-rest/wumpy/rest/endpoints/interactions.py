@@ -14,6 +14,7 @@ __all__ = ('InteractionRequester',)
 
 
 class InteractionRequester(Requester):
+    """Endpoints for responding to interactions."""
 
     __slots__ = ()
 

@@ -10,6 +10,7 @@ __all__ = ('StickerRequester',)
 
 
 class StickerRequester(Requester):
+    """Endpoints for managing stickers."""
 
     __slots__ = ()
 
