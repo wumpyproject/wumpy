@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import sys
 from types import TracebackType
 from typing import (
@@ -21,6 +22,9 @@ from ..route import Route
 from ..utils import MISSING, dump_json, load_json
 
 __all__ = ('Requester',)
+
+
+_log = logging.getLogger(__name__)
 
 
 # The following type variables are copied from HTTPX so that the annotations
@@ -297,6 +301,10 @@ class Requester:
                     )
                 except httpx.RequestError as error:
                     if attempt < 3:
+                        _log.warning(
+                            f'Request to {route} failed with a HTTPX RequestError;'
+                            f' retrying request (attempt {attempt}).'
+                        )
                         # Exponentially backoff and try again
                         await anyio.sleep(1 + attempt * 2)
                         continue
@@ -306,6 +314,11 @@ class Requester:
                     raise error
 
                 return res
+
+            # If we reach here, that means that an exception happened and the
+            # ratelimiter silenced it. It is up to the ratelimiter to log a
+            # message with higher severity depending on the reason it did so.
+            _log.info(f'Retrying request to {route} (attempt {attempt}).')
 
         raise HTTPException(f'All attempts at {route} were unsuccessful.')
 

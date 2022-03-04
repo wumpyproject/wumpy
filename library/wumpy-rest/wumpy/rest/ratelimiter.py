@@ -1,3 +1,4 @@
+import logging
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -16,6 +17,9 @@ from .errors import RateLimited, ServerException
 from .route import Route
 
 __all__ = ('Ratelimiter', 'DictRatelimiter')
+
+
+_log = logging.getLogger(__name__)
 
 
 # The type allows the usage to the right of the code.
@@ -137,6 +141,8 @@ class Ratelimit:
                 return
 
             if self._reset_at is None:
+                _log.debug('Waiting for reset_at timestamp to be updated for lock')
+
                 await self._event.wait()
 
             if self._reset_at is None:
@@ -188,6 +194,9 @@ class _RouteRatelimit:
             if exc.status_code == 503:
                 raise
 
+            _log.warning(
+                f'Unconditionally backing off after receiving {exc.status_code}-response'
+            )
             # For status code 500, 502 and 504 its best to exponentially sleep
             await anyio.sleep(1 + exc.attempt * 2)
 
@@ -211,7 +220,15 @@ class _RouteRatelimit:
             # If this is a global ratelimit we should lock all requests from
             # attempting to access any endpoint.
             if globally:
+                _log.warning(
+                    f'Request to {self._route} hit the global ratelimit;'
+                    f' retrying in {retry} seconds.'
+                )
                 self._parent.lock()
+            else:
+                _log.warning(
+                    f'Request to {self._route} was ratelimited; retrying in {retry} seconds.'
+                )
 
             self._lock.lock()
             await anyio.sleep(float(retry))
@@ -219,6 +236,8 @@ class _RouteRatelimit:
 
             if globally:
                 self._parent.unlock()
+
+            _log.debug(f'Finished sleeping from ratelimit for {self._route}')
 
     async def update(self, headers: Mapping[str, str]) -> None:
         """Update the ratelimiter with the rate limit headers from Discord."""
@@ -330,6 +349,9 @@ class DictRatelimiter:
         """
         bucket = self.buckets.get(route.endpoint)
         if not bucket:
+            _log.debug(
+                f'Using fallback ratelimit lock {route.endpoint + route.major_params}'
+            )
             # Fallback until we get X-RateLimit-Bucket information with the
             # 'bucket' parameter called in set_lock()
             lock = self.fallbacks.setdefault(
@@ -370,6 +392,8 @@ class DictRatelimiter:
         # the ratelimiter.
         if self.global_event.is_set():
             self.global_event = anyio.Event()
+        else:
+            _log.debug('Not globally locking ratelimiter as it is already locked')
 
     def unlock(self) -> None:
         """Unlock all locks across the ratelimiter."""
