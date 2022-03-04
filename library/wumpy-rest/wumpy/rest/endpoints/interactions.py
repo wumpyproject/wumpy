@@ -2,7 +2,7 @@ from typing import Optional, Sequence, SupportsInt, overload
 
 from discord_typings import (
     AllowedMentionsData, AttachmentData, AutocompleteOptionData, ComponentData,
-    EmbedData, MessageData
+    EmbedData, MessageData, PartialAttachmentData
 )
 from typing_extensions import Literal
 
@@ -65,7 +65,7 @@ class InteractionRequester(Requester):
         components: Sequence[ComponentData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
-        attachments: Sequence[AllowedMentionsData] = MISSING,
+        attachments: Sequence[PartialAttachmentData] = MISSING,
     ) -> None:
         ...
 
@@ -85,7 +85,7 @@ class InteractionRequester(Requester):
         embeds: Sequence[EmbedData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
-        attachments: Sequence[AllowedMentionsData] = MISSING,
+        attachments: Sequence[PartialAttachmentData] = MISSING,
     ) -> None:
         """Create the original response to an interaction.
 
