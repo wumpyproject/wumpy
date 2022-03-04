@@ -3,8 +3,8 @@ from typing import (
 )
 
 from discord_typings import (
-    AllowedMentionsData, AttachmentData, ChannelData, EmbedData,
-    FollowedChannelData, InviteData, ListThreadsData, MessageData,
+    AllowedMentionsData, ChannelData, EmbedData, FollowedChannelData,
+    InviteData, ListThreadsData, MessageData, PartialAttachmentData,
     PermissionOverwriteData, ThreadMemberData, UserData
 )
 from typing_extensions import Literal
@@ -307,6 +307,7 @@ class ChannelRequester(Requester):
         embeds: Iterable[EmbedData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
+        attachments: Optional[PartialAttachmentData] = None,
         stickers: Iterable[SupportsInt] = MISSING
     ) -> MessageData:
         """Send a message into a channel.
@@ -336,6 +337,7 @@ class ChannelRequester(Requester):
             'tts': tts,
             'embeds': embeds,
             'allowed_mentions': allowed_mentions,
+            'attachments': attachments,
             'sticker_ids': [int(s) for s in stickers] if stickers else MISSING,
         }
 
@@ -485,7 +487,7 @@ class ChannelRequester(Requester):
         flags: SupportsInt = MISSING,
         files: Optional[RequestFiles] = None,
         allowed_mentions: Optional[AllowedMentionsData] = MISSING,
-        attachments: Optional[AttachmentData] = MISSING
+        attachments: Optional[PartialAttachmentData] = MISSING
     ) -> MessageData:
         """Edit a previously sent message.
 
