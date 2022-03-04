@@ -176,12 +176,15 @@ class Requester:
             The JSON deserialized body of the response, or None if the request
             was unsuccessful and should be retried.
         """
-        content = dump_json(json) if json is not None else None
+        if json is not None:
+            content = dump_json(json)
+            headers = {'Content-Type': 'application/json', **headers}
+        else:
+            content = None
 
         res = await self.session.request(
             route.method, route.url,
-            headers={'Content-Type': 'application/json', **headers},
-            content=content, data=data, files=files, auth=auth, params=params
+            headers=headers, content=content, data=data, files=files, auth=auth, params=params
         )
 
         # Update rate limit information if we have received it, as well as do
