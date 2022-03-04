@@ -397,4 +397,4 @@ class DictRatelimiter:
 
     def unlock(self) -> None:
         """Unlock all locks across the ratelimiter."""
-        self.global_event.set()  # Release the previous
+        self.global_event.set()
