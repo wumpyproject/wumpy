@@ -138,6 +138,8 @@ class Shard:
         self.ratelimiter = None
 
     async def __aenter__(self) -> Self:
+        _log.info('Entered the context manager (connecting to the gateway).')
+
         try:
             self.ratelimiter = await self._exit_stack.enter_async_context(
                 self._ratelimiter_manager
@@ -158,6 +160,10 @@ class Shard:
         exc_val: Optional[BaseException],
         traceback: Optional[TracebackType]
     ) -> None:
+        # If there is an exception it will propagate and there is no need for
+        # us to warn or error about it.
+        _log.info('Exiting the context manager (closing the connection).')
+
         # If this was cancelled, or some other error occured, the
         # heartbeater will be cancelled either way meaning that
         # there is no point for a try/finally block here (since the
@@ -170,7 +176,6 @@ class Shard:
             # still need to cleanup the socket.
             await self._exit_stack.aclose()
         finally:
-            _log.info('Exiting the context manager - closing the connection.')
             await self._aclose()
 
     def __aiter__(self) -> 'Shard':
@@ -207,9 +212,9 @@ class Shard:
                 # This should not happen, generally discord-gateway will raise
                 # and we then respond to the closure. This error means that
                 # something went wrong with the socket we weren't expecting.
-                _log.warn(
-                    'Discord closed the socket without closing the WebSocket; '
-                    'reconnecting to the gateway.'
+                _log.warning(
+                    'Discord closed the socket without closing the WebSocket;'
+                    ' reconnecting to the gateway.'
                 )
 
                 # Hold the lock while reconnecting so that the heartbeater
@@ -235,6 +240,11 @@ class Shard:
                     for send in self._conn.receive(data):
                         await self._sock.send(send)
                 except OSError:
+                    _log.warning(
+                        'Failed to respond to data received by Discord;'
+                        ' reconnecting to the gateway.'
+                    )
+
                     try:
                         for send in self._conn.receive(None):
                             await self._sock.send(send)
@@ -247,7 +257,7 @@ class Shard:
                     # There are a few reasons why discord-gateway wants us to
                     # reconnect, either Discord sent an event telling us to do
                     # it or they didn't acknowledge a heartbeat
-                    _log.info('Closed the WebSocket, reconnecting to the gateway.')
+                    _log.info('Closed the WebSocket; reconnecting to the gateway.')
 
                     try:
                         if err.data is not None:
@@ -270,6 +280,10 @@ class Shard:
                 for send in self._conn.receive(await self._sock.receive()):
                     await self._sock.send(send)
             except (OSError, anyio.EndOfStream):
+                _log.warning(
+                    'Receiving the HELLO event failed with a general OSError or the socket'
+                    ' closed; reconnecting to the gateway.'
+                )
                 try:
                     for send in self._conn.receive(None):
                         await self._sock.send(send)
@@ -288,6 +302,14 @@ class Shard:
                     raise ConnectionClosed(
                         f'Discord closed the WebSocket with code {err.code}'
                         f': {err.reason}' if err.reason else ''
+                    )
+                else:
+                    # Since we didn't raise an Exception we should log this
+                    # unexpected close code.
+                    _log.warning(
+                        f'Discord unexpectedly closed the WebSocket with code {err.code}'
+                        f': {err.reason}' if err.reason else ''
+                        '; reconnecting to the gateway.'
                     )
 
                 return None
@@ -318,7 +340,9 @@ class Shard:
             # Reset the internal state of the connection to prepare for a new
             # WebSocket connection. This will exponentially backoff until it
             # receives a READY event.
-            await anyio.sleep(self._conn.reconnect())
+            delay = self._conn.reconnect()
+            _log.debug(f'Exponentially backing off reconnecting ({delay}s)')
+            await anyio.sleep(delay)
 
             try:
                 self._sock = await anyio.connect_tcp(
@@ -330,6 +354,10 @@ class Shard:
             except OSError:
                 # SSLError is a subclass of OSError so we can just directly
                 # use OSError since it can also be raised by connect_tcp().
+                _log.warning(
+                    'Failed to open a TCP connection to Discord;'
+                    ' reconnecting to the gateway.'
+                )
                 continue
 
             # Upgrade the connection to a WebSocket connection using a
@@ -337,11 +365,15 @@ class Shard:
             try:
                 await self._sock.send(self._conn.connect())
             except OSError:
+                _log.warning(
+                    'Failed to send HTTP/1.1 opening request; reconnecting to the gateway.'
+                )
                 continue
 
             # Receive the HELLO event from Discord. If it failed for whatever
             # reason it'll close the WebSocket and return None.
             if await self._receive_hello() is None:
+                # Logging for this failure is done within the method.
                 continue
 
             try:
@@ -361,6 +393,11 @@ class Shard:
                             shard=self.shard_id
                         ))
             except OSError:
+                _log.warning(
+                    'Failed to RESUME/IDENTIFY to the new connection because of an OSError;'
+                    ' reconnecting to the gateway.'
+                )
+
                 try:
                     for send in self._conn.receive(None):
                         await self._sock.send(send)
@@ -374,8 +411,8 @@ class Shard:
         self._reconnecting = anyio.Event()
 
     async def _aclose(self) -> None:
-        # In case the event hasn't been set yet (such as if this is directly
-        # called by the user for some reason).
+        # In case the event hasn't been set yet (it *should* be, but redundancy
+        # with these types of things are good).
         self._closed.set()
 
         if self._sock is None:
@@ -392,6 +429,10 @@ class Shard:
                 try:
                     await self._sock.send(self._conn.close())
                 except OSError:
+                    _log.warning(
+                        'Failed to send WebSocket close message over TCP connection;'
+                        ' closing the connection as usual.'
+                    )
                     return  # Move to the finally-clause
 
                 try:
@@ -405,9 +446,9 @@ class Shard:
                     # closing frame but it's not a big deal - we're closing the
                     # socket either way. Just close the socket as usual in the
                     # 'finally' block below.
-                    _log.warning(
-                        'Discord unexpectedly closed the socket before '
-                        'finishing the WebSocket closing handshake.'
+                    _log.debug(
+                        'Discord unexpectedly closed the socket before finishing the WebSocket'
+                        ' closing handshake. Closing the TCP connection as usual.'
                     )
                 except CloseDiscordConnection as err:
                     if err.data is not None:
@@ -438,6 +479,10 @@ class Shard:
                 # over the socket, a closure may have started that we haven't
                 # completed yet. Just skip sending heartbeats in that case.
                 if self._conn.closing:
+                    _log.debug(
+                        'WebSocket in the middle of closing when attempting to heartbeat,'
+                        ' waiting for reconnection event to be set.'
+                    )
                     await self._reconnecting.wait()
 
                 _log.debug('Sending HEARTBEAT command over gateway.')
