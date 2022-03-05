@@ -37,7 +37,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-dependencies = ["anyio >= 3.3.4, <4", "httpx[h2] > 0.22, < 1", "discord-typings >= 0.2.2, < 2"]
+dependencies = [
+    "anyio >= 3.3.4, <4",
+    "httpx[h2] >= 0.22, < 1",
+    "discord-typings >= 0.2.2, < 2"
+]
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
