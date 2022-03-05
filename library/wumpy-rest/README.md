@@ -32,9 +32,16 @@ from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
 class MyAPIClient(ApplicationCommandRequester, InteractionRequester):
 
-    # Save some memory for this class
-    __slots__ = ()
+    __slots__ = ()  # Save some memory for this class
 ```
+
+### Files
+
+Some endpoints support uploading files, for these a file-like object is
+expected that's been opened in binary-mode (for example `'rb'`).
+
+For the message/interaction endpoints, remember to include a matching
+`attachment` object with `'id'` set to the index of the file.
 
 ## Ratelimiter
 
