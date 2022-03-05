@@ -25,7 +25,7 @@ class Route:
 
     __slots__ = ('method', 'path', 'params')
 
-    BASE = 'https://discord.com/api/v9'
+    BASE = 'https://discord.com/api/v10'
 
     def __init__(self, method: str, path: str, **params: Union[str, int]) -> None:
         self.method = method
