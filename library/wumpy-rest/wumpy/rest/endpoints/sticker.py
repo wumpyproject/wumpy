@@ -4,7 +4,7 @@ from discord_typings import StickerData, StickerPackData
 
 from ..route import Route
 from ..utils import MISSING
-from .base import Requester, FileContent
+from .base import FileContent, Requester
 
 __all__ = ('StickerRequester',)
 
