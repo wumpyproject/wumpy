@@ -1,6 +1,6 @@
 [project]
 name = "wumpy-rest"
-version = "0.1.0"
+version = "0.1.1"
 description = "Reusable and richly typed wrapper over the Discord REST API"
 readme = {file = "README.md", content-type="text/markdown"}
 
@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     "anyio >= 3.3.4, <4",
-    "httpx[h2] >= 0.22, < 1",
+    "httpx[http2] >= 0.22, < 1",
     "discord-typings >= 0.2.2, < 2"
 ]
 
