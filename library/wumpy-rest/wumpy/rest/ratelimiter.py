@@ -130,6 +130,7 @@ class Ratelimit:
         delta = value - datetime.now(timezone.utc)
         self._reset_at = time.perf_counter() + delta.total_seconds()
         self._event.set()
+        self._event = anyio.Event()
 
     async def acquire(self) -> None:
         """Decrement the semaphore value, blocking if necessary."""
