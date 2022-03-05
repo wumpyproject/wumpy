@@ -84,7 +84,7 @@ class RequestException(HTTPException):
         self.attempt = attempt
 
         super().__init__(
-            '{0.status_code} {0.reason_phrase} (Discord error code: {1}) {2}'.format(
+            '{0.status_code} {0.status_phrase} (Discord error code: {1}) {2}'.format(
                 self, code, message
             )
         )

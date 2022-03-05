@@ -185,7 +185,7 @@ class _RouteRatelimit:
     async def acquire(self) -> AsyncGenerator[
         Callable[[Mapping[str, str]], Awaitable[object]], None
     ]:
-        await self._parent.global_event.wait()
+        await self._parent.wait()
 
         try:
             async with self._lock:
@@ -272,6 +272,57 @@ class _RouteRatelimit:
             self._lock.reset_at = datetime.fromtimestamp(float(reset), timezone.utc)
 
 
+class GlobalRatelimit:
+    """Ratelimit lock for respecting the global ratelimit."""
+
+    _event: anyio.Event
+    _lock: anyio.Lock
+
+    _reset: Optional[float]
+    _value: int
+
+    __slots__ = ('_event', '_lock', '_reset', '_rate', '_value')
+
+    def __init__(self, rate: int) -> None:
+        self._event = anyio.Event()
+        self._event.set()
+
+        self._lock = anyio.Lock()
+
+        self._reset = None
+        self._rate = rate
+        self._value = rate
+
+    async def wait(self) -> None:
+        async with self._lock:
+            await self._event.wait()
+
+            if self._reset is None or self._reset < time.perf_counter():
+                self._reset = time.perf_counter() + 1
+                self._value = self._rate - 1
+
+            elif self._value <= 0:
+                _log.debug('Avoiding global ratelimit by sleeping until reset.')
+
+                await anyio.sleep(self._reset - time.perf_counter())
+                self._reset = time.perf_counter() + 1
+                self._value = self._rate - 1
+            else:
+                self._value -= 1
+
+    def lock(self) -> None:
+        # If the event isn't set, then another task has already locked the
+        # ratelimiter and there may be waiters which we should make sure to not
+        # loose forever.
+        if self._event.is_set():
+            self._event = anyio.Event()
+        else:
+            _log.debug('Not globally locking ratelimiter as it is already locked')
+
+    def unlock(self) -> None:
+        self._event.set()
+
+
 class DictRatelimiter:
     """The simplest and default implementation of the RateLimiter protocol.
 
@@ -279,10 +330,11 @@ class DictRatelimiter:
     (weakref)dictionaries in-memory, this means that they can't be shared
     across processes (such as to another shard).
 
+    There is one parameter that can be passed on instantiation, which is the
+    amount of requests that can be made each second according to the global
+    ratelimit.
+
     Attributes:
-        global_event:
-            An anyio Event that gets set when the global ratelimit is hit which
-            pauses all other requests.
         buckets: A dictionary of endpoints to their ratelimit buckets.
         limiters:
             A weak dictionary of buckets + their major parameters to the
@@ -292,17 +344,16 @@ class DictRatelimiter:
             known.
     """
 
-    global_event: anyio.Event
+    _global_rl: GlobalRatelimit
 
     buckets: Dict[str, str]
     locks: 'WeakValueDictionary[str, Ratelimit]'
     fallbacks: 'WeakValueDictionary[str, Ratelimit]'
 
-    __slots__ = ('_tasks', 'global_event', 'buckets', 'locks', 'fallbacks')
+    __slots__ = ('_tasks', '_global_rl', 'buckets', 'locks', 'fallbacks')
 
-    def __init__(self) -> None:
-        self.global_event = anyio.Event()
-        self.global_event.set()
+    def __init__(self, global_rate: int = 50) -> None:
+        self._global_rl = GlobalRatelimit(global_rate)
 
         self.buckets = {}  # Route endpoint to X-RateLimit-Bucket
 
@@ -388,13 +439,12 @@ class DictRatelimiter:
 
     def lock(self) -> None:
         """Globally lock all locks across the ratelimiter."""
-        # If the global event isn't set, then another task has already locked
-        # the ratelimiter.
-        if self.global_event.is_set():
-            self.global_event = anyio.Event()
-        else:
-            _log.debug('Not globally locking ratelimiter as it is already locked')
+        self._global_rl.lock()
 
     def unlock(self) -> None:
         """Unlock all locks across the ratelimiter."""
-        self.global_event.set()
+        self._global_rl.unlock()
+
+    async def wait(self) -> None:
+        """Wait for the global ratelimit to send a request."""
+        await self._global_rl.wait()
