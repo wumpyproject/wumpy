@@ -88,10 +88,10 @@ class Shard:
     _closed: anyio.Event
     _exit_stack: AsyncExitStack
 
+    _events: Deque[Dict[str, Any]]
+
     token: str
     intents: int
-
-    events: Deque[Dict[str, Any]]
 
     shard_id: Optional[Tuple[int, int]]
     max_concurrency: int
@@ -101,7 +101,7 @@ class Shard:
 
     __slots__ = (
         '_conn', '_sock', '_ssl', '_write_lock', '_reconnecting', '_closed', '_exit_stack',
-        'token', 'intents', 'events', 'shard_id', 'max_concurrency', '_ratelimiter_manager',
+        'token', 'intents', '_events', 'shard_id', 'max_concurrency', '_ratelimiter_manager',
         'ratelimiter'
     )
 
@@ -128,7 +128,7 @@ class Shard:
         self.token = token
         self.intents = intents
 
-        self.events = deque()
+        self._events = deque()
 
         self.shard_id = shard_id
         self.max_concurrency = max_concurrency
@@ -215,12 +215,12 @@ class Shard:
             # already have it. The reason for this is because of the loop
             # necessary below, where multiple events can get added into this
             # "buffer" and cause desync issues.
-            if self.events:
+            if self._events:
                 # This codepath doesn't yield to the event loop, which is
                 # generally bad practice. That said, it makes it harder to
                 # catch up if the task is running behind. Therefore, we don't
                 # checkpoint here either way.
-                return self.events.popleft()
+                return self._events.popleft()
 
             try:
                 data = await self._sock.receive()
@@ -284,7 +284,7 @@ class Shard:
                     await self._reconnect()
 
             for event in self._conn.events():
-                self.events.append(event)
+                self._events.append(event)
 
     async def _receive_hello(self) -> Optional[Dict[str, Any]]:
         if self._sock is None:
