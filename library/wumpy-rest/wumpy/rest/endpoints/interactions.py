@@ -136,12 +136,17 @@ class InteractionRequester(Requester):
 
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'POST', '/webhooks/{application_id}/{interaction_token}}/callback',
                 application_id=int(application), interaction_token=token
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def fetch_original_response(
@@ -203,13 +208,18 @@ class InteractionRequester(Requester):
         # This will cause HTTPx to use multipart/form-data
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'PATCH',
                 '/webhooks/{application_id}/{interaction_token}/messages/@original',
                 application_id=int(application), interaction_token=token
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def delete_original_response(
@@ -280,12 +290,17 @@ class InteractionRequester(Requester):
         # Because of the usage of files here, we need to use multipart/form-data
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'POST', '/webhooks/{application_id}/{interaction_token}}',
                 application_id=int(application), interaction_token=token
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def fetch_followup_message(
@@ -354,6 +369,11 @@ class InteractionRequester(Requester):
         # This will cause HTTPx to use multipart/form-data
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'PATCH',
@@ -361,7 +381,7 @@ class InteractionRequester(Requester):
                 application_id=int(application), interaction_token=token,
                 message_id=int(message)
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def delete_followup_message(

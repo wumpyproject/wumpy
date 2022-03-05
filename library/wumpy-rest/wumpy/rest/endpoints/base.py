@@ -227,7 +227,7 @@ class Requester:
         reason: str = MISSING,
         json: Optional[Any] = None,
         data: Optional[Dict[Any, Any]] = None,
-        files: Optional[RequestFiles] = None,
+        files: Optional[HTTPXFiles] = None,
         params: Optional[Dict[str, Any]] = None,
         auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None,
         headers: Optional[Mapping[str, str]] = None
@@ -287,20 +287,12 @@ class Requester:
         if reason is not MISSING:
             rheaders['X-Audit-Log-Reason'] = urlquote(reason, safe='/ ')
 
-        # Files attached to Discord have to follow a special (odd) naming, so
-        # we convert the simpler API of a list of open files to what can be
-        # understood by both HTTPX and Discord.
-        if files is not None:
-            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
-        else:
-            httpxfiles = None
-
         for attempt in range(3):
             async with self._ratelimiter(route) as rl:
                 try:
                     res = await self._request(
                         route, rheaders, rl,
-                        json=json, data=data, files=httpxfiles, params=params,
+                        json=json, data=data, files=files, params=params,
                         auth=auth
                     )
                 except httpx.RequestError as error:

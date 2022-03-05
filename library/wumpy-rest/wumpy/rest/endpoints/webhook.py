@@ -233,12 +233,17 @@ class WebhookRequester(Requester):
         # Because of the usage of files here, we need to use multipart/form-data
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         ret = await self.request(
             Route(
                 'POST', '/webhooks/{webhook_id}/{webhook_token}}',
                 webhook_id=int(webhook), webhook_token=token
             ),
-            data=data, files=files, params=params
+            data=data, files=httpxfiles, params=params
         )
         if ret == '':
             return None
@@ -314,12 +319,17 @@ class WebhookRequester(Requester):
         # This will cause HTTPXs to use multipart/form-data
         data = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'PATCH', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
                 webhook_id=int(webhook), webhook_token=token, message_id=int(message)
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def delete_webhook_message(

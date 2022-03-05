@@ -4,7 +4,7 @@ from discord_typings import StickerData, StickerPackData
 
 from ..route import Route
 from ..utils import MISSING
-from .base import Requester, RequestFiles
+from .base import Requester, FileContent
 
 __all__ = ('StickerRequester',)
 
@@ -69,9 +69,9 @@ class StickerRequester(Requester):
         guild: SupportsInt,
         *,
         name: str,
-        description: str,
+        description: str = '',
         tags: str,
-        file: RequestFiles,
+        file: FileContent,
         reason: str = MISSING
     ) -> StickerData:
         """Create a new sticker for a guild.
@@ -93,12 +93,11 @@ class StickerRequester(Requester):
         data = {
             'name': name,
             'description': description,
-            'tags': tags,
-            'file': file
+            'tags': tags
         }
         return await self.request(
             Route('POST', '/guilds/{guild_id}/stickers', guild_id=int(guild)),
-            data=data, reason=reason
+            data=data, files=[('file', file)], reason=reason
         )
 
     async def edit_sticker(

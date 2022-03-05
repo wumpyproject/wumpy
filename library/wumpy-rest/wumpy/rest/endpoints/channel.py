@@ -344,12 +344,20 @@ class ChannelRequester(Requester):
         # Because of the usage of files here, we need to use multipart/form-data
         data: Dict[str, Any] = {'payload_json': dump_json(self._clean_dict(json))}
 
+        # Files attached to Discord have to follow a special (odd) naming, so
+        # we convert the simpler API of a list of open files to what can be
+        # understood by both HTTPX and Discord.
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'POST', '/channels/{channel_id}/messages',
                 channel_id=int(channel)
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def crosspost_message(self, channel: SupportsInt, message: SupportsInt) -> MessageData:
@@ -523,12 +531,17 @@ class ChannelRequester(Requester):
         # This will cause HTTPX to use multipart/form-data
         data: Dict[str, Any] = {'payload_json': dump_json(self._clean_dict(json))}
 
+        if files is not None:
+            httpxfiles = tuple((f'files[{i}]', f) for i, f in enumerate(files))
+        else:
+            httpxfiles = None
+
         return await self.request(
             Route(
                 'PATCH', '/channels/{channel_id}/messages/{message_id}',
                 channel_id=int(channel), message_id=int(message)
             ),
-            data=data, files=files
+            data=data, files=httpxfiles
         )
 
     async def delete_message(
