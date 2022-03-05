@@ -137,6 +137,22 @@ class Shard:
         self._ratelimiter_manager = defaulted((shard_id[0] if shard_id else 0) % max_concurrency)
         self.ratelimiter = None
 
+    @property
+    def session_id(self) -> str:
+        """Session ID used to `RESUME` the connection."""
+        if self._conn.session_id is None:
+            raise RuntimeError('Cannot retrieve session ID without being connected')
+
+        return self._conn.session_id
+
+    @property
+    async def sequence(self) -> int:
+        """Heartbeat sequnce used together with the session ID."""
+        if self._conn.sequence is None:
+            raise RuntimeError('Cannot retrieve sequence without being connected')
+
+        return self._conn.sequence
+
     async def __aenter__(self) -> Self:
         _log.info('Entered the context manager (connecting to the gateway).')
 
