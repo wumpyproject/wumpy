@@ -8,4 +8,5 @@ from .member import *
 from .message import *
 from .permissions import *
 from .role import *
+from .sticker import *
 from .user import *
