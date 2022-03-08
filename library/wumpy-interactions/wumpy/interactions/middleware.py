@@ -37,8 +37,7 @@ class ASGIMiddleware:
         self.app = app
 
         self._verification = DiscordRequestVerifier(public_key)
-        self._body = None
-        self._sent = False
+        self._body = b''
 
     async def __call__(self, scope: Mapping[str, Any], receive: Receive, send: Send) -> None:
         signature: Optional[bytes] = None
@@ -89,12 +88,15 @@ class ASGIMiddleware:
 
         Since we already consumed the body, we need to fake it for the coming
         middlewares and routes.
-        """
-        if self._sent:
-            raise RuntimeError('Request body already received')
 
-        self._sent = True
-        return {'type': 'http.request', 'body': self._body, 'more_body': False}
+        Returns:
+            A mimicked receive call, if called multiple times will continue
+            returning an empty string.
+        """
+        body = self._body
+        self._body = b''
+
+        return {'type': 'http.request', 'body': body, 'more_body': False}
 
 
 class SanicMiddleware:
