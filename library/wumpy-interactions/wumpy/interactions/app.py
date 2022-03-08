@@ -2,14 +2,20 @@ import json
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import anyio
-from wumpy.rest import ApplicationCommandRequester
+from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
 from .base import CommandInteraction, ComponentInteraction, InteractionType
 from .commands import CommandRegistrar, SlashCommand
 from .components.handler import ComponentHandler
 from .utils import DiscordRequestVerifier
 
-__all__ = ('InteractionApp',)
+__all__ = ('InteractionAppRequester', 'InteractionApp')
+
+
+class InteractionAppRequester(ApplicationCommandRequester, InteractionRequester):
+    """Requester with endpoints used by InteractionApp."""
+
+    __slots__ = ()
 
 
 class InteractionApp(CommandRegistrar, ComponentHandler):
@@ -19,8 +25,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     what's absolutely necessary for the Discord API.
     """
 
-    rest: ApplicationCommandRequester
-    verification: DiscordRequestVerifier
+    api: InteractionAppRequester
 
     token: Optional[str]
     secret: Optional[str]
@@ -35,8 +40,8 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     ) -> None:
         super().__init__()
 
-        self.rest = ApplicationCommandRequester(headers={'Authorization': f'Bot {token}'})
-        self.verification = DiscordRequestVerifier(public_key)
+        self.api = InteractionAppRequester(headers={'Authorization': f'Bot {token}'})
+        self._verification = DiscordRequestVerifier(public_key)
 
         self.application_id = application_id
         self.register_commands = register_commands
@@ -59,12 +64,12 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             enum_val = InteractionType(data['type'])
             if enum_val is InteractionType.application_command:
                 self.handle_command(
-                    CommandInteraction(self, wrapped, self.rest, data),
+                    CommandInteraction(self, wrapped, self.api, data),
                     tg=tg
                 )
             elif enum_val is InteractionType.message_component:
                 self.handle_component(
-                    ComponentInteraction(self, wrapped, self.rest, data),
+                    ComponentInteraction(self, wrapped, self.api, data),
                     tg=tg
                 )
 
@@ -155,7 +160,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             request = await receive()
             body.extend(request['body'])
 
-        verified = self.verification.verify(signature.decode('utf-8'), timestamp, body)
+        verified = self._verification.verify(signature.decode('utf-8'), timestamp, body)
 
         return verified, body
 
@@ -164,7 +169,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         for local in self.commands.values():
             found = [c for c in commands if c['name'] == local.name]
             if not found:
-                await self.rest.create_global_command(self.application_id, local.to_dict())
+                await self.api.create_global_command(self.application_id, local.to_dict())
                 continue
 
             command = found[0]
@@ -173,12 +178,12 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
                     (isinstance(local, SlashCommand) and local.description != command['description'])
                     or local.to_dict()['options'] != command.get('options', [])
             ):
-                await self.rest.edit_global_command(self.application_id, command['id'], local.to_dict())
+                await self.api.edit_global_command(self.application_id, command['id'], local.to_dict())
                 continue
 
         for command in commands:
             if command['name'] not in self.commands:
-                await self.rest.delete_global_command(self.application_id, command['id'])
+                await self.api.delete_global_command(self.application_id, command['id'])
 
     async def lifespan(
         self,
@@ -189,7 +194,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         event = await receive()
         if event['type'] == 'lifespan.startup':
             if self.register_commands:
-                commands = await self.rest.fetch_global_commands(self.application_id)
+                commands = await self.api.fetch_global_commands(self.application_id)
                 await self.sync_commands(commands)
 
             await send({'type': 'lifespan.startup.complete'})
