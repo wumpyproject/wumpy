@@ -27,14 +27,14 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
     api: InteractionAppRequester
 
-    token: Optional[str]
-    secret: Optional[str]
+    path: str
 
     def __init__(
         self,
         application_id: int,
         public_key: str,
         *,
+        path: str = '/',
         token: Optional[str] = None,
         register_commands: bool = True,
     ) -> None:
@@ -45,6 +45,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         self.application_id = application_id
         self.register_commands = register_commands
+        self.path = path
 
     async def process_interaction(
         self,
@@ -76,31 +77,22 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             with anyio.fail_after(3):
                 await complete.wait()
 
-    async def verify_request(
+    async def _verify_request_target(
         self,
         scope: Dict[str, Any],
         send: Callable[[Dict[str, Any]], Awaitable[None]],
-        *,
-        # These are actually here so that they can be modified, users can
-        # subclass and call super() modifying these
-        type: str = 'http',
-        path: str = '/',
-        method: str = 'POST',
     ) -> bool:
         """Verify that the request was made to the correct endpoint.
 
-        Returning a bool indicating whether an error response has been sent.
+        This method will respond to the request with an appropriate response
+        if the request was made to the wrong endpoint.
 
-        If another endpoint should be used, this should be overwritten and
-        call super() with the new values:
-
-        ```python
-        class MyApp(InteractionApp):
-            async def verify_request(self, *args):
-                return await super().verify_request(*args, path='/interactions')
-        ```
+        Returns:
+            A boolean indicating whether the request was responded to. If it
+            is `True` then the request has received a response and you should
+            return immediately.
         """
-        if scope['type'] != type:
+        if scope['type'] != 'http':
             await send({
                 'type': 'http.response.start', 'status': 501,
                 'headers': [(b'content-type', b'text/plain')]
@@ -108,7 +100,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             await send({'type': 'http.response.body', 'body': b'Not Implemented'})
             return True
 
-        if scope['path'] != path:
+        if scope['path'] != self.path:
             await send({
                 'type': 'http.response.start', 'status': 404,
                 'headers': [(b'content-type', b'text/plain')]
@@ -116,7 +108,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             await send({'type': 'http.response.body', 'body': b'Not Found'})
             return True
 
-        elif scope['method'] != method:
+        elif scope['method'] != 'POST':
             await send({
                 'type': 'http.response.start', 'status': 405,
                 'headers': [(b'content-type', b'text/plain')]
@@ -126,16 +118,18 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         return False
 
-    async def authorize_request(
+    async def _authenticate_request(
         self,
         scope: Dict[str, Any],
         receive: Callable[[], Awaitable[Dict[str, Any]]]
     ) -> Tuple[bool, Optional[bytes]]:
-        """Verify that the request came from Discord.
+        """Authenticate the request and verify that it came from Discord.
 
-        The first item in the tuple is a bool indicating whether the request
-        came from Discord, the second is the body received which may be None
-        when the former is False.
+        Returns:
+            A two-item tuple. The first item is a boolean indicating whether
+            the request could be authenticated and the second item is the body
+            for the request, if it was received. It is not safe to assume that
+            a body was received if the first item is `False`.
         """
         signature: Optional[bytes] = None
         timestamp: Optional[bytes] = None
@@ -210,10 +204,10 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         if scope['type'] == 'lifespan':
             return await self.lifespan(scope, receive, send)
 
-        if await self.verify_request(scope, send):
+        if await self._verify_request_target(scope, send):
             return
 
-        verified, body = await self.authorize_request(scope, receive)
+        verified, body = await self._authenticate_request(scope, receive)
 
         # The latter is for static type checkers, even though there is no case
         # were verified is True and body is None
