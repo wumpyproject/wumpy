@@ -2,9 +2,11 @@ import json
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import anyio
+from wumpy.models import (
+    CommandInteraction, ComponentInteraction, InteractionType
+)
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
-from .base import CommandInteraction, ComponentInteraction, InteractionType
 from .commands import CommandRegistrar, SlashCommand
 from .components.handler import ComponentHandler
 from .utils import DiscordRequestVerifier

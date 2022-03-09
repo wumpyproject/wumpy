@@ -5,11 +5,11 @@ from typing import (
 )
 
 from typing_extensions import Annotated, Literal, get_args, get_origin
-from wumpy.models import InteractionChannel, InteractionMember, User
-
-from ..base import (
-    ApplicationCommandOption, CommandInteraction, CommandInteractionOption
+from wumpy.models import (
+    ApplicationCommandOption, CommandInteraction, CommandInteractionOption,
+    InteractionChannel, InteractionMember, User
 )
+
 from ..errors import CommandSetupError
 
 __all__ = ('CommandType', 'OptionClass')

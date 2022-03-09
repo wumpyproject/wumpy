@@ -5,7 +5,7 @@ from typing import (
 from .component import Component, ComponentEmoji
 
 if TYPE_CHECKING:
-    from ..base import ComponentInteraction
+    from wumpy.models import ComponentInteraction
 
 
 __all__ = ('SelectOption', 'SelectMenu')

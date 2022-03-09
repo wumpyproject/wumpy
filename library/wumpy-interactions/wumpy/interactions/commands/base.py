@@ -4,8 +4,7 @@ from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar
 
 import anyio.abc
 from typing_extensions import ParamSpec
-
-from ..base import CommandInteraction
+from wumpy.models import CommandInteraction
 
 __all__ = ('Callback', 'CommandCallback')
 

@@ -3,6 +3,7 @@ from .channels import *
 from .emoji import *
 from .flags import *
 from .integrations import *
+from .interactions import *
 from .invite import *
 from .member import *
 from .message import *

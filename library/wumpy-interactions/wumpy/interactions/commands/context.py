@@ -4,9 +4,8 @@ from typing import Any, Dict, Optional, TypeVar
 
 import anyio.abc
 from typing_extensions import ParamSpec
-from wumpy.models import InteractionMember, Message, User
+from wumpy.models import CommandInteraction, InteractionMember, Message, User
 
-from ..base import CommandInteraction
 from ..errors import CommandSetupError
 from .base import Callback, CommandCallback
 from .option import CommandType

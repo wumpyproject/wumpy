@@ -7,7 +7,7 @@ from .handler import *
 from .select import *
 
 if TYPE_CHECKING:
-    from ..base import ComponentInteraction
+    from wumpy.models import ComponentInteraction
 
 
 def button(

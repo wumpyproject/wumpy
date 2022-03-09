@@ -5,7 +5,7 @@ import anyio.abc
 from .component import Component
 
 if TYPE_CHECKING:
-    from ..base import ComponentInteraction
+    from wumpy.models import ComponentInteraction
 
 
 __all__ = ('ComponentHandler',)

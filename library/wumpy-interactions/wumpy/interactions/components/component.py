@@ -6,11 +6,10 @@ from typing import (
 
 import anyio
 from anyio.abc import TaskGroup
-
-from ...models import DISCORD_EPOCH
+from wumpy.models import DISCORD_EPOCH
 
 if TYPE_CHECKING:
-    from ..base import ComponentInteraction
+    from wumpy.models import ComponentInteraction
 
 __all__ = ('Component', 'ComponentEmoji')
 
