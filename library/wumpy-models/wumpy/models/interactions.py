@@ -15,6 +15,7 @@ from .member import InteractionMember, Member
 from .message import Message
 from .role import Role
 from .user import User
+from .utils import _get_as_snowflake
 
 __all__ = (
     'InteractionType', 'ComponentType', 'ApplicationCommandOption',
@@ -144,15 +145,15 @@ class SelectInteractionValue:
 @dataclasses.dataclass(frozen=True, eq=False)
 class Interaction(Model):
 
-    application_id: int
+    application_id: Snowflake
     type: InteractionType
 
-    guild_id: Optional[int]
-    channel_id: Optional[int]
+    guild_id: Optional[Snowflake]
+    channel_id: Optional[Snowflake]
 
     author: Union[User, Member]
     token: str
-    version: str
+    version: int
 
     __slots__ = (
         'application_id', 'type', 'guild_id', 'channel_id', 'author', 'token', 'version'
@@ -178,19 +179,28 @@ class CommandInteraction(Interaction):
         if target_id is not None:
             target_id = int(target_id)
 
-        member = data.get('member')
-        if member:
-            author = Member.from_user(User.from_data(member['user']), member)
+        user = data.get('user')
+
+        if 'member' in data:
+            member = data['member']
+            if user is None:
+                user = member.get('user')
+            if user is None:
+                raise ValueError('Sufficient author information missing from interaction')
+
+            author = Member.from_user(User.from_data(user), member)
+        elif user is None:
+            raise ValueError('Author information missing from interaction')
         else:
-            author = User.from_data(data['user'])
+            author = User.from_data(user)
 
         return cls(
             id=int(data['id']),
-            application_id=data['application_id'],
-            type=data['type'],
+            application_id=Snowflake(int(data['application_id'])),
+            type=InteractionType(data['type']),
 
-            channel_id=data.get('channel_id'),
-            guild_id=data.get('guild_id'),
+            channel_id=_get_as_snowflake(data, 'channel_id'),
+            guild_id=_get_as_snowflake(data, 'guild_id'),
             author=author,
             token=data['token'],
             version=data['version'],
@@ -223,19 +233,28 @@ class ComponentInteraction(Interaction):
 
     @classmethod
     def from_data(cls, data: ComponentInteractionData) -> Self:
-        member = data.get('member')
-        if member:
-            author = Member.from_user(User.from_data(member['user']), member)
+        user = data.get('user')
+
+        if 'member' in data:
+            member = data['member']
+            if user is None:
+                user = member.get('user')
+            if user is None:
+                raise ValueError('Sufficient author information missing from interaction')
+
+            author = Member.from_user(User.from_data(user), member)
+        elif user is None:
+            raise ValueError('Author information missing from interaction')
         else:
-            author = User.from_data(data['user'])
+            author = User.from_data(user)
 
         return cls(
             id=int(data['id']),
-            application_id=data['application_id'],
-            type=data['type'],
+            application_id=Snowflake(int(data['application_id'])),
+            type=InteractionType(data['type']),
 
-            channel_id=data.get('channel_id'),
-            guild_id=data.get('guild_id'),
+            channel_id=_get_as_snowflake(data, 'channel_id'),
+            guild_id=_get_as_snowflake(data, 'guild_id'),
             author=author,
             token=data['token'],
             version=data['version'],
