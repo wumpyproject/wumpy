@@ -2,13 +2,13 @@ import json
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import anyio
-from wumpy.models import (
-    CommandInteraction, ComponentInteraction, InteractionType
-)
+from discord_typings import InteractionData
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
 from .commands import CommandRegistrar, SlashCommand
+from .compat import ASGIRequest, Request
 from .components.handler import ComponentHandler
+from .models import CommandInteraction, ComponentInteraction
 from .utils import DiscordRequestVerifier
 
 __all__ = ('InteractionAppRequester', 'InteractionApp')
@@ -48,36 +48,6 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         self.application_id = application_id
         self.register_commands = register_commands
         self.path = path
-
-    async def process_interaction(
-        self,
-        send: Callable[[Dict[str, Any]], Awaitable[None]],
-        data: Dict[str, Any]
-    ) -> None:
-        """Process the interaction and trigger appropriate callbacks."""
-        # This event is necessary as we should not return to the ASGI server
-        # before send has been called, we later wait for this event.
-        complete = anyio.Event()
-
-        def wrapped(data: Dict[str, Any]) -> Awaitable[None]:
-            complete.set()  # Set the event and signal a response has been sent
-            return send(data)
-
-        async with anyio.create_task_group() as tg:
-            enum_val = InteractionType(data['type'])
-            if enum_val is InteractionType.application_command:
-                self.handle_command(
-                    CommandInteraction(self, wrapped, self.api, data),
-                    tg=tg
-                )
-            elif enum_val is InteractionType.message_component:
-                self.handle_component(
-                    ComponentInteraction(self, wrapped, self.api, data),
-                    tg=tg
-                )
-
-            with anyio.fail_after(3):
-                await complete.wait()
 
     async def _verify_request_target(
         self,
@@ -160,28 +130,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         return verified, body
 
-    async def sync_commands(self, commands: List[Any]) -> None:
-        """Synchronize the commands with Discord."""
-        for local in self.commands.values():
-            found = [c for c in commands if c['name'] == local.name]
-            if not found:
-                await self.api.create_global_command(self.application_id, local.to_dict())
-                continue
-
-            command = found[0]
-
-            if (
-                    (isinstance(local, SlashCommand) and local.description != command['description'])
-                    or local.to_dict()['options'] != command.get('options', [])
-            ):
-                await self.api.edit_global_command(self.application_id, command['id'], local.to_dict())
-                continue
-
-        for command in commands:
-            if command['name'] not in self.commands:
-                await self.api.delete_global_command(self.application_id, command['id'])
-
-    async def lifespan(
+    async def _lifespan(
         self,
         scope: Dict[str, Any],
         receive: Callable[[], Awaitable[Dict[str, Any]]],
@@ -204,7 +153,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         send: Callable[[Dict[str, Any]], Awaitable[None]]
     ) -> None:
         if scope['type'] == 'lifespan':
-            return await self.lifespan(scope, receive, send)
+            return await self._lifespan(scope, receive, send)
 
         if await self._verify_request_target(scope, send):
             return
@@ -231,4 +180,50 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             await send({'type': 'http.response.body', 'body': b'{"type": 1}'})
             return
 
-        await self.process_interaction(send, data)
+        await self.handle_interaction(data, ASGIRequest(scope, receive, send))
+
+    async def handle_interaction(self, data: InteractionData, request: Request) -> None:
+        """Handle the interaction from the request by calling callbacks.
+
+        This method returns once all callbacks have finished executing.
+
+        Parameters:
+            data: JSON serialized data received from the request.
+            request:
+                Class with a `respond()` method. There are two classes that
+                implement this - one for ASGI applications and one for Sanic
+                applications which are provided by the library.
+        """
+
+        async with anyio.create_task_group() as tg:
+            if data['type'] == 2:
+                self.handle_command(
+                    CommandInteraction.from_data(data, request),
+                    tg=tg
+                )
+            elif data['type'] == 3:
+                self.handle_component(
+                    ComponentInteraction.from_data(data, request),
+                    tg=tg
+                )
+
+    async def sync_commands(self, commands: List[Any]) -> None:
+        """Synchronize the commands with Discord."""
+        for local in self.commands.values():
+            found = [c for c in commands if c['name'] == local.name]
+            if not found:
+                await self.api.create_global_command(self.application_id, local.to_dict())
+                continue
+
+            command = found[0]
+
+            if (
+                    (isinstance(local, SlashCommand) and local.description != command['description'])
+                    or local.to_dict()['options'] != command.get('options', [])
+            ):
+                await self.api.edit_global_command(self.application_id, command['id'], local.to_dict())
+                continue
+
+        for command in commands:
+            if command['name'] not in self.commands:
+                await self.api.delete_global_command(self.application_id, command['id'])
