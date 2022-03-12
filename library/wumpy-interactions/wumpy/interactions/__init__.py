@@ -1,4 +1,4 @@
 from .app import *
-from .base import *
+from .models import *
 from .commands import *
 from .middleware import *
