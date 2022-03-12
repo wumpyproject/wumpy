@@ -14,6 +14,7 @@ __all__ = ('Request', 'ASGIRequest', 'SanicRequest')
 
 
 class Request(Protocol):
+
     @overload
     async def respond(
         self,
@@ -36,6 +37,8 @@ class Request(Protocol):
 
 class ASGIRequest(Request):
     def __init__(self, scope, receive, send) -> None:
+        self._responded = False
+
         self.scope = scope
         self.receive = receive
         self.send = send
@@ -54,6 +57,9 @@ class ASGIRequest(Request):
         ):
             raise TypeError("'respond()' has to be called with one of 'data' and 'body'")
 
+        if self._responded:
+            raise RuntimeError('Response has already been sent')
+
         if data is not None:
             body = json.dumps(data).encode('utf-8')
             content_type = 'application/json'
@@ -70,6 +76,8 @@ class ASGIRequest(Request):
 
 class SanicRequest(Request):
     def __init__(self, request: 'OriginalSanicRequest') -> None:
+        self._responded = False
+
         self.request = request
 
     async def respond(
@@ -85,6 +93,9 @@ class SanicRequest(Request):
             or data is not None and body is not None
         ):
             raise TypeError("'respond()' has to be called with one of 'data' and 'body'")
+
+        if self._responded:
+            raise RuntimeError('Response has already been sent')
 
         if data is not None:
             body = json.dumps(data).encode('utf-8')
