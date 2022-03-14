@@ -1,479 +1,74 @@
-import inspect
-from functools import partial
 from typing import (
-    Any, Callable, Dict, List, Optional, TypeVar, Union, overload
+    Any, Awaitable, Callable, Dict, Generic, NamedTuple, TypeVar
 )
 
-import anyio.abc
 from typing_extensions import ParamSpec
 from wumpy.models import (
-    ApplicationCommandOption, CommandInteraction, CommandInteractionOption
+    CommandInteraction
 )
 
-from ..errors import CommandSetupError
-from ..utils import _eval_annotations
-from .base import Callback, CommandCallback
-from .option import CommandType, OptionClass
-
-__all__ = ('Subcommand', 'SubcommandGroup', 'SlashCommand')
+__all__ = ('Middleware', 'SlashCommand',)
 
 
 P = ParamSpec('P')
 RT = TypeVar('RT')
 
 
-class Subcommand(CommandCallback[P, RT]):
-    """Subcommand and final callback handling an interaction.
+class Middleware(NamedTuple):
+    cls: Callable[..., Callable[[CommandInteraction], Awaitable[object]]]
+    options: Dict[str, object]
 
-    A subcommand cannot have another subcommand nested under it.
 
-    Attributes:
-        name: The name of the subcommand.
-        description: A description of what the subcommand does.
-        options: Options you can pass to the subcommand.
+class SlashCommand(Generic[P, RT]):
+    """Top-level slashcommand callback.
+
+    Currently subcommand groups and subcommands are not supported.
     """
 
-    name: Optional[str]
-    description: Optional[str]
+    def __init__(self, callback: Callable[P, Awaitable[RT]]) -> None:
+        self.callback = callback
 
-    options: Dict[str, OptionClass]
+        self.callstack = self._inner_call
+        self.middlewares = []
 
-    __slots__ = ('description', 'options')
+    async def __call__(self, *args: P.args, **kwds: P.kwargs) -> RT:
+        return await self.callback(*args, **kwds)
 
-    def __init__(
-        self,
-        callback: Optional[Callback[P, RT]] = None,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> None:
-        self.description = description
-        self.options = {}
+    async def _inner_call(self, interaction: CommandInteraction) -> RT:
+        # invoke() calls the callstack of middlewares. This is the
+        # bottom-most middleware that, if all other middlewares successfully
+        # call the next, will call the command callback.
+        return await self.callback(interaction)
 
-        super().__init__(callback, name=name)
+    async def invoke(self, interaction: CommandInteraction) -> Any:
+        """Invoke the command with the given interaction.
 
-    def _set_callback(self, function: Callback[P, RT]) -> None:
-        doc = inspect.getdoc(function)
-        if self.description is None and doc is not None:
-            # Similar to Markdown, we want to turn one full stop character into
-            # space, and two characters into one.
-            doc = doc.split('\n\n')[0].replace('\n', ' ')
-            self.description = doc
-
-        signature = inspect.signature(function)
-        annotations = _eval_annotations(function)
-
-        for i, param in enumerate(signature.parameters.values()):
-            annotation = annotations.get(param.name, param.annotation)
-
-            if i == 0:
-                if (
-                    # issubclass() raises a TypeError if not all arguments are
-                    # instances of 'type'
-                    annotation is not param.empty
-                    and not issubclass(annotation, CommandInteraction)
-                ):
-                    raise TypeError(
-                        "The first paramer of 'callback' has to be annotated "
-                        "with 'CommandInteraction'"
-                    )
-
-                # The CommandInteraction parameter doesn't get an OptionClass
-                # instance since it shouldn't be passed when creating a command
-                # on Discord's side.
-                continue
-
-            if isinstance(param.default, OptionClass):
-                option = param.default
-            else:
-                option = OptionClass()
-
-            # Make the option aware of the parameter it is defined in
-            option.update(
-                # The annotations dictionary may contain an evaluated version
-                # of the annotation as opposed to a string or ForwardRef
-                param.replace(annotation=annotation)
-            )
-
-            if option.name is None:
-                raise ValueError('Cannot register unnamed option')
-
-            self.options[option.name] = option
-
-        super()._set_callback(function)
-
-    def handle_interaction(
-        self,
-        interaction: CommandInteraction,
-        options: List[CommandInteractionOption],
-        *,
-        tg: anyio.abc.TaskGroup
-    ) -> None:
-        """Handle an interaction and start the callback with the task group.
+        Compared to directly calling the subcommand, this will invoke
+        middlewares in order, such that checks and cooldowns are executed.
 
         Parameters:
-            interaction: The interaction to handle.
-            options: A list of options to resolve values from.
-            tg: The task group to start the callback with.
+            interaction: The interaction to invoke the command with.
         """
+        return await self.callstack(interaction)
 
-        # We receive options as a JSON array but this is inefficient to lookup
-        mapping = {option.name: option for option in options}
-        args, kwargs = [], {}
+    def _build_callstack(self) -> None:
+        prev = self._inner_call
+        for cls, options in self.middlewares:
+            prev = cls(prev, **options)
 
-        for option in self.options.values():
-            assert option.name is not None and option.kind is not None
+        self.callstack = prev
 
-            data = mapping.get(option.name)
-            if option.kind in {option.kind.POSITIONAL_ONLY, option.kind.POSITIONAL_OR_KEYWORD}:
-                args.append(option.resolve(interaction, data))
-            else:
-                kwargs[option.param] = option.resolve(interaction, data)
+    def add_middleware(self, middleware: Middleware) -> None:
+        """Add a middleware to the stack.
 
-        tg.start_soon(partial(self._call_wrapped, interaction, *args, **kwargs))
-
-    def update_option(
-        self,
-        param: str,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        required: Optional[bool] = None,
-        choices: Union[
-            List[Union[str, int, float]],
-            Dict[str, Union[str, int, float]],
-            None
-        ] = None,
-        min: Optional[int] = None,
-        max: Optional[int] = None,
-        type: Optional[ApplicationCommandOption] = None
-    ) -> None:
-        """Update values of a slash command's options.
-
-        The values passed here will override any previously set values.
+        Middlewares are a lowlevel functionality that allows heavily extensible
+        behaviour in how commands are invoked. Essentially middlewares are
+        before/after hooks for the command.
 
         Parameters:
-            param: The parameter name to update.
-            name: The new name of the option.
-            description: The new description of the option.
-            required: Whether the option can be omitted.
-            choices: Strict set of choices that the user needs to pick from.
-            min: Smallest number that can be entered for number types
-            max: Biggest number that can be entered for number types
-            type: New application command option type to use.
-
-        Exceptions:
-            ValueError: There's no parameter with the name passed.
+            middleware:
+                An instance of the `Middleware` namedtuple with a callback and
+                dictionary of options to pass it when calling it.
         """
-        # It is okay if this is O(n) to keep it O(1) when the app is running
-        found = [option for option in self.options.values() if option.param == param]
-        if not found:
-            raise ValueError(f"Could not find parameter with name '{param}'")
-
-        option = found[0]
-
-        if name is not None:
-            # We have to update the internal dictionary where the option is
-            # stored so that it can be found correctly when receiving an
-            # interaction from Discord.
-            assert option.name is not None
-            del self.options[option.name]
-            self.options[name] = option
-
-        option._update_values(
-            name=name, description=description, required=required,
-            choices=choices, min=min, max=max, type=type
-        )
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Turn the subcommand into a payload to send to Discord."""
-        return {
-            **super().to_dict(),
-            'description': self.description,
-            'type': ApplicationCommandOption.subcommand.value,
-            'options': [option.to_dict() for option in self.options.values()]
-        }
-
-
-class SubcommandGroup:
-    """Subcommand group, which cannot in of itself be called.
-
-    This follows the Discord API with how subcommand-groups can be used. With
-    that reason you do not need a callback attached, and any options specified
-    will not work.
-
-    Attributes:
-        name: The name of the subcommand group.
-        description: Description of what the subcommand group does.
-        commands: A dictionary of all registered subcommands.
-    """
-
-    name: str
-    description: str
-
-    commands: Dict[str, Subcommand]
-
-    __slots__ = ('name', 'description', 'commands')
-
-    def __init__(
-        self,
-        *,
-        name: str,
-        description: str
-    ) -> None:
-        self.name = name
-        self.description = description
-
-        self.commands = {}
-
-    def handle_interaction(
-        self,
-        interaction: CommandInteraction,
-        options: List[CommandInteractionOption],
-        *,
-        tg: anyio.abc.TaskGroup
-    ) -> None:
-        """Handle and forward the interaction to the correct subcommand.
-
-        Parameters:
-            interaction: The interaction to handle.
-            options: Options to find the subcommand type in.
-            tg: The task group to forward into the subcommand.
-
-        Exceptions:
-            CommandSetupError: Couldn't find the subcommand or there is none.
-        """
-        found = [option for option in options if option.type is ApplicationCommandOption.subcommand]
-        if not found:
-            raise CommandSetupError('Subcommand-group did not receive a subcommand option')
-
-        command = self.commands.get(found[0].name)
-        if not command:
-            raise CommandSetupError(
-                f"Could not find subcommand '{found[0].name}' of '{self.name}'"
-            )
-
-        return command.handle_interaction(interaction, found[0].options, tg=tg)
-
-    def register_command(self, command: Subcommand) -> None:
-        """Register a subcommand handler once it has been given a name.
-
-        Parameters:
-            command: The command to register into the internal dict.
-
-        Exceptions:
-            ValueError: The command is already registered.
-        """
-        if command.name in self.commands:
-            raise ValueError(f"Command with name '{command.name}' already registered")
-
-        if command.name is None:
-            raise ValueError('Cannot register unnamed command')
-
-        self.commands[command.name] = command
-
-    @overload
-    def command(self, callback: Callback[P, RT]) -> Subcommand[P, RT]:
-        ...
-
-    @overload
-    def command(
-        self,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> Callable[[Callback[P, RT]], Subcommand[P, RT]]:
-        ...
-
-    def command(
-        self,
-        callback: Optional[Callback[P, RT]] = None,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-    ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
-        """Create and register a subcommand of this group.
-
-        This decorator can be used both with and without parentheses.
-
-        Parameters:
-            callback: This gets filled by the decorator.
-            name: The name of the subcommand.
-            description: The description of the subcommand.
-        """
-        def decorator(func: Callback[P, RT]) -> Subcommand[P, RT]:
-            subcommand = Subcommand(func, name=name, description=description)
-            self.register_command(subcommand)
-            return subcommand
-
-        if callable(callback):
-            return decorator(callback)
-
-        return decorator
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Turn the subcommand group into a payload to send to Discord."""
-        return {
-            'name': self.name,
-            'type': ApplicationCommandOption.subcommand_group.value,
-            'description': self.description,
-            'options': [option.to_dict() for option in self.commands.values()]
-        }
-
-
-class SlashCommand(Subcommand[P, RT]):
-    """Top-level slash command which may contain other groups or subcommands.
-
-    Attributes:
-        name: The name of the slash command.
-        description: The description of the command.
-        commands: Internal dict of all registered subcommands and groups.
-    """
-
-    commands: Dict[str, Union[Subcommand, SubcommandGroup]]
-
-    def __init__(
-        self,
-        callback: Optional[Callback[P, RT]] = None,
-        *,
-        name: Optional[str],
-        description: Optional[str]
-    ) -> None:
-        super().__init__(callback, name=name, description=description)
-
-        self.commands = {}
-
-    def handle_interaction(
-        self,
-        interaction: CommandInteraction,
-        *,
-        tg: anyio.abc.TaskGroup
-    ) -> None:
-        """Handle and forward the interaction to the correct subcommand.
-
-        Parameters:
-            interaction: The interaction to forward and handle.
-            tg: The task group to start callbacks with.
-        """
-        for option in interaction.options:
-            if option.type in {
-                    ApplicationCommandOption.subcommand,
-                    ApplicationCommandOption.subcommand_group
-            }:
-                break
-        else:
-            # There's no subcommand, or subcommand group option. We should
-            # handle the interaction ourselves.
-            return super().handle_interaction(interaction, interaction.options, tg=tg)
-
-        # If we got here we should have found a subcommand option
-
-        command = self.commands.get(option.name)
-        if not command:
-            raise CommandSetupError(
-                f"Could not find subcommand '{option.name}' of '{self.name}'"
-            )
-
-        return command.handle_interaction(interaction, option.options, tg=tg)
-
-    def register_command(self, command: Union[Subcommand, SubcommandGroup]) -> None:
-        """Register the subcommand, or subcommand group.
-
-        Parameters:
-            command: The command to register.
-
-        Exceptions:
-            ValueError: The command is already registered.
-        """
-        if command.name in self.commands:
-            raise ValueError(f"Command with name '{command.name}' already registered")
-
-        if command.name is None:
-            raise ValueError('Cannot register unnamed command')
-
-        self.commands[command.name] = command
-
-    def group(
-        self,
-        *,
-        name: str,
-        description: str,
-    ) -> SubcommandGroup:
-        """Create a subcommand group without a callback on this slash command.
-
-        Examples:
-
-            ```python
-            from wumpy.interactions import InteractionApp, CommandInteraction
-
-            app = InteractionApp(...)
-
-            slash = app.group(name='gesture', description='Gesture something')
-
-            group = app.group(name='hello', description='Hello :3')
-
-            ...  # Register subcommands on this group
-            ```
-
-        Parameters:
-            name: The name of the subcommand group.
-            description: The description of the subcommand group.
-        """
-        group = SubcommandGroup(name=name, description=description)
-        self.register_command(group)
-        return group
-
-    @overload
-    def command(self, callback: Callback[P, RT]) -> Subcommand[P, RT]:
-        ...
-
-    @overload
-    def command(
-        self,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> Callable[[Callback[P, RT]], Subcommand[P, RT]]:
-        ...
-
-    def command(
-        self,
-        callback: Optional[Callback[P, RT]] = None,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> Union[Subcommand[P, RT], Callable[[Callback[P, RT]], Subcommand[P, RT]]]:
-        """Create a subcommand directly on the slash command.
-
-        Examples:
-
-            ```python
-            from wumpy.interactions import InteractionApp, CommandInteraction
-
-            app = InteractionApp(...)
-
-            slash = app.group(name='hello', description='👋 *waving*')
-
-            @slash.command()
-            async def world(interaction: CommandInteraction) -> None:
-                await interaction.respond('Hello world')
-            ```
-            """
-        def decorator(func: Callback[P, RT]) -> Subcommand[P, RT]:
-            subcommand = Subcommand(func, name=name, description=description)
-            self.register_command(subcommand)
-            return subcommand
-
-        if callable(callback):
-            return decorator(callback)
-
-        return decorator
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Turn this slash command into a full payload to send to Discord."""
-        return {
-            'name': self.name,
-            'type': CommandType.chat_input.value,
-            'description': self.description,
-            'options': [option.to_dict() for option in (self.options or self.commands).values()]
-        }
+        self.middlewares.append(middleware)
+        self._build_callstack()
