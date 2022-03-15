@@ -68,10 +68,10 @@ class CommandCallback(Generic[P, RT]):
         signature = inspect.signature(callback)
         annotations = _eval_annotations(callback)
 
-        for param in signature.parameters.values():
+        for i, param in enumerate(signature.parameters.values()):
             annotation = annotations.get(param.name, param.empty)
 
-            self._process_param(param.replace(annotation=annotation))
+            self._process_param(i, param.replace(annotation=annotation))
 
         # We piggyback on inspect's Parameter.empty sentinel value
         return_type = annotations.get('return', inspect.Parameter.empty)
@@ -79,13 +79,14 @@ class CommandCallback(Generic[P, RT]):
         if return_type is not inspect.Parameter.empty:
             self._process_return_type(return_type)
 
-    def _process_param(self, param: inspect.Parameter) -> None:
+    def _process_param(self, index: int, param: inspect.Parameter) -> None:
         """Process a parameter of the set callback.
 
         This method is called for each parameter of the callback when being
         set, allowing for subclasses to hook into the process.
 
         Parameters:
+            index: The index of the parameter.
             param:
                 The parameter of the callback. Annotations have been resolved
                 and replaced with the actual type.
