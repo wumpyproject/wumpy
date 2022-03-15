@@ -1,71 +1,54 @@
-from typing import Any, Awaitable, Callable, Generic, TypeVar
+import inspect
+from typing import Optional, OrderedDict, TypeVar
 
 from typing_extensions import ParamSpec
-from wumpy.models import CommandInteraction
+from wumpy.interactions.commands.base import CommandCallback
 
-__all__ = ('Middleware', 'SlashCommand',)
+from .base import Callback
+
+__all__ = ('SlashCommand',)
 
 
 P = ParamSpec('P')
 RT = TypeVar('RT')
 
-MiddlewareCallback = Callable[[CommandInteraction], Awaitable[object]]
-MiddlewareCallbackT = TypeVar('MiddlewareCallbackT', bound=MiddlewareCallback)
-Middleware = Callable[[MiddlewareCallback], MiddlewareCallback]
 
-
-class SlashCommand(Generic[P, RT]):
+class SlashCommand(CommandCallback[P, RT]):
     """Top-level slashcommand callback.
 
     Currently subcommand groups and subcommands are not supported.
     """
 
-    def __init__(self, callback: Callable[P, Awaitable[RT]]) -> None:
-        self.callback = callback
+    name: Optional[str]
+    description: Optional[str]
+    options: 'OrderedDict[str, OptionClass]'
 
-        self._invoke_stack = self._inner_call
-
-    async def __call__(self, *args: P.args, **kwds: P.kwargs) -> RT:
-        return await self.callback(*args, **kwds)
-
-    async def _inner_call(self, interaction: CommandInteraction) -> RT:
-        # invoke() calls the callstack of middlewares. This is the
-        # bottom-most middleware that, if all other middlewares successfully
-        # call the next, will call the command callback.
-        return await self.callback(interaction)
-
-    async def invoke(self, interaction: CommandInteraction) -> Any:
-        """Invoke the command with the given interaction.
-
-        Compared to directly calling the subcommand, this will invoke
-        middlewares in order, such that checks and cooldowns are executed.
-
-        Parameters:
-            interaction: The interaction to invoke the command with.
-        """
-        return await self._invoke_stack(interaction)
-
-    def push_middleware(
+    def __init__(
         self,
-        middleware: Callable[[MiddlewareCallback], MiddlewareCallbackT]
-    ) -> MiddlewareCallbackT:
-        """Push a middleware to the stack.
+        callback: Optional[Callback[P, RT]] = None,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> None:
+        self.name = name
+        self.description = description
 
-        Middlewares are a lowlevel functionality that allows heavily extensible
-        behaviour in how commands are invoked. They are essentially before
-        / after hooks for the command.
+        self.options = OrderedDict()
 
-        If you need to pass other options to the middleware, use `partial()`
-        from `functools`.
+        # __init__() will dispatch the processing methods below which means
+        # that we need to set the attributes above first.
+        super().__init__(callback)
 
-        Parameters:
-            middleware:
-                An instance of the `Middleware` namedtuple with a callback and
-                dictionary of options to pass it when calling it.
+    def _process_callback(self, callback: Callback[P, RT]) -> None:
+        if self.name is None:
+            self.name = getattr(callback, '__name__', None)
 
-        Returns:
-            The returned callback of the middleware. This is the object that
-            is returned when `middleware` is called.
-        """
-        self._invoke_stack = middleware(self._invoke_stack)
-        return self._invoke_stack
+        doc = inspect.getdoc(callback)
+        if self.description is None and doc is not None:
+            paragraps = doc.split('\n\n')
+            if paragraps:
+                # Similar to Markdown, we want to turn one newline character into
+                # spaces, and two characters into one.
+                self.description = paragraps[0].replace('\n', ' ')
+
+        return super()._process_callback(callback)
