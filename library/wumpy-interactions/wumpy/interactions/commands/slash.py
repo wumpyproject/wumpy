@@ -8,7 +8,9 @@ __all__ = ('Middleware', 'SlashCommand',)
 
 P = ParamSpec('P')
 RT = TypeVar('RT')
+
 MiddlewareCallback = Callable[[CommandInteraction], Awaitable[object]]
+MiddlewareCallbackT = TypeVar('MiddlewareCallbackT', bound=MiddlewareCallback)
 Middleware = Callable[[MiddlewareCallback], MiddlewareCallback]
 
 
@@ -43,7 +45,10 @@ class SlashCommand(Generic[P, RT]):
         """
         return await self._invoke_stack(interaction)
 
-    def push_middleware(self, middleware: Middleware) -> None:
+    def push_middleware(
+        self,
+        middleware: Callable[[MiddlewareCallback], MiddlewareCallbackT]
+    ) -> MiddlewareCallbackT:
         """Push a middleware to the stack.
 
         Middlewares are a lowlevel functionality that allows heavily extensible
@@ -57,5 +62,10 @@ class SlashCommand(Generic[P, RT]):
             middleware:
                 An instance of the `Middleware` namedtuple with a callback and
                 dictionary of options to pass it when calling it.
+
+        Returns:
+            The returned callback of the middleware. This is the object that
+            is returned when `middleware` is called.
         """
         self._invoke_stack = middleware(self._invoke_stack)
+        return self._invoke_stack
