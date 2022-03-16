@@ -2,7 +2,7 @@ import inspect
 from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
 
 from typing_extensions import ParamSpec
-from wumpy.models import CommandInteraction
+from ..models import CommandInteraction
 
 from ..utils import _eval_annotations
 
