@@ -4,11 +4,11 @@ from functools import wraps, partial
 from .base import CommandCallback, MiddlewareCallback
 from ..models import CommandInteraction
 
-__all__ = ('CheckDecorator', 'CheckFailure', 'check')
+__all__ = ('MiddlewareDecorator', 'CheckFailure', 'check')
 
 
 CommandT = TypeVar('CommandT', bound=CommandCallback)
-CheckDecorator = Callable[[CommandT], CommandT]
+MiddlewareDecorator = Callable[[CommandT], CommandT]
 
 
 class CheckFailure(Exception):
@@ -43,7 +43,7 @@ class CheckMiddleware:
             raise CheckFailure(f'Check {self.predicate} failed for interaction {interaction}')
 
 
-def check(predicate: MiddlewareCallback) -> CheckDecorator:
+def check(predicate: MiddlewareCallback) -> MiddlewareDecorator:
     """Create a check for an application command.
 
     This is a public wrapper over the middleware API to simplify creating
@@ -53,7 +53,7 @@ def check(predicate: MiddlewareCallback) -> CheckDecorator:
 
         ```python
         from wumpy import interactions
-        from wumpy.interactions import InteractionApp, CheckDecorator, CommandInteraction
+        from wumpy.interactions import InteractionApp, MiddlewareDecorator, CommandInteraction
 
         def in_guild():
             async def predicate(interaction: CommandInteraction) -> bool:
