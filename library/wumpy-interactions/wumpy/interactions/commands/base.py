@@ -1,4 +1,5 @@
 import inspect
+from functools import update_wrapper
 from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
 
 from typing_extensions import ParamSpec
@@ -65,6 +66,8 @@ class CommandCallback(Generic[P, RT]):
         Parameters:
             callback: The callback being set.
         """
+        update_wrapper(self, callback)
+
         signature = inspect.signature(callback)
         annotations = _eval_annotations(callback)
 
