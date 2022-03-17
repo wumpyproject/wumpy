@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Callable, TypeVar
 from functools import wraps, partial
 
@@ -21,10 +20,21 @@ class CheckFailure(Exception):
     pass
 
 
-@dataclasses.dataclass(frozen=True)
-class Check:
+class CheckMiddleware:
     call_next: MiddlewareCallback
     predicate: MiddlewareCallback
+
+    __slots__ = ('call_next', 'predicate')
+
+    def __init__(
+        self,
+        call_next: MiddlewareCallback,
+        *,
+        predicate: MiddlewareCallback
+    ) -> None:
+        self.call_next = call_next
+
+        self.predicate = predicate
 
     async def __call__(self, interaction: CommandInteraction) -> None:
         if await self.predicate(interaction):
@@ -69,6 +79,6 @@ def check(predicate: MiddlewareCallback) -> CheckDecorator:
     """
     @wraps(predicate)
     def wrapper(command: CommandT) -> CommandT:
-        command.push_middleware(partial(Check, predicate=predicate))
+        command.push_middleware(partial(CheckMiddleware, predicate=predicate))
         return command
     return wrapper
