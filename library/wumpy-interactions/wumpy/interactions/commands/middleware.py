@@ -11,6 +11,7 @@ from .base import CommandCallback, MiddlewareCallback
 
 __all__ = (
     'MiddlewareDecorator', 'CheckFailure', 'check', 'BucketType', 'max_concurrency',
+    'cooldown',
 )
 
 
@@ -192,5 +193,150 @@ def max_concurrency(
     """
     def decorator(command: CommandT) -> CommandT:
         command.push_middleware(partial(MaxConcurrencyMiddleware, key=key, number=number))
+        return command
+    return decorator
+
+
+class CommandOnCooldown(Exception):
+    """Raised when a command could not be run because it is on cooldown."""
+
+    def __init__(self, *args, retry_after: float, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.retry_after = retry_after
+
+
+class Cooldown:
+
+    __slots__ = ('rate', 'per', '_reset', '_value')
+
+    def __init__(self, rate: int, per: float) -> None:
+        self.rate = rate
+        self.per = per
+
+        self._reset = None
+        self._value = rate
+
+    @property
+    def expired(self) -> bool:
+        return self._reset is None or self._reset < time.perf_counter()
+
+    def acquire(self) -> None:
+        if self._reset is None or self._reset < time.perf_counter():
+            self._reset = time.perf_counter() + self.per
+            self._value = self.rate - 1
+
+        elif self._value <= 0:
+            raise CommandOnCooldown(
+                'Command is on cooldown.',
+                retry_after=self._reset - time.perf_counter()
+            )
+        else:
+            self._value -= 1
+
+
+class CooldownMiddleware:
+
+    call_next: MiddlewareCallback
+
+    rate: int
+    per: float
+    key: Callable[[CommandInteraction], Hashable]
+
+    wait: bool
+
+    cooldowns: Dict[Hashable, Cooldown]
+
+    __slots__ = ('call_next', 'rate', 'per', 'key', 'wait', 'cooldowns')
+
+    def __init__(
+        self,
+        call_next: MiddlewareCallback,
+        *,
+        rate: int,
+        per: float,
+        key: Callable[[CommandInteraction], Hashable],
+        wait: bool = False,
+    ) -> None:
+        self.call_next = call_next
+
+        self.rate = rate
+        self.per = per
+        self.key = key
+
+        self.wait = wait
+
+        self.cooldowns = {}
+
+    def _evict_keys(self):
+        for key in [k for k, v in self.cooldowns.items() if v.expired]:
+            del self.cooldowns[key]
+
+    async def __call__(self, interaction: CommandInteraction) -> None:
+        self._evict_keys()
+
+        key = self.key(interaction)
+
+        cooldown = self.cooldowns.setdefault(key, Cooldown(self.rate, self.per))
+
+        while True:
+            try:
+                cooldown.acquire()
+            except CommandOnCooldown as on_cooldown:
+                if self.wait:
+                    await interaction.defer()
+                    await anyio.sleep(on_cooldown.retry_after)
+                    continue
+                else:
+                    raise
+
+            break
+
+        await self.call_next(interaction)
+
+
+def cooldown(
+    rate: int,
+    per: float,
+    key: Callable[[CommandInteraction], Hashable],
+    wait: bool = False,
+) -> MiddlewareDecorator:
+    """Apply cooldowns to the application command.
+
+    The `key` paramater is similar to `max_concurrent`'s `key` parameter.
+
+    Examples:
+
+        ```python
+        from wumpy import interactions
+        from wumpy.interactions import InteractionApp, CommandInteraction
+
+
+        app = InteractionApp(...)
+
+
+        @interactions.cooldown(1, 60.0, interactions.BucketType.guild)
+        @app.command()
+        async def ping(interaction: CommandInteraction) -> None:
+            \"\"\"Pong!\"\"\"
+            await interaction.respond('Pong!')
+        ```
+
+    Parameters:
+        rate: The amount of times a command can be used.
+        per: The duration of the cooldown window in seconds.
+        key: A callable to determine the key to use for the bucket.
+        wait:
+            Whether to defer the interaction and wait for the cooldown to
+            expire. If this is set to `False` (default) it will raise
+            `CommandOnCooldown`.
+
+    Returns:
+        A decorator to apply to the application command.
+    """
+    def decorator(command: CommandT) -> CommandT:
+        command.push_middleware(partial(
+            CooldownMiddleware, rate=rate, per=per, key=key, wait=wait
+        ))
         return command
     return decorator
