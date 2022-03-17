@@ -40,6 +40,43 @@ class SlashCommand(CommandCallback[P, RT]):
         # that we need to set the attributes above first.
         super().__init__(callback)
 
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> RT:
+        # We need to apply defaults passed to the option as expected. This is
+        # somewhat tricky though and it is not possible to repair the typing.
+        # Without this, instead of the default of the option the user will be
+        # passed the option itself.
+        positional, keyword = list(args), dict(kwargs)  # Shallow copies
+
+        for i, (param, option) in enumerate(self.options.items()):
+            if option.kind is not None and option.kind is option.kind.POSITIONAL_ONLY:
+                if len(positional) - 1 > i:
+                    continue
+                else:
+                    # This means that: len(positional) == i (i is one more than
+                    # the last index).
+                    if not option.has_default:
+                        raise TypeError(
+                            f"{self.callback.__name__}() missing required positional argument"
+                            f": '{param}'"
+                        )
+
+                    positional.append(option.default)
+            else:
+                # Either we don't know the option kind (unlikely/impossible,
+                # but possible from a static typing perspective) or it's a
+                # pos/keyword parameter or keyword-only parameter.
+                passed = keyword.get(param)
+                if passed is None:
+                    if not option.has_default:
+                        raise TypeError(
+                            f'{self.callback.__name__}() missing required keyword-only'
+                            f"argument: '{param}'"
+                        )
+
+                    keyword[param] = option.default
+
+        return await self.callback(*positional, **keyword)
+
     async def _inner_call(self, interaction: CommandInteraction) -> RT:
         # We receive options as a JSON array but this is inefficient to lookup
         mapping = {option.name: option for option in interaction.options}

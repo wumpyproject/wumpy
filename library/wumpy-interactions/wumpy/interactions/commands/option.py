@@ -187,6 +187,15 @@ class OptionClass:
         if type is not None:
             self.determine_type(type)
 
+    @property
+    def has_default(self) -> bool:
+        """Whether the option has a default value.
+
+        This is used to determine whether the `default` attribute can be
+        correctly interpreted as the default value.
+        """
+        return self.default is not _MISSING_DEFAULT
+
     def determine_union(self, args: Tuple[Any, ...]) -> bool:
         """Determine the option type for a union.
 
