@@ -55,16 +55,19 @@ def check(predicate: MiddlewareCallback) -> MiddlewareDecorator:
         from wumpy import interactions
         from wumpy.interactions import InteractionApp, MiddlewareDecorator, CommandInteraction
 
-        def in_guild():
+
+        # MiddlewareDecorator is a type alias to make the return type easier to
+        # annotate and use.
+        def on_version(v: int) -> MiddlewareDecorator:
             async def predicate(interaction: CommandInteraction) -> bool:
-                return interaction.guild_id is not None
+                return interaction.version == v
             return interactions.check(predicate)
 
 
         app = InteractionApp(...)
 
 
-        @in_guild()
+        @on_version(1)
         @app.command()
         async def ping(interaction: CommandInteraction) -> None:
             \"\"\"Pong!\"\"\"
