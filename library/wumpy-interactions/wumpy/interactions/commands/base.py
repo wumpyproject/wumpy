@@ -1,8 +1,10 @@
 import inspect
 from functools import update_wrapper
-from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar, List
 
 from typing_extensions import ParamSpec
+
+from wumpy.models import CommandInteractionOption
 
 from ..models import CommandInteraction
 from ..utils import _eval_annotations
@@ -15,7 +17,10 @@ RT = TypeVar('RT')
 
 
 Callback = Callable[P, Awaitable[RT]]
-MiddlewareCallback = Callable[[CommandInteraction], Awaitable[object]]
+MiddlewareCallback = Callable[
+    [CommandInteraction, List[CommandInteractionOption]],
+    Awaitable[object]
+]
 MiddlewareCallbackT = TypeVar('MiddlewareCallbackT', bound=MiddlewareCallback)
 Middleware = Callable[[MiddlewareCallback], MiddlewareCallback]
 
@@ -106,10 +111,20 @@ class CommandCallback(Generic[P, RT]):
         """
         ...
 
-    async def _inner_call(self, interaction: CommandInteraction) -> None:
-        await self.callback(interaction)
+    async def _inner_call(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
+        raise NotImplementedError(
+            'Command cannot be invoked because invokation is not yet implemented'
+        )
 
-    async def invoke(self, interaction: CommandInteraction) -> None:
+    async def invoke(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
         """Invoke the command callback with the given interaction.
 
         Compared to directly calling the subcommand, this will invoke
@@ -121,7 +136,7 @@ class CommandCallback(Generic[P, RT]):
         if self.callback is None:
             raise AttributeError("'callback' is not set to a function")
 
-        await self._invoke_stack(interaction)
+        await self._invoke_stack(interaction, options)
 
     def push_middleware(
         self,

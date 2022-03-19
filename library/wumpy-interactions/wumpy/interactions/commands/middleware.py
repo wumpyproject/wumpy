@@ -1,10 +1,11 @@
 import time
 from enum import Enum
 from functools import partial, wraps
-from typing import Callable, Dict, Hashable, TypeVar
+from typing import Callable, Dict, Hashable, TypeVar, List
 from weakref import WeakValueDictionary
 
 import anyio
+from wumpy.models import CommandInteractionOption
 
 from ..models import CommandInteraction
 from .base import CommandCallback, MiddlewareCallback
@@ -44,9 +45,13 @@ class CheckMiddleware:
 
         self.predicate = predicate
 
-    async def __call__(self, interaction: CommandInteraction) -> None:
-        if await self.predicate(interaction):
-            await self.call_next(interaction)
+    async def __call__(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
+        if await self.predicate(interaction, options):
+            await self.call_next(interaction, options)
         else:
             raise CheckFailure(f'Check {self.predicate} failed for interaction {interaction}')
 
@@ -141,7 +146,11 @@ class MaxConcurrencyMiddleware:
 
         self.semaphores = WeakValueDictionary()
 
-    async def __call__(self, interaction: CommandInteraction) -> None:
+    async def __call__(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
         key = self.key(interaction)
 
         semaphore = self.semaphores.setdefault(key, anyio.Semaphore(self.number))
@@ -153,7 +162,7 @@ class MaxConcurrencyMiddleware:
             await semaphore.acquire()
 
         try:
-            await self.call_next(interaction)
+            await self.call_next(interaction, options)
         finally:
             semaphore.release()
 
@@ -272,7 +281,11 @@ class CooldownMiddleware:
         for key in [k for k, v in self.cooldowns.items() if v.expired]:
             del self.cooldowns[key]
 
-    async def __call__(self, interaction: CommandInteraction) -> None:
+    async def __call__(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
         self._evict_keys()
 
         key = self.key(interaction)
@@ -292,7 +305,7 @@ class CooldownMiddleware:
 
             break
 
-        await self.call_next(interaction)
+        await self.call_next(interaction, options)
 
 
 def cooldown(

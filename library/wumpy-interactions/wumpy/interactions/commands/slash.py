@@ -2,9 +2,10 @@ import inspect
 from typing import Any, Dict, List, Optional, OrderedDict, TypeVar
 
 from typing_extensions import ParamSpec
-from wumpy.models import CommandInteraction
+from wumpy.models import CommandInteractionOption
 
 from .base import Callback, CommandCallback
+from ..models import CommandInteraction
 from .option import OptionClass
 
 __all__ = ('SlashCommand',)
@@ -40,9 +41,13 @@ class SlashCommand(CommandCallback[P, RT]):
         # that we need to set the attributes above first.
         super().__init__(callback)
 
-    async def _inner_call(self, interaction: CommandInteraction) -> RT:
+    async def _inner_call(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> RT:
         # We receive options as a JSON array but this is inefficient to lookup
-        mapping = {option.name: option for option in interaction.options}
+        mapping = {option.name: option for option in options}
         args, kwargs = [], {}
 
         for option in self.options.values():
