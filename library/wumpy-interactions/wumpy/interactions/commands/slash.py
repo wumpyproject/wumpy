@@ -118,9 +118,9 @@ class SlashCommand(CommandCallback[P, RT]):
                     pos_default = True
                     defaults.append(option.default)
             else:
-                # We don't need to check for non-defaulted keyword-only parameters following
-                # defaulted keyword-only parameters because that would normally be allowed by
-                # Python syntax.
+                # We don't need to check for non-defaulted keyword-only
+                # parameters following defaulted keyword-only parameters
+                # because that would normally be allowed by Python syntax.
                 if option.has_default:
                     kw_defaults[option.param] = option.default
 
