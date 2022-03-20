@@ -1,12 +1,9 @@
 import inspect
 from functools import update_wrapper
-from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar, List
+from typing import Any, Awaitable, Callable, Generic, TypeVar
 
 from typing_extensions import ParamSpec
 
-from wumpy.models import CommandInteractionOption
-
-from ..models import CommandInteraction
 from ..utils import _eval_annotations
 
 __all__ = ('CommandCallback',)
@@ -17,28 +14,17 @@ RT = TypeVar('RT')
 
 
 Callback = Callable[P, Awaitable[RT]]
-MiddlewareCallback = Callable[
-    [CommandInteraction, List[CommandInteractionOption]],
-    Awaitable[object]
-]
-MiddlewareCallbackT = TypeVar('MiddlewareCallbackT', bound=MiddlewareCallback)
-Middleware = Callable[[MiddlewareCallback], MiddlewareCallback]
 
 
 class CommandCallback(Generic[P, RT]):
     """Asynchronous command callback wrapped in middleware."""
 
-    _invoke_stack: MiddlewareCallback
+    _callback: Callback[P, RT]
 
-    # The reason this is Optional[...] is because slash commands can have
-    # subcommand groups and subcommands which means the slash command itself
-    # cannot be called meaning that they have no callback.
-    _callback: Optional[Callback[P, RT]]
+    __slots__ = ('_callback',)
 
-    __slots__ = ('_invoke_stack', '_callback')
-
-    def __init__(self, callback: Optional[Callback[P, RT]] = None) -> None:
-        self._invoke_stack = self._inner_call
+    def __init__(self, callback: Callback[P, RT]) -> None:
+        super().__init__()
 
         self.callback = callback
 
@@ -53,11 +39,7 @@ class CommandCallback(Generic[P, RT]):
         return self._callback
 
     @callback.setter
-    def callback(self, function: Optional[Callback[P, RT]]) -> None:
-        if function is None:
-            self._callback = function
-            return
-
+    def callback(self, function: Callback[P, RT]) -> None:
         self._callback = function
         self._process_callback(function)
 
@@ -110,56 +92,3 @@ class CommandCallback(Generic[P, RT]):
             annotation: The annotation of the function's return type.
         """
         ...
-
-    async def _inner_call(
-        self,
-        interaction: CommandInteraction,
-        options: List[CommandInteractionOption]
-    ) -> None:
-        raise NotImplementedError(
-            'Command cannot be invoked because invokation is not yet implemented'
-        )
-
-    async def invoke(
-        self,
-        interaction: CommandInteraction,
-        options: List[CommandInteractionOption]
-    ) -> None:
-        """Invoke the command callback with the given interaction.
-
-        Compared to directly calling the subcommand, this will invoke
-        middlewares in order, such that checks and cooldowns are executed.
-
-        Parameters:
-            interaction: The interaction to invoke the command with.
-        """
-        if self.callback is None:
-            raise AttributeError("'callback' is not set to a function")
-
-        await self._invoke_stack(interaction, options)
-
-    def push_middleware(
-        self,
-        middleware: Callable[[MiddlewareCallback], MiddlewareCallbackT]
-    ) -> MiddlewareCallbackT:
-        """Push a middleware to the stack.
-
-        Middlewares are a lowlevel functionality that allows heavily extensible
-        behaviour in how commands are invoked. They are essentially before
-        / after hooks for the command.
-
-        If you need to pass other options to the middleware, use `partial()`
-        from `functools`.
-
-        Parameters:
-            middleware:
-                An instance of the `Middleware` namedtuple with a callback and
-                dictionary of options to pass it when calling it.
-
-        Returns:
-            The returned callback of the middleware. This is the object that
-            is returned when `middleware` is called.
-        """
-        called = middleware(self._invoke_stack)
-        self._invoke_stack = called
-        return called

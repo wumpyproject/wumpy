@@ -1,14 +1,14 @@
 import time
 from enum import Enum
 from functools import partial, wraps
-from typing import Callable, Dict, Hashable, TypeVar, List
+from typing import Callable, Dict, Hashable, List, TypeVar
 from weakref import WeakValueDictionary
 
 import anyio
 from wumpy.models import CommandInteractionOption
 
 from ..models import CommandInteraction
-from .base import CommandCallback, MiddlewareCallback
+from .middleware import CommandMiddlewareMixin, MiddlewareCallback
 
 __all__ = (
     'MiddlewareDecorator', 'CheckFailure', 'check', 'BucketType', 'max_concurrency',
@@ -16,7 +16,7 @@ __all__ = (
 )
 
 
-CommandT = TypeVar('CommandT', bound=CommandCallback)
+CommandT = TypeVar('CommandT', bound=CommandMiddlewareMixin)
 MiddlewareDecorator = Callable[[CommandT], CommandT]
 
 

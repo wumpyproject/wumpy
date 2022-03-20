@@ -4,8 +4,9 @@ from typing import Any, Dict, List, Optional, OrderedDict, TypeVar
 from typing_extensions import ParamSpec
 from wumpy.models import CommandInteractionOption
 
-from .base import Callback, CommandCallback
 from ..models import CommandInteraction
+from .base import Callback, CommandCallback
+from .middleware import CommandMiddlewareMixin
 from .option import OptionClass
 
 __all__ = ('SlashCommand',)
@@ -15,7 +16,7 @@ P = ParamSpec('P')
 RT = TypeVar('RT')
 
 
-class SlashCommand(CommandCallback[P, RT]):
+class SlashCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
     """Top-level slashcommand callback.
 
     Currently subcommand groups and subcommands are not supported.
@@ -27,7 +28,7 @@ class SlashCommand(CommandCallback[P, RT]):
 
     def __init__(
         self,
-        callback: Optional[Callback[P, RT]] = None,
+        callback: Callback[P, RT],
         *,
         name: Optional[str] = None,
         description: Optional[str] = None
