@@ -1,10 +1,15 @@
-from typing import Any, Awaitable, Callable, List, TypeVar
+from functools import partial
+from typing import Any, Awaitable, Callable, Generic, List, Type, TypeVar
 
 from wumpy.models import CommandInteractionOption
 
 from ..models import CommandInteraction
 
 __all__ = ('CommandMiddlewareMixin', 'MiddlewareCallback')
+
+
+ET = TypeVar('ET', bound='Exception')
+ErrorHandler = Callable[[CommandInteraction, ET], Awaitable[object]]
 
 
 MiddlewareCallback = Callable[
@@ -75,3 +80,51 @@ class CommandMiddlewareMixin:
         called = middleware(self._invoke_stack)
         self._invoke_stack = called
         return called
+
+    def error(self, error: Type[ET]) -> Callable[[ErrorHandler[ET]], 'ErrorMiddleware[ET]']:
+        """Register an error handler for the given error type.
+
+        This is a simplification over adding a middleware that wraps the next
+        middleware with a `try`/`except` block.
+
+        Parameters:
+            error: The type of error to handle.
+
+        Returns:
+            A decorator that takes the handler callback to use and pushes the
+            final middleware to the stack.
+        """
+        def decorator(handler: ErrorHandler[ET]) -> 'ErrorMiddleware[ET]':
+            return self.push_middleware(partial(ErrorMiddleware, error=error, handler=handler))
+        return decorator
+
+
+class ErrorMiddleware(Generic[ET]):
+    call_next: MiddlewareCallback
+
+    error: Type[ET]
+    handler: ErrorHandler
+
+    __slots__ = ('call_next', 'error', 'handler')
+
+    def __init__(
+        self,
+        call_next: MiddlewareCallback,
+        *,
+        error: Type[ET],
+        handler: Callable[[CommandInteraction, ET], Awaitable[object]]
+    ) -> None:
+        self.call_next = call_next
+
+        self.error = error
+        self.handler = handler
+
+    async def __call__(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
+        try:
+            await self.call_next(interaction, options)
+        except self.error as error:
+            await self.handler(interaction, error)
