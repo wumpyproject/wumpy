@@ -3,23 +3,24 @@ from typing import Any, Dict, List, Optional, OrderedDict, TypeVar
 
 from typing_extensions import ParamSpec
 from wumpy.models import CommandInteractionOption
+from wumpy.models.interactions import ApplicationCommandOption
 
 from ..models import CommandInteraction
 from .base import Callback, CommandCallback
 from .middleware import CommandMiddlewareMixin
 from .option import OptionClass
 
-__all__ = ('SlashCommand',)
+__all__ = ('Subcommand', 'SubcommandGroup')
 
 
 P = ParamSpec('P')
 RT = TypeVar('RT')
 
 
-class SlashCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
-    """Top-level slashcommand callback.
+class Subcommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
+    """Subcommand with a callback for its handling.
 
-    Currently subcommand groups and subcommands are not supported.
+    Subcommands themselves cannot have other subcommands nested under them.
     """
 
     name: Optional[str]
@@ -31,12 +32,13 @@ class SlashCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
         callback: Callback[P, RT],
         *,
         name: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
+        options: Optional['OrderedDict[str, OptionClass]'] = None
     ) -> None:
         self.name = name
         self.description = description
 
-        self.options = OrderedDict()
+        self.options = options or OrderedDict()
 
         # __init__() will dispatch the processing methods below which means
         # that we need to set the attributes above first.
@@ -132,3 +134,46 @@ class SlashCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
 
         self.callback.__defaults__ = tuple(defaults)
         self.callback.__kwdefaults__ = kw_defaults
+
+
+class SubcommandGroup(CommandMiddlewareMixin):
+    """Group of subcommands forwarding interactions.
+
+    Subcommand groups has other subcommand groups under them but they cannot be
+    called on its own.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        description: Optional[str] = None,
+        commands: Dict[str, Subcommand]
+    ) -> None:
+        super().__init__()
+
+        self.name = name
+        self.description = description
+        self.commands = commands
+
+    async def _inner_call(
+        self,
+        interaction: CommandInteraction,
+        options: List[CommandInteractionOption]
+    ) -> None:
+        # This is O(n) but the list *should* only have one item unless
+        # middleware modified it.
+        found = [
+            option for option in options
+            if option.type is ApplicationCommandOption.subcommand
+        ]
+        if not found:
+            raise ValueError(
+                f'Subcommand group did not receive a subcommnad option - got: {options}'
+            )
+
+        subcommand = self.commands.get(found[0].value)
+        if subcommand is None:
+            raise LookupError(f'No subcommand found for interaction {interaction}')
+
+        return await subcommand.invoke(interaction, found[0].options)
