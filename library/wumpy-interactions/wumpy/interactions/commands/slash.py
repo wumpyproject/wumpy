@@ -143,18 +143,23 @@ class SubcommandGroup(CommandMiddlewareMixin):
     called on its own.
     """
 
+    name: str
+    description: Optional[str]
+
+    commands: Dict[str, Subcommand]
+
     def __init__(
         self,
         name: str,
         *,
         description: Optional[str] = None,
-        commands: Dict[str, Subcommand]
+        commands: Optional[Dict[str, Subcommand]] = None
     ) -> None:
         super().__init__()
 
         self.name = name
         self.description = description
-        self.commands = commands
+        self.commands = commands or {}
 
     async def _inner_call(
         self,
