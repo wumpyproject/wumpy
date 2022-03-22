@@ -7,14 +7,14 @@ from wumpy.models import CommandInteraction
 from .base import Callback
 from .context import MessageCommand, UserCommand
 from .option import CommandType
-from .slash import SlashCommand
+from .slash import Command, SubcommandGroup
 
 __all__ = ('CommandRegistrar',)
 
 
 P = ParamSpec('P')
 RT = TypeVar('RT')
-Command = Union[SlashCommand[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
+CommandUnion = Union[Command[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
 
 
 class CommandRegistrar:
@@ -52,7 +52,7 @@ class CommandRegistrar:
 
         command.handle_interaction(interaction, tg=tg)
 
-    def register_command(self, command: Command) -> None:
+    def add_command(self, command: Command) -> None:
         """Register a command to be added to the internal dictionary.
 
         This should be used over manipulating the internal dictionary.
@@ -65,7 +65,7 @@ class CommandRegistrar:
 
         self.commands[command.name] = command
 
-    def unregister_command(self, command: Command) -> None:
+    def remove_command(self, command: Command) -> None:
         """Unregister a command from the internal dictionary.
 
         This will raise a ValueError if the command passed isn't loaded where
@@ -93,14 +93,15 @@ class CommandRegistrar:
         *,
         name: str,
         description: str
-    ) -> SlashCommand:
+    ) -> SubcommandGroup:
         """Register and create a slash command without a callback.
 
         This exist so that slash commands can be created without attaching a
         dummy-callback. Context menu commands cannot have subcommands, for that
         reason this will always return a slash command.
 
-        **Usage:**
+        Examples:
+
             ```python
             from wumpy import interactions
 
@@ -116,9 +117,9 @@ class CommandRegistrar:
             description: The description of the command.
 
         Returns:
-            A registered new Slashcommand without a callback.
+            A registered subcommand group.
         """
-        command = SlashCommand(name=name, description=description)
+        command = SubcommandGroup(name=name, description=description)
         self.register_command(command)  # type: ignore
         return command
 
@@ -126,7 +127,7 @@ class CommandRegistrar:
     def command(
         self,
         type: Callback[P, RT]
-    ) -> SlashCommand[P, RT]:
+    ) -> Command[P, RT]:
         ...
 
     @overload
@@ -136,7 +137,7 @@ class CommandRegistrar:
         *,
         name: Optional[str] = None,
         description: Optional[str] = None
-    ) -> Callable[[Callback[P, RT]], SlashCommand[P, RT]]:
+    ) -> Callable[[Callback[P, RT]], Command[P, RT]]:
         ...
 
     @overload
@@ -163,7 +164,7 @@ class CommandRegistrar:
         *,
         name: Optional[str] = None,
         description: Optional[str] = None
-    ) -> Union[Command[P, RT], Callable[[Callback[P, RT]], Command[P, RT]]]:
+    ) -> Union[CommandUnion[P, RT], Callable[[Callback[P, RT]], CommandUnion[P, RT]]]:
         """Register and create a new application command through a decorator.
 
         The decorator can be used both with and without the parentheses.
@@ -191,9 +192,9 @@ class CommandRegistrar:
         Exceptions:
             ValueError: The type wasn't a CommandType value
         """
-        def decorator(func: Callback[P, RT]) -> Command[P, RT]:
+        def decorator(func: Callback[P, RT]) -> CommandUnion[P, RT]:
             if type is CommandType.chat_input:
-                command = SlashCommand(func, name=name, description=description)
+                command = Command(func, name=name, description=description)
             elif type is CommandType.message:
                 command = MessageCommand(func, name=name)
             elif type is CommandType.user:
@@ -201,7 +202,7 @@ class CommandRegistrar:
             else:
                 raise ValueError("Unknown value of 'type':", type)
 
-            self.register_command(command)  # type: ignore
+            self.add_command(command)  # type: ignore
             return command
 
         if callable(type):
