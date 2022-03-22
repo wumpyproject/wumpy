@@ -10,7 +10,7 @@ from .base import Callback, CommandCallback
 from .middleware import CommandMiddlewareMixin
 from .option import OptionClass
 
-__all__ = ('Command', 'SubcommandGroup', 'ToplevelGroup')
+__all__ = ('Command', 'SubcommandGroup')
 
 
 P = ParamSpec('P')
@@ -147,61 +147,14 @@ class SubcommandGroup(CommandMiddlewareMixin):
     name: str
     description: Optional[str]
 
-    commands: Dict[str, Command]
+    commands: Dict[str, Union['SubcommandGroup', Command]]
 
     def __init__(
         self,
         name: str,
         *,
         description: Optional[str] = None,
-        commands: Optional[Dict[str, Command]] = None
-    ) -> None:
-        super().__init__()
-
-        self.name = name
-        self.description = description
-        self.commands = commands or {}
-
-    async def _inner_call(
-        self,
-        interaction: CommandInteraction,
-        options: List[CommandInteractionOption]
-    ) -> None:
-        # This is O(n) but the list *should* only have one item unless
-        # middleware modified it.
-        found = [
-            option for option in options
-            if option.type is ApplicationCommandOption.subcommand
-        ]
-        if not found:
-            raise ValueError(
-                f'Subcommand group did not receive a subcommnad option - got: {options}'
-            )
-
-        subcommand = self.commands.get(found[0].value)
-        if subcommand is None:
-            raise LookupError(f'No subcommand found for interaction {interaction}')
-
-        return await subcommand.invoke(interaction, found[0].options)
-
-
-class ToplevelGroup(CommandMiddlewareMixin):
-    """Slash command that can have subcommand groups or just subcommands.
-
-    This is a top-level subcommand that cannot be called on its own.
-    """
-
-    name: str
-    description: Optional[str]
-
-    commands: Dict[str, Union[Command, SubcommandGroup]]
-
-    def __init__(
-        self,
-        name: str,
-        *,
-        description: Optional[str] = None,
-        commands: Optional[Dict[str, Union[Command, SubcommandGroup]]] = None
+        commands: Optional[Dict[str, Union['SubcommandGroup', Command]]] = None
     ) -> None:
         super().__init__()
 
