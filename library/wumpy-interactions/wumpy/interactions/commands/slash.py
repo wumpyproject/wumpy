@@ -1,5 +1,7 @@
 import inspect
-from typing import Any, Dict, List, Optional, OrderedDict, TypeVar, Union
+from typing import (
+    Any, Callable, Dict, List, Optional, OrderedDict, TypeVar, Union, overload
+)
 
 from typing_extensions import ParamSpec
 from wumpy.models import CommandInteractionOption
@@ -184,3 +186,121 @@ class SubcommandGroup(CommandMiddlewareMixin):
             raise LookupError(f'No subcommand found for interaction {interaction}')
 
         return await subcommand.invoke(interaction, found[0].options)
+
+    def add_command(self, command: Union['SubcommandGroup', Command]) -> None:
+        """Add a subcommand or sub-group.
+
+        Parameters:
+            command: The command or subcommand group to register.
+
+        Raises:
+            ValueError: If the command is already registered.
+        """
+        if command.name is None:
+            raise ValueError('Cannot register unnamed command')
+
+        if command.name in self.commands:
+            raise ValueError(f"Command with name '{command.name}' already registered")
+
+        self.commands[command.name] = command
+
+    def remove_command(self, command: Union['SubcommandGroup', Command]) -> None:
+        """Remove a subcommand or sub-group.
+
+        Parameters:
+            command:
+                The command or subcommand group to remove. This can also be its
+                name.
+
+        Raises:
+            ValueError: There is no command with that name.
+            RuntimeError: The passed in command is not the registered one.
+        """
+        if command.name is None:
+            raise ValueError('Cannot remove unnamed command')
+
+        found = self.commands.get(command.name)
+        if not found:
+            raise ValueError(f"Cannot find registered command '{command.name}'")
+
+        if found is not command:
+            raise RuntimeError(
+                f"Registered command '{command.name}' is not the command passed in"
+            )
+
+        del self.commands[command.name]
+
+    def group(
+        self,
+        *,
+        name: str,
+        description: str,
+    ) -> 'SubcommandGroup':
+        """Create a nested subcommand group without a callback.
+
+        Examples:
+
+            ```python
+            from wumpy.interactions import InteractionApp, CommandInteraction
+
+
+            app = InteractionApp(...)
+            slash = app.group(name='gesture', description='Gesture something')
+            group = app.group(name='hello', description='Hello :3')
+
+            ...  # Register subcommands on this group
+
+            ```
+
+        Parameters:
+            name: The name of the subcommand group.
+            description: The description of the subcommand group.
+
+        Returns:
+            The created and registered subcommand group.
+        """
+        group = SubcommandGroup(name=name, description=description)
+        self.add_command(group)
+        return group
+
+    @overload
+    def command(self, callback: Callback[P, RT]) -> Command[P, RT]:
+        ...
+
+    @overload
+    def command(
+        self,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> Callable[[Callback[P, RT]], Command[P, RT]]:
+        ...
+
+    def command(
+        self,
+        callback: Optional[Callback[P, RT]] = None,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Union[Command[P, RT], Callable[[Callback[P, RT]], Command[P, RT]]]:
+        """Create and register a subcommand on this group.
+
+        This decorator can be used both with and without parentheses.
+
+        Parameters:
+            callback: This gets filled by the decorator.
+            name: The name of the subcommand.
+            description: The description of the subcommand.
+
+        Returns:
+            The command, once decorated on the callback.
+        """
+        def decorator(func: Callback[P, RT]) -> Command[P, RT]:
+            subcommand = Command(func, name=name, description=description)
+            self.add_command(subcommand)
+            return subcommand
+
+        if callback is not None:
+            return decorator(callback)
+
+        return decorator
