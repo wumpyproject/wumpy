@@ -5,7 +5,7 @@ import anyio
 from discord_typings import InteractionData
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
-from .commands import CommandRegistrar, Command
+from .commands import CommandRegistrar, command_payload
 from .compat import ASGIRequest, Request
 from .components.handler import ComponentHandler
 from .models import CommandInteraction, ComponentInteraction
@@ -209,21 +209,6 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
     async def sync_commands(self, commands: List[Any]) -> None:
         """Synchronize the commands with Discord."""
-        for local in self.commands.values():
-            found = [c for c in commands if c['name'] == local.name]
-            if not found:
-                await self.api.create_global_command(self.application_id, local.to_dict())
-                continue
-
-            command = found[0]
-
-            if (
-                    (isinstance(local, Command) and local.description != command['description'])
-                    or local.to_dict()['options'] != command.get('options', [])
-            ):
-                await self.api.edit_global_command(self.application_id, command['id'], local.to_dict())
-                continue
-
-        for command in commands:
-            if command['name'] not in self.commands:
-                await self.api.delete_global_command(self.application_id, command['id'])
+        await self.api.overwrite_global_commands(
+            self.application_id, [command_payload(c) for c in commands]
+        )
