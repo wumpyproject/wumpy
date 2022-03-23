@@ -3,16 +3,18 @@ from typing import (
     Any, Callable, Dict, List, Optional, OrderedDict, TypeVar, Union, overload
 )
 
+from discord_typings import (
+    ApplicationCommandOptionData, ApplicationCommandPayload
+)
 from typing_extensions import ParamSpec
-from wumpy.models import CommandInteractionOption
-from wumpy.models.interactions import ApplicationCommandOption
+from wumpy.models import ApplicationCommandOption, CommandInteractionOption
 
 from ..models import CommandInteraction
 from .base import Callback, CommandCallback
 from .middleware import CommandMiddlewareMixin
 from .option import OptionClass
 
-__all__ = ('Command', 'SubcommandGroup')
+__all__ = ('Command', 'SubcommandGroup', 'command_payload')
 
 
 P = ParamSpec('P')
@@ -354,3 +356,85 @@ class SubcommandGroup(CommandMiddlewareMixin):
             return decorator(callback)
 
         return decorator
+
+
+def _option_payload(option: OptionClass) -> ApplicationCommandOptionData:
+    if option.name is None or option.type is None or option.description is None:
+        raise ValueError('Missing required option values')
+
+    data = {
+        'name': option.name,
+        'type': option.type.enum.value,
+        'description': option.description,
+        'required': True if option.required is None else option.required,
+    }
+
+    if option.choices is not None:
+        # We store choices with the name as the key and value being the
+        # value but Discord expects a payload with explicit name and value
+        # keys so we need to convert it.
+        choices = [{'name': k, 'value': v} for k, v in option.choices.items()]
+        data['choices'] = choices
+
+    if option.min is not None:
+        data['min_value'] = option.min
+
+    if option.max is not None:
+        data['max_value'] = option.max
+
+    # Static type checkers don't understand how the dictionary is built (but
+    # even if it did, it's possible that the final dictionary does not follow
+    # the type correctly).
+    return data  # type: ignore
+
+
+def _subcommand_payload(command: Command) -> ApplicationCommandOptionData:
+    return {
+        'type': ApplicationCommandOption.subcommand.value,
+        'name': command.name,
+        'description': command.description,
+        'options': [
+            _option_payload(option) for option in command.options.values()
+        ]
+    }  # type: ignore
+
+
+def _group_payload(group: SubcommandGroup) -> ApplicationCommandOptionData:
+    return {
+        'type': ApplicationCommandOption.subcommand_group.value,
+        'name': group.name,
+        'description': group.description,
+        'options': [
+            _subcommand_payload(command) if isinstance(command, Command) else
+            _group_payload(command)
+            for command in group.commands.values()
+        ]
+    }  # type: ignore
+
+
+def command_payload(command: Union[Command, SubcommandGroup]) -> ApplicationCommandPayload:
+    """Generate the dictionary payload for the command.
+
+    This can be used to turn commands into their payloads used to register them
+    with Discord using the REST API.
+
+    Parameters:
+        command: The command to generate the payload for.
+
+    Returns:
+        Dictionary payload for the command.
+    """
+    if isinstance(command, Command):
+        options = [_option_payload(option) for option in command.options.values()]
+    else:
+        options = [
+            _subcommand_payload(command) if isinstance(command, Command) else
+            _group_payload(command)
+            for command in command.commands.values()
+        ]
+
+    return {
+        'name': command.name,
+        'description': command.description,
+        'options': options
+    }  # type: ignore
