@@ -138,6 +138,56 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
         self.callback.__defaults__ = tuple(defaults)
         self.callback.__kwdefaults__ = kw_defaults
 
+    def update_option(
+        self,
+        option: str,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        required: Optional[bool] = None,
+        choices: Union[
+            List[Union[str, int, float]],
+            Dict[str, Union[str, int, float]],
+            None
+        ] = None,
+        min: Optional[int] = None,
+        max: Optional[int] = None,
+        type: Optional[ApplicationCommandOption] = None
+    ) -> None:
+        """Update values of a slash command's options.
+
+        The values passed here will override any previously set values.
+
+        Parameters:
+            param: The parameter name to update.
+            name: The new name of the option.
+            description: The new description of the option.
+            required: Whether the option can be omitted.
+            choices: Strict set of choices that the user needs to pick from.
+            min: Smallest number that can be entered for number types
+            max: Biggest number that can be entered for number types
+            type: New application command option type to use.
+
+        Exceptions:
+            ValueError: There's no option with the name passed.
+        """
+        found = self.options.get(option)
+        if not found:
+            raise ValueError(f"Could not find option with name '{option}'")
+
+        if name is not None:
+            # We have to update the internal dictionary where the option is
+            # stored so that it can be found correctly when receiving an
+            # interaction from Discord.
+            assert found.name is not None
+            del self.options[found.name]
+            self.options[name] = found
+
+        found._update_values(
+            name=name, description=description, required=required,
+            choices=choices, min=min, max=max, type=type
+        )
+
 
 class SubcommandGroup(CommandMiddlewareMixin):
     """Group of subcommands forwarding interactions.
