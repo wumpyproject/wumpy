@@ -2,7 +2,7 @@ from typing import Callable, Dict, Optional, TypeVar, Union, overload
 
 import anyio.abc
 from typing_extensions import Literal, ParamSpec
-from wumpy.models import CommandInteraction
+from ..models import CommandInteraction
 
 from .base import Callback
 from .context import MessageCommand, UserCommand
@@ -31,7 +31,7 @@ class CommandRegistrar:
 
         self.commands = {}
 
-    def handle_command(
+    async def invoke_command(
         self,
         interaction: CommandInteraction,
         *,
@@ -50,7 +50,7 @@ class CommandRegistrar:
         if command is None:
             return
 
-        command.handle_interaction(interaction, tg=tg)
+        await command.invoke(interaction, interaction.options)
 
     def add_command(self, command: Command) -> None:
         """Register a command to be added to the internal dictionary.

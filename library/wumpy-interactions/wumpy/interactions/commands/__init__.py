@@ -7,7 +7,7 @@ from .option import _MISSING_DEFAULT, CommandType
 from .registrar import *
 from .slash import *
 
-T = TypeVar('T', bound=Union[SlashCommand, Subcommand])
+T = TypeVar('T', bound=Command)
 
 
 # The reason for this function is because we need the "return type" to be Any.
@@ -94,7 +94,7 @@ def option(
     # Because of the fact that we delete the type variable below, it won't be
     # available when this function is created.
     def decorator(command: 'T') -> 'T':
-        if not isinstance(command, Subcommand):
+        if not isinstance(command, Command):
             raise TypeError(
                 "The 'option' decorator can only be used on commands."
             )

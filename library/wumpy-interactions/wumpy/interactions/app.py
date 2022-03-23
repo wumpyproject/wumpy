@@ -5,7 +5,7 @@ import anyio
 from discord_typings import InteractionData
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
-from .commands import CommandRegistrar, SlashCommand
+from .commands import CommandRegistrar, Command
 from .compat import ASGIRequest, Request
 from .components.handler import ComponentHandler
 from .models import CommandInteraction, ComponentInteraction
@@ -197,9 +197,9 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         async with anyio.create_task_group() as tg:
             if data['type'] == 2:
-                self.handle_command(
+                tg.start_soon(
+                    self.invoke_command,
                     CommandInteraction.from_data(data, request),
-                    tg=tg
                 )
             elif data['type'] == 3:
                 self.handle_component(
@@ -218,7 +218,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             command = found[0]
 
             if (
-                    (isinstance(local, SlashCommand) and local.description != command['description'])
+                    (isinstance(local, Command) and local.description != command['description'])
                     or local.to_dict()['options'] != command.get('options', [])
             ):
                 await self.api.edit_global_command(self.application_id, command['id'], local.to_dict())
