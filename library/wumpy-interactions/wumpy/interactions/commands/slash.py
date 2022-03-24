@@ -88,15 +88,18 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
         return super()._process_callback(callback)
 
     def _process_param(self, index: int, param: inspect.Parameter) -> None:
-        if index == 0 and param.annotation is not param.empty:
-            # If this is the first parameter, we need to make sure it is
-            # either not annotated at all or its set as the command interaction
-            ann = param.annotation
-            if isinstance(ann, type) and not issubclass(ann, CommandInteraction):
-                raise TypeError(
-                    "The first paramer of 'callback' cannot be annotated with "
-                    "anything other than 'CommandInteraction'"
-                )
+        if index == 0:
+            if param.annotation is not param.empty:
+                # If this is the first parameter, we need to make sure it is
+                # either not annotated at all or its set as the interaction
+                if (
+                    isinstance(param.annotation, type)
+                    and not issubclass(param.annotation, CommandInteraction)
+                ):
+                    raise TypeError(
+                        "The first paramer of 'callback' cannot be annotated with "
+                        "anything other than 'CommandInteraction'"
+                    )
 
             return  # The interaction shouldn't be added to self.options
 
