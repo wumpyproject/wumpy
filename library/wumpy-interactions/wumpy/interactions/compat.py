@@ -1,5 +1,7 @@
 import json
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Protocol, overload
+from typing import TYPE_CHECKING, Any, Mapping, Optional, overload
+
+from typing_extensions import Protocol
 
 try:
     from sanic import HTTPResponse  # type: ignore
