@@ -120,7 +120,7 @@ class CommandRegistrar:
             A registered subcommand group.
         """
         command = SubcommandGroup(name=name, description=description)
-        self.register_command(command)  # type: ignore
+        self.add_command(command)  # type: ignore
         return command
 
     @overload

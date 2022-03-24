@@ -62,7 +62,7 @@ class Extension(CommandRegistrar, EventDispatcher):
 
         if isinstance(target, CommandRegistrar):
             for command in self.commands.values():
-                target.register_command(command)
+                target.add_command(command)
 
         self._data = data
 
@@ -76,7 +76,7 @@ class Extension(CommandRegistrar, EventDispatcher):
 
         if isinstance(target, CommandRegistrar):
             for command in self.commands.values():
-                target.register_command(command)
+                target.remove_command(command)
 
 
 def _is_submodule(a: str, b: str) -> bool:
@@ -108,7 +108,7 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
 
         for command in self.commands.values():
             if _is_submodule(command.callback.__module__, module):
-                self.unregister_command(command)
+                self.remove_command(command)
 
     def load_extension(self, path: str, package: Optional[str] = None, **kwargs: Any) -> None:
         """Load an extension at `path`.
