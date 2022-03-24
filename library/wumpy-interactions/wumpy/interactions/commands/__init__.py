@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 
 from . import option as __option
 from .base import *
+from .checks import *
 from .context import *
 from .option import _MISSING_DEFAULT, CommandType
 from .registrar import *
