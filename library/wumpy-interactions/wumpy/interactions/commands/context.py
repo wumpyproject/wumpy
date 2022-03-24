@@ -66,7 +66,10 @@ class ContextMenuCommand(CommandCallback[P, RT]):
             return  # The following code only inspects annotations
 
         if index == 0:
-            if not isinstance(param.annotation, CommandInteraction):
+            if (
+                not isinstance(param.annotation, type)
+                or not issubclass(param.annotation, CommandInteraction)
+            ):
                 raise TypeError(
                     "The annotation of the first parameter must be a 'CommandInteraction'"
                 )
