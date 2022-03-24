@@ -69,6 +69,9 @@ class ContextMenuCommand(CommandCallback[P, RT]):
         else:
             self._verify_annotation(param.annotation)
 
+    def _process_no_params(self, signature: inspect.Signature) -> None:
+        raise TypeError("'callback' has to have two parameters")
+
     def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
         """Resolve the single value for the interaction.
 
