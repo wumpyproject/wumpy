@@ -1,4 +1,5 @@
 import inspect
+from asyncio import iscoroutinefunction
 from typing import Any, List, Optional, TypeVar
 
 from typing_extensions import ParamSpec
@@ -37,6 +38,9 @@ class ContextMenuCommand(CommandCallback[P, RT]):
     def _process_callback(self, callback: Callback[P, RT]) -> None:
         if self.name is None:
             self.name = getattr(callback, '__name__', None)
+
+        if not iscoroutinefunction(callback):
+            raise TypeError("'callback' must be an 'async def' function")
 
         return super()._process_callback(callback)
 
