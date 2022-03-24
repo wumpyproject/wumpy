@@ -56,10 +56,13 @@ class CommandCallback(Generic[P, RT]):
         signature = inspect.signature(callback)
         annotations = _eval_annotations(callback)
 
-        for i, param in enumerate(signature.parameters.values()):
-            annotation = annotations.get(param.name, param.empty)
+        if not signature.parameters:
+            self._process_no_params(signature)
+        else:
+            for i, param in enumerate(signature.parameters.values()):
+                annotation = annotations.get(param.name, param.empty)
 
-            self._process_param(i, param.replace(annotation=annotation))
+                self._process_param(i, param.replace(annotation=annotation))
 
         # We piggyback on inspect's Parameter.empty sentinel value
         return_type = annotations.get('return', inspect.Parameter.empty)
@@ -78,6 +81,16 @@ class CommandCallback(Generic[P, RT]):
             param:
                 The parameter of the callback. Annotations have been resolved
                 and replaced with the actual type.
+        """
+        ...
+
+    def _process_no_params(self, signature: inspect.Signature) -> None:
+        """Process a callback having no signature.
+
+        This method is only called if `_process_param()` won't be called.
+
+        Parameters:
+            signature: The signature of the callback.
         """
         ...
 

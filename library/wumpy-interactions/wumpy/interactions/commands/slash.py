@@ -108,6 +108,9 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
 
         self.options[option.name] = option
 
+    def _process_no_params(self, signature: inspect.Signature) -> None:
+        raise TypeError("'callback' has to have two parameters")
+
     def _process_return_type(self, annotation: Any) -> None:
         # We don't actually care about the return type, this is simply the last
         # method to be called when processing which we take advantage of.
