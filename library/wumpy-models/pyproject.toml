@@ -35,7 +35,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-dependencies = ["typing_extensions >= 4, <5", "discord-typings >= 0.2.2"]
+dependencies = ["typing_extensions >= 4, <5", "discord-typings >= 0.4.0, <1"]
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
