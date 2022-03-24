@@ -1,4 +1,5 @@
 import inspect
+from asyncio import iscoroutinefunction
 from typing import (
     Any, Callable, Dict, List, Optional, OrderedDict, TypeVar, Union, overload
 )
@@ -80,6 +81,9 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
                 # Similar to Markdown, we want to turn one newline character into
                 # spaces, and two characters into one.
                 self.description = paragraps[0].replace('\n', ' ')
+
+        if not iscoroutinefunction(callback):
+            raise TypeError("'callback' must be an 'async def' function")
 
         return super()._process_callback(callback)
 
