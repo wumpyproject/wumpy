@@ -38,14 +38,6 @@ class ContextMenuCommand(CommandCallback[P, RT]):
         if self.name is None:
             self.name = getattr(callback, '__name__', None)
 
-        doc = inspect.getdoc(callback)
-        if self.description is None and doc is not None:
-            paragraps = doc.split('\n\n')
-            if paragraps:
-                # Similar to Markdown, we want to turn one newline character
-                # into spaces, and two characters into one.
-                self.description = paragraps[0].replace('\n', ' ')
-
         return super()._process_callback(callback)
 
     def _process_param(self, index: int, param: inspect.Parameter) -> None:
