@@ -445,6 +445,7 @@ def command_payload(command: Union[Command, SubcommandGroup]) -> ApplicationComm
 
     return {
         'name': command.name,
+        'type': 1,
         'description': command.description,
         'options': options
     }  # type: ignore

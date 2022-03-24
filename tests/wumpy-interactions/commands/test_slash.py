@@ -1,6 +1,7 @@
 import pytest
 from wumpy.interactions import (
-    ApplicationCommandOption, CommandInteraction, CommandRegistrar, Option
+    ApplicationCommandOption, CommandInteraction, CommandRegistrar, Option,
+    command_payload
 )
 
 
@@ -98,7 +99,7 @@ class TestCommandNesting:
             """Adult subcommand of parent command."""
             ...
 
-        assert parent.to_dict() == {
+        assert command_payload(parent) == {
             'name': 'parent',
             'type': 1,
             'description': 'Family tree of commands',
@@ -151,7 +152,7 @@ class TestCommandNesting:
             """Meow meow subcommand."""
             ...
 
-        assert parent.to_dict() == {
+        assert command_payload(parent) == {
             'name': 'parent',
             'type': 1,
             'description': 'Family tree of commands',
