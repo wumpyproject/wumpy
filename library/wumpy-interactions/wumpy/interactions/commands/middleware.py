@@ -25,8 +25,6 @@ class CommandMiddlewareMixin:
 
     _invoke_stack: MiddlewareCallback
 
-    __slots__ = ('_invoke_stack',)
-
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
