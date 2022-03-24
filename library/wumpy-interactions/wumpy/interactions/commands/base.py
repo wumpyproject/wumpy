@@ -21,8 +21,6 @@ class CommandCallback(Generic[P, RT]):
 
     _callback: Callback[P, RT]
 
-    __slots__ = ('_callback',)
-
     def __init__(self, callback: Callback[P, RT]) -> None:
         super().__init__()
 
