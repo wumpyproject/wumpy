@@ -20,20 +20,23 @@ RT = TypeVar('RT')
 class Result(Generic[RT]):
     """Synchronizing Event but modified to pass a result."""
 
-    __slots__ = ('event', 'value')
+    __slots__ = ('_event', 'value')
 
     def __init__(self) -> None:
-        self.event = anyio.Event()
+        self._event = anyio.Event()
 
     def is_set(self) -> bool:
-        return self.event.is_set()
+        return self._event.is_set()
 
     def set(self, value: RT) -> None:
-        self.event.set()
+        self._event.set()
         self.value = value
 
     async def wait(self) -> RT:
-        await self.event.wait()
+        await self._event.wait()
+        if not hasattr(self, 'value'):
+            raise RuntimeError('Result woken up without value')
+
         return self.value  # value should now be set
 
 
