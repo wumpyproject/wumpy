@@ -46,23 +46,23 @@ class Component:
     All components inherit from this base class.
     """
 
-    callback: Optional[Callable[['ComponentInteraction'], Coroutine]]
+    _callback: Optional[Callable[['ComponentInteraction'], Coroutine]]
 
-    waiters: List[
+    _waiters: List[
         Tuple[
             Callable[['ComponentInteraction'], bool],
             Result['ComponentInteraction']
         ]
     ]
 
-    __slots__ = ('callback', 'waiters')
+    __slots__ = ('_callback', '_waiters')
 
     def __init__(
         self,
         callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None,
     ) -> None:
-        self.callback = callback
-        self.waiters = []
+        self._callback = callback
+        self._waiters = []
 
     async def __call__(
         self,
@@ -71,20 +71,28 @@ class Component:
         timeout: Optional[float] = None
     ) -> 'ComponentInteraction':
         event: Result['ComponentInteraction'] = Result()
-        self.waiters.append((check, event))
+        self._waiters.append((check, event))
 
         with anyio.fail_after(timeout):
             return await event.wait()
 
+    def set_callback(self, callback: Callable[['ComponentInteraction'], Coroutine]) -> None:
+        """Set the callback for this component.
+
+        Parameters:
+            callback: Asynchornous callback that takes an interaction.
+        """
+        self._callback = callback
+
     def handle_interaction(self, interaction: 'ComponentInteraction', *, tg: TaskGroup) -> None:
         """Handle the interaction and wake up any waiters."""
-        if self.callback is not None:
-            tg.start_soon(self.callback, interaction)
+        if self._callback is not None:
+            tg.start_soon(self._callback, interaction)
 
-        for index, (check, result) in enumerate(self.waiters):
+        for index, (check, result) in enumerate(self._waiters):
             if check(interaction):
                 result.set(interaction)
-                self.waiters.pop(index)
+                self._waiters.pop(index)
 
     def to_dict(self) -> Union[List[Any], Dict[str, Any]]:
         """Method meant to be implemented by subclasses."""
