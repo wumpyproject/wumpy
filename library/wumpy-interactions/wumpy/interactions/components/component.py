@@ -1,23 +1,23 @@
 import re
 from typing import (
-    TYPE_CHECKING, Any, Callable, Coroutine, Dict, Generic, List, Optional,
-    Tuple, TypeVar, Union
+    Any, Callable, Coroutine, Dict, Generic, List, Optional, Tuple, TypeVar,
+    Union
 )
 
 import anyio
 from anyio.abc import TaskGroup
 from wumpy.models import DISCORD_EPOCH
 
-if TYPE_CHECKING:
-    from wumpy.models import ComponentInteraction
+from ..models import ComponentInteraction
 
 __all__ = ('Component', 'ComponentEmoji')
 
 
-RT = TypeVar('RT')
+T = TypeVar('T')
+Coro = Coroutine[Any, Any, T]
 
 
-class Result(Generic[RT]):
+class Result(Generic[T]):
     """Synchronizing Event but modified to pass a result."""
 
     __slots__ = ('_event', 'value')
@@ -28,11 +28,11 @@ class Result(Generic[RT]):
     def is_set(self) -> bool:
         return self._event.is_set()
 
-    def set(self, value: RT) -> None:
+    def set(self, value: T) -> None:
         self._event.set()
         self.value = value
 
-    async def wait(self) -> RT:
+    async def wait(self) -> T:
         await self._event.wait()
         if not hasattr(self, 'value'):
             raise RuntimeError('Result woken up without value')
@@ -46,12 +46,12 @@ class Component:
     All components inherit from this base class.
     """
 
-    _callback: Optional[Callable[['ComponentInteraction'], Coroutine]]
+    _callback: Optional[Callable[[ComponentInteraction], Coro[object]]]
 
     _waiters: List[
         Tuple[
-            Callable[['ComponentInteraction'], bool],
-            Result['ComponentInteraction']
+            Callable[[ComponentInteraction], bool],
+            Result[ComponentInteraction]
         ]
     ]
 
@@ -59,24 +59,24 @@ class Component:
 
     def __init__(
         self,
-        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None,
+        callback: Optional[Callable[[ComponentInteraction], Coro[object]]] = None,
     ) -> None:
         self._callback = callback
         self._waiters = []
 
     async def __call__(
         self,
-        check: Callable[['ComponentInteraction'], bool] = lambda i: True,
+        check: Callable[[ComponentInteraction], bool] = lambda i: True,
         *,
         timeout: Optional[float] = None
-    ) -> 'ComponentInteraction':
-        event: Result['ComponentInteraction'] = Result()
+    ) -> ComponentInteraction:
+        event: Result[ComponentInteraction] = Result()
         self._waiters.append((check, event))
 
         with anyio.fail_after(timeout):
             return await event.wait()
 
-    def set_callback(self, callback: Callable[['ComponentInteraction'], Coroutine]) -> None:
+    def set_callback(self, callback: Callable[[ComponentInteraction], Coro[object]]) -> None:
         """Set the callback for this component.
 
         Parameters:
@@ -84,7 +84,7 @@ class Component:
         """
         self._callback = callback
 
-    def handle_interaction(self, interaction: 'ComponentInteraction', *, tg: TaskGroup) -> None:
+    def handle_interaction(self, interaction: ComponentInteraction, *, tg: TaskGroup) -> None:
         """Handle the interaction and wake up any waiters."""
         if self._callback is not None:
             tg.start_soon(self._callback, interaction)
