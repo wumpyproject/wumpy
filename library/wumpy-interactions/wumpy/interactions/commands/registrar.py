@@ -31,12 +31,7 @@ class CommandRegistrar:
 
         self.commands = {}
 
-    async def invoke_command(
-        self,
-        interaction: CommandInteraction,
-        *,
-        tg: anyio.abc.TaskGroup
-    ) -> None:
+    async def invoke_command(self, interaction: CommandInteraction) -> None:
         """Handle the interaction and trigger appropriate callbacks.
 
         There is not much use of this method as a user unless this class

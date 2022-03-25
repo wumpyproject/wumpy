@@ -194,18 +194,14 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
                 implement this - one for ASGI applications and one for Sanic
                 applications which are provided by the library.
         """
-
-        async with anyio.create_task_group() as tg:
-            if data['type'] == 2:
-                tg.start_soon(
-                    self.invoke_command,
-                    CommandInteraction.from_data(data, request),
-                )
-            elif data['type'] == 3:
-                self.handle_component(
-                    ComponentInteraction.from_data(data, request),
-                    tg=tg
-                )
+        if data['type'] == 2:
+            await self.invoke_command(
+                CommandInteraction.from_data(data, request)
+            )
+        elif data['type'] == 3:
+            await self.invoke_component(
+                ComponentInteraction.from_data(data, request),
+            )
 
     async def sync_commands(self, commands: List[Any]) -> None:
         """Synchronize the commands with Discord."""

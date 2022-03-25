@@ -1,6 +1,7 @@
+import collections
 import re
 from typing import (
-    Any, Callable, Coroutine, Dict, Generic, List, Optional, Tuple, TypeVar,
+    Any, Callable, Coroutine, Deque, Dict, Generic, List, Optional, Tuple, TypeVar,
     Union
 )
 
@@ -96,15 +97,21 @@ class Component:
 
         self._callback = callback
 
-    def handle_interaction(self, interaction: ComponentInteraction, *, tg: TaskGroup) -> None:
-        """Handle the interaction and wake up any waiters."""
-        if self._callback is not None:
-            tg.start_soon(self._callback, interaction)
+    async def invoke(self, interaction: ComponentInteraction) -> None:
+        async with anyio.create_task_group() as tg:
+            if self._callback is not None:
+                tg.start_soon(self._callback, interaction)
 
-        for index, (check, result) in enumerate(self._waiters):
-            if check(interaction):
-                result.set(interaction)
-                self._waiters.pop(index)
+            popped: Deque[int] = collections.deque()
+            for index, (check, event) in enumerate(self._waiters):
+                if check(interaction):
+                    event.set(interaction)
+                    popped.append(index)
+
+            # Removing items from a list while iterating it, gives very odd
+            # behaviour you have to account for. This is the easiest way
+            for index in popped:
+                del self._waiters[index]
 
     def to_dict(self) -> Union[List[Any], Dict[str, Any]]:
         """Method meant to be implemented by subclasses."""

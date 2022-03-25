@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING, Dict
 import anyio.abc
 
 from .component import Component
-
-if TYPE_CHECKING:
-    from wumpy.models import ComponentInteraction
+from ..models import ComponentInteraction
 
 
 __all__ = ('ComponentHandler',)
@@ -28,12 +26,7 @@ class ComponentHandler:
 
         self.components = {}
 
-    def handle_component(
-        self,
-        interaction: 'ComponentInteraction',
-        *,
-        tg: anyio.abc.TaskGroup
-    ) -> None:
+    async def invoke_component(self, interaction: ComponentInteraction) -> None:
         """Handle the component, setting waiting events and calling callbacks.
 
         The lookup order here is first for message ID, then by interaction ID.
@@ -42,7 +35,6 @@ class ComponentHandler:
 
         Parameters:
             interaction: The interaction a component should handle.
-            tg: Task group to launch callbacks with.
         """
         component = self.components.get(int(interaction.message['id']))
         if not component:
@@ -54,7 +46,7 @@ class ComponentHandler:
             # We know no components for this interaction
             return
 
-        component.handle_interaction(interaction, tg=tg)
+        await component.invoke(interaction)
 
     def add_component(self, snowflake: int, component: Component) -> None:
         """Add a component to be dispatched when an interaction is received.
