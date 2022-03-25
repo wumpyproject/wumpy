@@ -76,12 +76,24 @@ class Component:
         with anyio.fail_after(timeout):
             return await event.wait()
 
-    def set_callback(self, callback: Callable[[ComponentInteraction], Coro[object]]) -> None:
+    def set_callback(
+        self,
+        callback: Callable[[ComponentInteraction], Coro[object]],
+        *,
+        override: bool = False
+    ) -> None:
         """Set the callback for this component.
 
         Parameters:
             callback: Asynchornous callback that takes an interaction.
+            override: Whether to override the callback if it is already set.
+
+        Raises:
+            RuntimeError: There is already a callback but `override` is False.
         """
+        if self._callback is not None and not override:
+            raise RuntimeError("Callback is already set but 'override' is False")
+
         self._callback = callback
 
     def handle_interaction(self, interaction: ComponentInteraction, *, tg: TaskGroup) -> None:
