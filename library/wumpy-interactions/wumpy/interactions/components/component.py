@@ -1,12 +1,12 @@
 import collections
 import re
 from typing import (
-    Any, Callable, Coroutine, Deque, Dict, Generic, List, Optional, Tuple, TypeVar,
-    Union
+    Any, Callable, Coroutine, Deque, Dict, Generic, List, Optional, Tuple,
+    TypeVar, Union
 )
 
 import anyio
-from anyio.abc import TaskGroup
+
 from wumpy.models import DISCORD_EPOCH
 
 from ..models import ComponentInteraction

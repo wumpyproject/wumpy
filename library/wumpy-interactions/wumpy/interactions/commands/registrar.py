@@ -1,6 +1,5 @@
 from typing import Callable, Dict, Optional, TypeVar, Union, overload
 
-import anyio.abc
 from typing_extensions import Literal, ParamSpec
 
 from ..models import CommandInteraction

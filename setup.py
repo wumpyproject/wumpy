@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 # IMPORTANT: This is only for in-dev installation of the whole Git repository.
 #            It has no stability guarantees and if possible, it is recommended
 #            to 'cd' into each subpackage and install them with '--pth-file'

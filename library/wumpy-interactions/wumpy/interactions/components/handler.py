@@ -1,6 +1,4 @@
-from typing import TYPE_CHECKING, Dict
-
-import anyio.abc
+from typing import Dict
 
 from .component import Component
 from ..models import ComponentInteraction
