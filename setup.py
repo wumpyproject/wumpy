@@ -39,7 +39,7 @@ setup(
     },
 
     # Sadly we have to duplicate these from the pyproject.toml files
-    requires=[
+    install_requires=[
         "anyio >= 3.3.4, < 4",
         "httpx[http2] >= 0.22, < 1",
         "discord-typings >= 0.4.0, <1",
