@@ -37,14 +37,17 @@ setup(
         'wumpy.models': 'library/wumpy-models/wumpy/models',
         'wumpy.rest': 'library/wumpy-rest/wumpy/rest',
     },
+    package_data={
+        '': ['py.typed'],
+    },
 
     # Sadly we have to duplicate these from the pyproject.toml files
     install_requires=[
-        "anyio >= 3.3.4, < 4",
-        "httpx[http2] >= 0.22, < 1",
-        "discord-typings >= 0.4.0, <1",
-        "discord-gateway >=0.3.0, <1",
-        "pynacl > 1, < 2",
-        "typing_extensions >= 4, <5",
+        'anyio >= 3.3.4, < 4',
+        'httpx[http2] >= 0.22, < 1',
+        'discord-typings >= 0.4.0, <1',
+        'discord-gateway >=0.3.0, <1',
+        'pynacl > 1, < 2',
+        'typing_extensions >= 4, <5',
     ],
 )
