@@ -26,7 +26,8 @@ setup(
 
     packages=[
         'wumpy.bot', 'wumpy.cache', 'wumpy.gateway', 'wumpy.interactions',
-        'wumpy.models', 'wumpy.rest',
+        'wumpy.interactions.commands', 'wumy.interactions.components',
+        'wumpy.models', 'wumpy.models.endpoints', 'wumpy.rest',
     ],
 
     package_dir={
