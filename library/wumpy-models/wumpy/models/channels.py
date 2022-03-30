@@ -15,7 +15,7 @@ from .utils import _get_as_snowflake
 
 __all__ = (
     'PartialChannel', 'InteractionChannel', 'DMChannel', 'VoiceChannel',
-    'TextChannel', 'NewsChannel', 'Category'
+    'TextChannel', 'NewsChannel', 'Category', 'Thread'
 )
 
 
@@ -220,7 +220,7 @@ class ThreadMember:
 
 
 @dataclasses.dataclass(frozen=True, eq=False)
-class ThreadChannel(PartialChannel):
+class Thread(PartialChannel):
 
     type: Literal[10, 11, 12]
 
