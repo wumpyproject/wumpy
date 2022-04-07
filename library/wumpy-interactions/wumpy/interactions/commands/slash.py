@@ -68,7 +68,7 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
             else:
                 kwargs[option.param] = option.resolve(interaction, data)
 
-        return await self.callback(*args, **kwargs)
+        return await self.callback(interaction, *args, **kwargs)
 
     def _process_callback(self, callback: Callback[P, RT]) -> None:
         if self.name is None:
