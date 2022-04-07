@@ -1,5 +1,5 @@
 import json
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
 
 from discord_typings import InteractionData
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
@@ -142,8 +142,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
             ).__aenter__()
 
             if self.register_commands:
-                commands = await self.api.fetch_global_commands(self.application_id)
-                await self.sync_commands(commands)
+                await self.sync_commands()
 
             await send({'type': 'lifespan.startup.complete'})
         else:
@@ -209,8 +208,8 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
                 ComponentInteraction.from_data(data, request),
             )
 
-    async def sync_commands(self, commands: List[Any]) -> None:
+    async def sync_commands(self) -> None:
         """Synchronize the commands with Discord."""
         await self.api.overwrite_global_commands(
-            self.application_id, [command_payload(c) for c in commands]
+            self.application_id, [command_payload(c) for c in self.commands.values()]
         )
