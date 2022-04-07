@@ -276,7 +276,7 @@ class Requester:
         """
 
         # Clean up MISSING values
-        if json is not None:
+        if isinstance(json, dict):
             json = self._clean_dict(json)
         if data is not None:
             data = self._clean_dict(data)
