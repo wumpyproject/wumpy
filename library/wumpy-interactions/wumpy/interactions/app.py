@@ -41,8 +41,8 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     ) -> None:
         super().__init__()
 
-        self.api = InteractionAppRequester(headers={'Authorization': f'Bot {token}'})
         self._verification = DiscordRequestVerifier(public_key)
+        self._token = token
 
         self.application_id = application_id
         self.register_commands = register_commands
@@ -137,12 +137,19 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     ) -> None:
         event = await receive()
         if event['type'] == 'lifespan.startup':
+            self.api = await InteractionAppRequester(
+                headers={'Authorization': f'Bot {self._token}'}
+            ).__aenter__()
+
             if self.register_commands:
                 commands = await self.api.fetch_global_commands(self.application_id)
                 await self.sync_commands(commands)
 
             await send({'type': 'lifespan.startup.complete'})
         else:
+            await self.api.__aexit__(None, None, None)
+            del self.api
+
             await send({'type': 'lifespan.shutdown.complete'})
 
     async def __call__(
