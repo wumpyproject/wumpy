@@ -1,6 +1,6 @@
 [project]
 name = "wumpy-rest"
-version = "0.1.1"
+version = "0.1.2"
 description = "Reusable and richly typed wrapper over the Discord REST API"
 readme = {file = "README.md", content-type="text/markdown"}
 
