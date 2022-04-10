@@ -1,32 +1,83 @@
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, List, Literal, Mapping, Optional, Set
 
-from .base import Object
+from discord_typings import GuildData
+from typing_extensions import Self
 
-__all__ = ('PartialGuild',)
+from .asset import Asset
+from .base import Model, Snowflake
+from .utils import _get_as_snowflake
+
+__all__ = ['Guild']
 
 
-class PartialGuild(Object):
-    """Guild with only some of the fields filled.
+def _get_as_asset(data: Optional[Mapping[str, Any]], key: str) -> Optional[Asset]:
+    if data is None:
+        return None
 
-    An instance of this class can be found with invites as an example.
-    """
+    value: Optional[str] = data.get(key)
+    return Asset.from_path(value) if value is not None else None
 
+
+@dataclass(frozen=True, eq=False)
+class Guild(Model):
     name: str
-    description: str
-    features: Tuple[str, ...]
-    verification_level: int
-    vanity_url_code: Optional[str]
+    owner_id: Snowflake
 
-    __slots__ = (
-        'name', 'description', 'features', 'verification_level',
-        'vanity_url_code',
-    )
+    icon: Optional[Asset]
+    splash: Optional[Asset]
+    discovery_splash: Optional[Asset]
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(int(data['id']))
+    features: Set[str]
 
-        self.name = data['name']
-        self.description = data['description']
-        self.features = tuple(data['features'])
-        self.verification_level = data['verification_level']
-        self.vanity_url_code = data['verification_level']
+    afk_timeout: int
+    afk_channel_id: Optional[Snowflake]
+
+    verification_level: Literal[0, 1, 2, 3, 4]
+    default_notifications: Literal[0, 1]
+    explicit_content_filter: Literal[0, 1, 2]
+    mfa_level: Literal[0, 1]
+    premium_tier: Literal[0, 1, 2, 3]
+    nsfw_level: Literal[0, 1, 2, 3]
+
+    # This is an exception to the immutabily rule, as we want to keep the list
+    # of these IDs up-to-date without needing to somehow re-create the entire
+    # guild object each time.
+
+    roles: List[Snowflake]
+    emojis: List[Snowflake]
+    members: List[Snowflake]
+    channels: List[Snowflake]
+
+    @classmethod
+    def from_data(cls, data: GuildData) -> Self:
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            owner_id=Snowflake(int(data['owner_id'])),
+
+            icon=_get_as_asset(data, 'icon'),
+            splash=_get_as_asset(data, 'splash'),
+            discovery_splash=_get_as_asset(data, 'discovery_splash'),
+
+            features=set(data['features']),
+
+
+            afk_timeout=data['afk_timeout'],
+            afk_channel_id=_get_as_snowflake(data, 'afk_channel_id'),
+
+            verification_level=data['verification_level'],
+            default_notifications=data['default_message_notifications'],
+            explicit_content_filter=data['explicit_content_filter'],
+            mfa_level=data['mfa_level'],
+            premium_tier=data['premium_tier'],
+            nsfw_level=data['nsfw_level'],
+
+            roles=[Snowflake(int(item['id'])) for item in data['roles']],
+            emojis=[
+                Snowflake(int(item['id'])) for item in data['emojis']
+                if item['id'] is not None
+            ],
+            channels=[Snowflake(int(item['id'])) for item in data['channels']],
+            members=[]
+        )
