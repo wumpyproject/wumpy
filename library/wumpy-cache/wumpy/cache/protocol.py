@@ -4,7 +4,7 @@ from typing import (
 )
 
 from wumpy.models import (
-    Category, DMChannel, Emoji, Guild, Member, Message,
+    Category, Emoji, Guild, Member, Message,
     Role, Sticker, TextChannel, Thread, User, VoiceChannel
 )
 
