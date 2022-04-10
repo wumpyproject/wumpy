@@ -4,7 +4,9 @@ from typing import (
 )
 
 from discord_typings import ChannelData, MessageData
-from wumpy.models import Message
+from wumpy.models import (
+    Category, DMChannel, Message, TextChannel, Thread, VoiceChannel
+)
 
 from .base import BaseMemoryCache, Channel
 
@@ -14,10 +16,37 @@ __all__ = ('ChannelMemoryCache', 'MessageMemoryCache')
 class ChannelMemoryCache(BaseMemoryCache):
     _channels: Dict[int, Channel]
 
+    CHANNELS = {
+        0: TextChannel,
+        1: DMChannel,
+        2: VoiceChannel,
+        4: Category,
+        5: TextChannel,
+        10: Thread,
+        11: Thread,
+        12: Thread,
+        13: VoiceChannel,
+    }
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self._channels = {}
+
+    async def _process_create_channel(self, data: ChannelData) -> Tuple[None, Channel]:
+        cls = self.CHANNELS[data['type']]
+        channel = cls.from_data(data)
+        self._channels[channel.id] = channel
+        return channel
+
+    async def _process_channel_update(
+            self,
+            data: ChannelData
+    ) -> Tuple[Optional[Channel], Channel]:
+        return (
+            (await self._process_channel_delete(data))[0],
+            (await self._process_create_channel(data))[1]
+        )
 
     async def _process_channel_delete(
         self,
@@ -27,6 +56,20 @@ class ChannelMemoryCache(BaseMemoryCache):
 
     async def get_channel(self, channel: SupportsInt) -> Optional[Channel]:
         return self._channels.get(int(channel))
+
+    async def get_thread(self, thread: SupportsInt) -> Optional[Thread]:
+        channel = self.get_channel(thread)
+        if isinstance(channel, Thread):
+            return channel
+
+        return None
+
+    async def get_category(self, category: SupportsInt) -> Optional[Category]:
+        channel = await self.get_channel(category)
+        if isinstance(channel, Category):
+            return channel
+
+        return None
 
 
 class MessageMemoryCache(BaseMemoryCache):

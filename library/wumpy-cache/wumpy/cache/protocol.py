@@ -1,12 +1,17 @@
 from typing import (
-    Any, AsyncContextManager, Dict, Optional, Protocol, SupportsInt, Tuple
+    Any, AsyncContextManager, Dict, Optional, Protocol, SupportsInt, Tuple,
+    Union
 )
 
 from wumpy.models import (
-    Channel, Emoji, Guild, Invite, Member, Message, Role, Sticker, User
+    Category, DMChannel, Emoji, Guild, Member, Message,
+    Role, Sticker, TextChannel, Thread, User, VoiceChannel
 )
 
-__all__ = ('Cache',)
+__all__ = ['Cache', 'CacheProtocol']
+
+
+Channel = Union[VoiceChannel, TextChannel]
 
 
 class Cache(Protocol):
@@ -85,6 +90,28 @@ class Cache(Protocol):
 
         Returns:
             The Channel model representation, if found in the cache.
+        """
+        ...
+
+    async def get_thread(self, thread: SupportsInt) -> Optional[Thread]:
+        """Get a thread from the cache.
+
+        Parameters:
+            thread: The ID of the thread.
+
+        Returns:
+            The Thread model representation, if found in the cache.
+        """
+        ...
+
+    async def get_category(self, category: SupportsInt) -> Optional[Category]:
+        """Get a category from the cache.
+
+        Parameters:
+            category: The ID of the category.
+
+        Returns:
+            The Category model representation, if found in the cache.
         """
         ...
 
