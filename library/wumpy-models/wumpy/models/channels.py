@@ -113,7 +113,7 @@ class DMChannel(Model):
 @dataclasses.dataclass(frozen=True, eq=False)
 class TextChannel(PartialChannel):
 
-    type: Literal[0]
+    type: Literal[0, 5]
 
     guild_id: Optional[Snowflake]
     parent_id: Optional[Snowflake]
@@ -155,44 +155,6 @@ class TextChannel(PartialChannel):
             nsfw=data['nsfw'],
             slowmode_delay=data['rate_limit_per_user'],
 
-            last_message_id=_get_as_snowflake(data, 'last_message_id'),
-            last_pin_timestamp=last_pin_timestamp,
-            default_auto_archive=auto_archive_duration
-        )
-
-
-@dataclasses.dataclass(frozen=True, eq=False)
-class NewsChannel(TextChannel):
-
-    Literal[5]
-
-    @classmethod
-    def from_data(cls, data: TextChannelData) -> Self:
-        last_pin_timestamp = data.get('last_pin_timestamp')
-        if last_pin_timestamp is not None:
-            last_pin_timestamp = datetime.fromisoformat(last_pin_timestamp)
-
-        auto_archive_duration = data.get('default_auto_archive_duration')
-        if auto_archive_duration is not None:
-            auto_archive_duration = timedelta(seconds=auto_archive_duration)
-
-        overwrites = tuple(
-            PermissionOverwrite.from_data(d) for d in data['permission_overwrites']
-        )
-
-        return cls(
-            id=int(data['id']),
-            name=data['name'],
-            type=data['type'],
-            guild_id=_get_as_snowflake(data, 'guild_id'),
-
-            position=data['position'],
-            overwrites=overwrites,
-            topic=data['topic'],
-            nsfw=data['nsfw'],
-            slowmode_delay=data['rate_limit_per_user'],
-
-            parent_id=_get_as_snowflake(data, 'parent_id'),
             last_message_id=_get_as_snowflake(data, 'last_message_id'),
             last_pin_timestamp=last_pin_timestamp,
             default_auto_archive=auto_archive_duration
