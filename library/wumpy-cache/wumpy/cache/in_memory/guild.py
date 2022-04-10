@@ -16,24 +16,27 @@ class GuildMemoryCache(BaseMemoryCache):
 
         self._guilds = {}
 
-    async def _process_guild_create(self, data: GuildData) -> Tuple[None, Guild]:
+    def _process_guild_create(self, data: GuildData) -> Tuple[None, Guild]:
         guild = Guild.from_data(data)
         self._guilds[guild.id] = guild
         return (None, guild)
 
-    async def _process_guild_update(self, data: GuildData) -> Tuple[Optional[Guild], Guild]:
+    def _process_guild_update(self, data: GuildData) -> Tuple[Optional[Guild], Guild]:
         return (
-            (await self._process_guild_delete(data))[0],
-            (await self._process_guild_create(data))[1]
+            self._process_guild_delete(data)[0],
+            self._process_guild_create(data)[1]
         )
 
-    async def _process_guild_delete(self, data: GuildData) -> Tuple[Optional[Guild], None]:
+    def _process_guild_delete(self, data: GuildData) -> Tuple[Optional[Guild], None]:
         if not data.get('unavailable', False):
             return (self._guilds.pop(int(data['id']), None), None)
 
         # Don't remove the guild, as it only became unavailable - we didn't get
         # kicked or left it.
         return (self._guilds.get(int(data['id'])), None)
+
+    async def get_guild(self, guild: SupportsInt) -> Optional[Guild]:
+        return self._guilds.get(int(guild))
 
 
 class RoleMemoryCache(BaseMemoryCache):
@@ -44,18 +47,18 @@ class RoleMemoryCache(BaseMemoryCache):
 
         self._roles = {}
 
-    async def _process_guild_role_create(self, data: Dict[str, Any]) -> Tuple[None, Role]:
+    def _process_guild_role_create(self, data: Dict[str, Any]) -> Tuple[None, Role]:
         role = Role.from_data(data['role'])
         self._roles[int(data['role']['id'])] = role
         return (None, role)
 
-    async def _process_guild_role_update(self, data: Dict[str, Any]) -> Tuple[Optional[Role], Role]:
+    def _process_guild_role_update(self, data: Dict[str, Any]) -> Tuple[Optional[Role], Role]:
         return (
-            (await self._process_guild_role_delete(data))[0],
-            (await self._process_guild_role_create(data))[1]
+            self._process_guild_role_delete(data)[0],
+            self._process_guild_role_create(data)[1]
         )
 
-    async def _process_guild_role_delete(self, data: Dict[str, Any]) -> Tuple[Optional[Role], None]:
+    def _process_guild_role_delete(self, data: Dict[str, Any]) -> Tuple[Optional[Role], None]:
         return (self._roles.pop(int(data['role_id']), None), None)
 
     async def get_role(self, role: SupportsInt) -> Optional[Role]:
@@ -78,7 +81,7 @@ class EmojiMemoryCache(BaseMemoryCache):
         self._stickers = {}
         self._guild_stickers = {}
 
-    async def _process_guild_emojis_update(
+    def _process_guild_emojis_update(
             self,
             data: Dict[str, Any]
     ) -> Tuple[Optional[List[Emoji]], List[Emoji]]:
@@ -102,7 +105,7 @@ class EmojiMemoryCache(BaseMemoryCache):
         self._guild_emojis[int(data['guild_id'])] = tuple(e.id for e in updated)
         return (prev, updated)
 
-    async def _process_guild_stickers_update(
+    def _process_guild_stickers_update(
             self,
             data: Dict[str, Any]
     ) -> Tuple[Optional[List[Sticker]], List[Sticker]]:

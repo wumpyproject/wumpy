@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, SupportsInt
 from weakref import WeakValueDictionary
 
 from discord_typings import GuildMemberData, UserData
@@ -44,7 +44,7 @@ class MemberMemoryCache(BaseMemoryCache):
 
         self._members = {}
 
-    async def _process_guild_member_add(self, data: GuildMemberData) -> Tuple[None, Member]:
+    def _process_guild_member_add(self, data: GuildMemberData) -> Tuple[None, Member]:
         if 'guild_id' not in data:
             raise ValueError("Member data must contain extra 'guild_id' field")
 
@@ -55,17 +55,23 @@ class MemberMemoryCache(BaseMemoryCache):
         self._members[(guild_id, member.id)] = member
         return (None, member)
 
-    async def _process_guild_member_update(
+    def _process_guild_member_update(
         self,
         data: GuildMemberData
     ) -> Tuple[Optional[Member], Member]:
         return (
-            (await self._process_guild_member_remove(data))[0],
-            (await self._process_guild_member_add(data))[1]
+            self._process_guild_member_remove(data)[0],
+            self._process_guild_member_add(data)[1]
         )
 
-    async def _process_guild_member_remove(
+    def _process_guild_member_remove(
             self,
-            data: Dict[str, Any]
+            data: GuildMemberData
     ) -> Tuple[Optional[Member], None]:
+        if 'guild_id' not in data:
+            raise ValueError("Member data must contain extra 'guild_id' field")
+
         return (self._members.pop((data['guild_id'], data['user']['id']), None), None)
+
+    async def get_member(self, guild: SupportsInt, user: SupportsInt) -> Optional[Member]:
+        return self._members.get((int(guild), int(user)))

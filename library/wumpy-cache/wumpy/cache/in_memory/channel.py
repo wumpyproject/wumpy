@@ -33,22 +33,22 @@ class ChannelMemoryCache(BaseMemoryCache):
 
         self._channels = {}
 
-    async def _process_create_channel(self, data: ChannelData) -> Tuple[None, Channel]:
+    def _process_create_channel(self, data: ChannelData) -> Tuple[None, Channel]:
         cls = self.CHANNELS[data['type']]
         channel = cls.from_data(data)
         self._channels[channel.id] = channel
         return channel
 
-    async def _process_channel_update(
+    def _process_channel_update(
             self,
             data: ChannelData
     ) -> Tuple[Optional[Channel], Channel]:
         return (
-            (await self._process_channel_delete(data))[0],
-            (await self._process_create_channel(data))[1]
+            self._process_channel_delete(data)[0],
+            self._process_create_channel(data)[1]
         )
 
-    async def _process_channel_delete(
+    def _process_channel_delete(
         self,
         data: ChannelData
     ) -> Tuple[Optional[Channel], None]:
@@ -80,21 +80,21 @@ class MessageMemoryCache(BaseMemoryCache):
 
         self._messages = collections.deque(maxlen=max_messages)
 
-    async def _process_message_create(self, data: MessageData) -> Tuple[None, Message]:
+    def _process_message_create(self, data: MessageData) -> Tuple[None, Message]:
         m = Message.from_data(data)
         self._messages.append(m)
         return (None, m)
 
-    async def _process_message_update(
+    def _process_message_update(
         self,
         data: MessageData
     ) -> Tuple[Optional[Message], Message]:
         return (
-            (await self._process_message_update(data))[0],
-            (await self._process_message_create(data))[1]
+            self._process_message_update(data)[0],
+            self._process_message_create(data)[1]
         )
 
-    async def _process_message_delete(
+    def _process_message_delete(
         self,
         data: Dict[str, Union[str, int]]
     ) -> Tuple[Optional[Message], None]:
@@ -110,7 +110,7 @@ class MessageMemoryCache(BaseMemoryCache):
 
         return (old, None)
 
-    async def _process_message_delete_bulk(
+    def _process_message_delete_bulk(
         self,
         data: Dict[str, Any]
     ) -> Tuple[Sequence[Message], None]:
