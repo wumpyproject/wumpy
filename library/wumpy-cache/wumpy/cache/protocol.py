@@ -156,17 +156,6 @@ class Cache(Protocol):
         """
         ...
 
-    async def get_invite(self, invite: SupportsInt) -> Optional[Invite]:
-        """Get an invite from the cache.
-
-        Parameters:
-            invite: The ID of the invite.
-
-        Returns:
-            The Invite model representation, if found in the cache.
-        """
-        ...
-
     async def get_member(self, guild: SupportsInt, user: SupportsInt) -> Optional[Member]:
         """Get a member from a guild from the cache.
 
