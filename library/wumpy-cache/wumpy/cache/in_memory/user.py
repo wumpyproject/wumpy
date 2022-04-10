@@ -1,8 +1,8 @@
 from typing import Any, Dict, Optional, Tuple
 from weakref import WeakValueDictionary
 
-from discord_typings import UserData, GuildMemberData
-from wumpy.models import User, Member
+from discord_typings import GuildMemberData, UserData
+from wumpy.models import Member, User
 
 from .base import BaseMemoryCache
 
@@ -44,7 +44,7 @@ class MemberMemoryCache(BaseMemoryCache):
 
         self._members = {}
 
-    async def _process_guild_member_add(self, data: GuildMemberData) -> Tuple[Member, None]:
+    async def _process_guild_member_add(self, data: GuildMemberData) -> Tuple[None, Member]:
         if 'guild_id' not in data:
             raise ValueError("Member data must contain extra 'guild_id' field")
 
@@ -53,10 +53,19 @@ class MemberMemoryCache(BaseMemoryCache):
 
         member = Member.from_user(user, data)
         self._members[(guild_id, member.id)] = member
-        return (member, None)
+        return (None, member)
+
+    async def _process_guild_member_update(
+        self,
+        data: GuildMemberData
+    ) -> Tuple[Optional[Member], Member]:
+        return (
+            (await self._process_guild_member_remove(data))[0],
+            (await self._process_guild_member_add(data))[1]
+        )
 
     async def _process_guild_member_remove(
             self,
             data: Dict[str, Any]
-    ) -> Tuple[None, Optional[Member]]:
-        return (None, self._members.pop((data['guild_id'], data['user']['id']), None))
+    ) -> Tuple[Optional[Member], None]:
+        return (self._members.pop((data['guild_id'], data['user']['id']), None), None)
