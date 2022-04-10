@@ -1,10 +1,39 @@
 from typing import Any, Dict, List, Optional, SupportsInt, Tuple
 
-from wumpy.models import Emoji, Role, Sticker
+from discord_typings import GuildData
+from wumpy.models import Emoji, Guild, Role, Sticker
 
 from .base import BaseMemoryCache
 
-__all__ = ['RoleMemoryCache', 'EmojiMemoryCache']
+__all__ = ['GuildMemoryCache', 'RoleMemoryCache', 'EmojiMemoryCache']
+
+
+class GuildMemoryCache(BaseMemoryCache):
+    _guilds: Dict[int, Guild]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._guilds = {}
+
+    async def _process_guild_create(self, data: GuildData) -> Tuple[None, Guild]:
+        guild = Guild.from_data(data)
+        self._guilds[guild.id] = guild
+        return (None, guild)
+
+    async def _process_guild_update(self, data: GuildData) -> Tuple[Optional[Guild], Guild]:
+        return (
+            (await self._process_guild_delete(data))[0],
+            (await self._process_guild_create(data))[1]
+        )
+
+    async def _process_guild_delete(self, data: GuildData) -> Tuple[Optional[Guild], None]:
+        if not data.get('unavailable', False):
+            return (self._guilds.pop(int(data['id']), None), None)
+
+        # Don't remove the guild, as it only became unavailable - we didn't get
+        # kicked or left it.
+        return (self._guilds.get(int(data['id'])), None)
 
 
 class RoleMemoryCache(BaseMemoryCache):
