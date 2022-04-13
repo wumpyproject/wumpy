@@ -1,0 +1,85 @@
+name: Triage issues and PRs
+
+on:
+  issues:
+    types:
+      - opened
+  pull_requests:
+    types:
+      - opened
+
+jobs:
+  greet:
+    name: Greet first-time contributors
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          issue-message: >
+            ### Thank you for opening your first issue! 🎉
+
+
+            Issues are used to track verified bugs, feature requests that should be worked on,
+            and keep tabs on API support. This issue will be added to the
+            [organization project][org-project] that contains all issues and PRs in various
+            stages.
+
+
+            You do not need to create an issue for each code-change you want to make, but it
+            can be good to ensure that you don't work on the same thing as another person or
+            put effort into something that ultimately gets rejected.
+
+
+            ---
+
+
+            The next step is opening a pull request, if you want to. For more help, take a look
+            at the [Contribution guide][contrib-guide] and join the
+            [development Discord server][discord] for steps and useful tips.
+
+              [org-project]: https://github.com/orgs/wumpyproject/projects/1
+              [contrib-guide]: https://github.com/wumpyproject/wumpy/blob/main/CONTRIBUTING.md
+              [discord]: https://discord.gg/ZWpjYdKKTF
+
+          pr-message: >
+            ### Congratulations on your first PR
+
+
+            Contributions - like yours here - is what makes open source projects work. All
+            changes are greatly appreciated: whether that is smaller cosmetic changes or bigger
+            features - thank you for putting the time to contribute. ❤️
+
+
+            This PR will be added to the [organization project][org-project] to be triaged. You
+            should receive a review within at least a few days depending on when you opened the
+            pull request. The review may ask for some more changes before merging, which you
+            should push to the same branch in your fork.
+
+
+            Eventually your PR will be approved and merged into the repository. Your changes
+            will then be include in the next release of the subpackage it was apart of!
+
+
+            ---
+
+
+            Consider joining the [development Discord server][discord] to ask for help with
+            finishing your PR or!
+
+              [org-project]: https://github.com/orgs/wumpyproject/projects/1
+              [discord]: https://discord.gg/ZWpjYdKKTF
+
+  add-labels:
+    name: Label subpackages for PRs
+
+    runs-on: ubuntu-latest
+    steps:
+      - if: github.event_name == 'pull_request'
+        uses: actions/labeler@v4
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: '.github/labeler/subpackages.yml'
+          sync-labels: true

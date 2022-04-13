@@ -1,0 +1,17 @@
+wumpy-bot:
+  - 'library/wumpy-bot/**/*'
+
+wumpy-cache:
+  - 'library/wumpy-cache/**/*'
+
+wumpy-gateway:
+  - 'library/wumpy-gateway/**/*'
+
+wumpy-interactions:
+  - 'library/wumpy-interactions/**/*'
+
+wumpy-models:
+  - 'library/wumpy-models/**/*'
+
+wumpy-rest:
+  - 'library/wumpy-rest/**/*'
