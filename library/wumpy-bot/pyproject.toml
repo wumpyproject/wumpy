@@ -6,7 +6,7 @@ readme = {file = "README.md", content-type="text/markdown"}
 
 requires-python = ">=3.7"
 
-license = {file = "LICENSE"}
+license = {text = "Dual-licensed under the Apache License 2.0 and the MIT License"}
 authors = [{name = "Bluenix", email = "bluenixdev@gmail.com"}]
 
 keywords = [
@@ -19,6 +19,7 @@ classifiers = [
     "Framework :: AnyIO",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
