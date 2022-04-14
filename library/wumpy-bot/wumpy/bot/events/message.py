@@ -1,7 +1,9 @@
 from typing import Any, Dict, Optional
 
-from ..models import Snowflake
-from ..utils import Event, _get_as_snowflake
+from wumpy.models import Snowflake
+
+from ..dispatch import Event
+from ..utils import _get_as_snowflake
 
 __all__ = (
     'MessageDeleteEvent', 'BulkMessageDeleteEvent',
@@ -52,8 +54,8 @@ class ReactionAddEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    emoji: Dict
-    member: Dict
+    emoji: Dict[str, Any]
+    member: Dict[str, Any]
 
     NAME = "MESSAGE_REACTION_ADD"
 
@@ -79,7 +81,7 @@ class ReactionRemoveEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    emoji: Dict
+    emoji: Dict[str, Any]
 
     NAME = "MESSAGE_REACTION_REMOVE"
 
@@ -122,7 +124,7 @@ class ReactionEmojiClearEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    emoji: Dict
+    emoji: Dict[str, Any]
 
     NAME = "MESSAGE_REACTION_REMOVE_EMOJI"
 

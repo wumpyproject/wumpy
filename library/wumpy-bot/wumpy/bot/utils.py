@@ -1,5 +1,9 @@
 import functools
-from typing import Any, Callable, Dict, Generic, Optional, Type, TypeVar
+from typing import (
+    Any, Callable, Dict, Generic, Mapping, Optional, Type, TypeVar, Union
+)
+
+from wumpy.models import Snowflake
 
 __all__ = ('RuntimeVar',)
 
@@ -46,6 +50,27 @@ def _eval_annotations(obj: Callable['...', object]) -> Dict[str, Any]:
         }
     except (NameError, SyntaxError) as e:
         raise ValueError(f'Could not evaluate the annotations of {unwrapped!r}') from e
+
+
+def _get_as_snowflake(data: Optional[Mapping[str, Any]], key: str) -> Optional[Snowflake]:
+    """Get a key as a snowflake.
+
+    Returns None if `data` is None or does not have the key. This was copied
+    from `wumpy-models`'s `utils.py` file.
+
+    Parameters:
+        data: The optional mapping to get the key from.
+        key: The key to attempt to look up.
+
+    Returns:
+        The value of the key wrapped in a Snowflake, if there was a mapping
+        passed and the key could be found.
+    """
+    if data is None:
+        return None
+
+    value: Union[str, int, None] = data.get(key)
+    return Snowflake(int(value)) if value is not None else None
 
 
 class RuntimeVar(Generic[T]):
