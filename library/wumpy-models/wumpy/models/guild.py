@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional, Set
 
 from discord_typings import GuildData
-from typing_extensions import Self, Literal
+from typing_extensions import Literal, Self
 
 from .asset import Asset
 from .base import Model, Snowflake

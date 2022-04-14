@@ -1,13 +1,11 @@
 import collections
 from typing import (
-    Any, Deque, Dict, Mapping, Optional, Sequence, SupportsInt,
-    Tuple, Type, Union
+    Any, Deque, Dict, Mapping, Optional, Sequence, SupportsInt, Tuple, Type,
+    Union
 )
 
 from discord_typings import ChannelData, MessageData
-from wumpy.models import (
-    Category, DMChannel, Message, TextChannel, Thread, VoiceChannel
-)
+from wumpy.models import Category, Message, TextChannel, Thread, VoiceChannel
 
 from .base import BaseMemoryCache, Channel
 

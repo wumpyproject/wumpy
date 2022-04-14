@@ -6,7 +6,6 @@ from typing import (
 )
 
 import anyio
-
 from wumpy.models import DISCORD_EPOCH
 
 from ..models import ComponentInteraction
