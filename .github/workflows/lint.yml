@@ -87,10 +87,15 @@ jobs:
       - name: Install Pyright and Flit
         run: pip install pyright flit
 
-      - name: Install wumpy-${{ matrix.subpackage }}
+      - name: Install all subpackages
         run: |
-          cd library/wumpy-${{ matrix.subpackage }}/
-          flit install
+          cd library/
+          for subpackage in ${{ env.subpackages }}; do
+            cd wumpy-$subpackage/
+            flit install
+            cd ..
+          done
+          cd ..
 
       - name: Verify wumpy-${{ matrix.subpackage }} types
         run: pyright --verifytypes wumpy/${{ matrix.subpackage }}/
