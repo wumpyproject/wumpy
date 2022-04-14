@@ -425,7 +425,9 @@ def _group_payload(group: SubcommandGroup) -> ApplicationCommandOptionData:
     }  # type: ignore
 
 
-def command_payload(command: Union[Command[..., object], SubcommandGroup]) -> ApplicationCommandPayload:
+def command_payload(
+        command: Union[Command['...', object], SubcommandGroup]
+) -> ApplicationCommandPayload:
     """Generate the dictionary payload for the command.
 
     This can be used to turn commands into their payloads used to register them
