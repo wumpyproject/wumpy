@@ -49,6 +49,9 @@ at [CONTRIBUTING.md](CONTRIBUTING.md) and
 [the Wiki](https://github.com/wumpyproject/wumpy/wiki) for developer notes and
 different design decision write-ups.
 
+The library is licensed under one of MIT or Apache 2.0 (up to you). Please
+see [LICENSE](./LICENSE) for more information.
+
 ## Version guarantees
 
 The Wumpy project's official subpackages all follow
