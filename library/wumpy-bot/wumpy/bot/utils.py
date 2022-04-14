@@ -7,7 +7,7 @@ __all__ = ('RuntimeVar',)
 T = TypeVar('T')
 
 
-def _eval_annotations(obj: Callable[..., object]) -> Dict[str, Any]:
+def _eval_annotations(obj: Callable['...', object]) -> Dict[str, Any]:
     """Eval a callable's annotations.
 
     This is primarily a backport of Python 3.10's `get_annotations()`

@@ -211,14 +211,14 @@ class SubcommandGroup(CommandMiddlewareMixin):
     name: str
     description: Optional[str]
 
-    commands: Dict[str, Union['SubcommandGroup', Command[..., object]]]
+    commands: Dict[str, Union['SubcommandGroup', Command['...', object]]]
 
     def __init__(
         self,
         name: str,
         *,
         description: Optional[str] = None,
-        commands: Optional[Dict[str, Union['SubcommandGroup', Command[..., object]]]] = None
+        commands: Optional[Dict[str, Union['SubcommandGroup', Command['...', object]]]] = None
     ) -> None:
         super().__init__()
 
@@ -249,7 +249,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
 
         return await subcommand.invoke(interaction, found[0].options)
 
-    def add_command(self, command: Union['SubcommandGroup', Command[..., object]]) -> None:
+    def add_command(self, command: Union['SubcommandGroup', Command['...', object]]) -> None:
         """Add a subcommand or sub-group.
 
         Parameters:
@@ -266,7 +266,10 @@ class SubcommandGroup(CommandMiddlewareMixin):
 
         self.commands[command.name] = command
 
-    def remove_command(self, command: Union['SubcommandGroup', Command[..., object]]) -> None:
+    def remove_command(
+            self,
+            command: Union['SubcommandGroup', Command['...', object]]
+    ) -> None:
         """Remove a subcommand or sub-group.
 
         Parameters:
