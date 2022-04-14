@@ -38,6 +38,9 @@ classifiers = [
 
 dependencies = ["anyio >= 3.3.4, <4", "pynacl > 1, < 2"]
 
+[project.optional-dependencies]
+sanic = ["sanic >= 21.3, <22.3"]
+
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
 Repository = "https://github.com/wumpyproject/wumpy/tree/main/library/wumpy-interactions"

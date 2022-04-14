@@ -97,7 +97,7 @@ jobs:
           cd library/
           for subpackage in ${{ env.subpackages }}; do
             cd wumpy-$subpackage/
-            flit install
+            flit install --extras all
             cd ..
           done
           cd ..
