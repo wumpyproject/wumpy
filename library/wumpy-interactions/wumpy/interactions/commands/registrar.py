@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, TypeVar, Union, overload
+from typing import Any, Callable, Dict, Optional, TypeVar, Union, overload
 
 from typing_extensions import Literal, ParamSpec
 
@@ -23,9 +23,9 @@ class CommandRegistrar:
         commands: A dictionary of all registered commands.
     """
 
-    commands: Dict[str, Command]
+    commands: Dict[str, Command[..., object]]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.commands = {}
@@ -46,7 +46,7 @@ class CommandRegistrar:
 
         await command.invoke(interaction, interaction.options)
 
-    def add_command(self, command: Command) -> None:
+    def add_command(self, command: Command[..., object]) -> None:
         """Register a command to be added to the internal dictionary.
 
         This should be used over manipulating the internal dictionary.
@@ -59,7 +59,7 @@ class CommandRegistrar:
 
         self.commands[command.name] = command
 
-    def remove_command(self, command: Command) -> None:
+    def remove_command(self, command: Command[..., object]) -> None:
         """Unregister a command from the internal dictionary.
 
         This will raise a ValueError if the command passed isn't loaded where

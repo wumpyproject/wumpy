@@ -34,7 +34,7 @@ class Event:
         raise NotImplementedError()
 
 
-def _extract_event(callback: Callable[..., Coroutine]) -> Type[Event]:
+def _extract_event(callback: Callable[..., object]) -> Type[Event]:
     """Extract the event from the callback.
 
     This function also ensures that the callback is an acceptable listener
@@ -91,7 +91,9 @@ class ErrorHandlerMixin:
     and any passed will be forwarded to `super()`.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    error_handers: List[Tuple[Type[Exception], Callable[..., Awaitable[object]]]]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.error_handlers = []
@@ -101,7 +103,7 @@ class ErrorHandlerMixin:
         context: Any,
         raised: Exception,
         *,
-        callback: Optional[Callable[..., Awaitable]] = None
+        callback: Optional[Callable[..., Awaitable[object]]] = None
     ) -> None:
         """Handle an error that occured - calling registered handlers.
 
@@ -139,7 +141,7 @@ class ErrorHandlerMixin:
 
     def register_error_handler(
         self,
-        callback: Callable,
+        callback: Callable[..., Awaitable[object]],
         *,
         exception: Type[Exception] = Exception
     ) -> None:
@@ -189,11 +191,11 @@ class EventDispatcher:
             associated with it
     """
 
-    listeners: Dict[str, List[Tuple[Type[Event], Callable[..., Coroutine]]]]
+    listeners: Dict[str, List[Tuple[Type[Event], Callable[..., Coroutine[Any, Any, object]]]]]
 
     __slots__ = ('listeners',)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.listeners = {}
@@ -212,7 +214,7 @@ class EventDispatcher:
         for initializer, callback in self.listeners.get(event, []):
             tg.start_soon(callback, initializer(*args))
 
-    def add_listener(self, callback: Callable[..., Coroutine]) -> None:
+    def add_listener(self, callback: Callable[..., Coroutine[Any, Any, object]]) -> None:
         """Register and add a listener callback.
 
         The event it listens for will be read from the callback's arguments.
@@ -229,7 +231,7 @@ class EventDispatcher:
 
     def remove_listener(
         self,
-        callback: Callable[..., Coroutine],
+        callback: Callable[..., Coroutine[Any, Any, object]],
         *,
         event: Union[str, Type[Event], None] = None
     ) -> None:

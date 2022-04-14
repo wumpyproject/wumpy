@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, SupportsInt
+from typing import Any, Dict, Optional, SupportsInt, Tuple
 from weakref import WeakValueDictionary
 
 from discord_typings import GuildMemberData, UserData
@@ -12,7 +12,7 @@ __all__ = ['UserMemoryCache', 'MemberMemoryCache']
 class UserMemoryCache(BaseMemoryCache):
     _users: 'WeakValueDictionary[int, User]'
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._users = WeakValueDictionary()
@@ -39,7 +39,7 @@ class UserMemoryCache(BaseMemoryCache):
 class MemberMemoryCache(BaseMemoryCache):
     _members: Dict[Tuple[int, int], Member]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._members = {}

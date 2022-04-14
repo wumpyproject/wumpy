@@ -1,8 +1,7 @@
-from typing import Dict
+from typing import Any, Dict
 
-from .component import Component
 from ..models import ComponentInteraction
-
+from .component import Component
 
 __all__ = ('ComponentHandler',)
 
@@ -19,7 +18,7 @@ class ComponentHandler:
     # the original response, or a message ID for followup messages
     components: Dict[int, Component]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.components = {}

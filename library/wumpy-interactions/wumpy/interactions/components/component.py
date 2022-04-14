@@ -21,6 +21,8 @@ Coro = Coroutine[Any, Any, T]
 class Result(Generic[T]):
     """Synchronizing Event but modified to pass a result."""
 
+    value: T
+
     __slots__ = ('_event', 'value')
 
     def __init__(self) -> None:
@@ -128,6 +130,10 @@ class ComponentEmoji:
             The ID of the emoji, for default emojis in Discord this is set to
             a fake ID created from the Discord epoch timestamp.
     """
+
+    animated: bool
+    name: str
+    id: int
 
     REGEX = re.compile(r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?')
 

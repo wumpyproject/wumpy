@@ -1,4 +1,4 @@
-from typing import Any, Optional, SupportsInt, Tuple, Callable, Dict
+from typing import Any, Callable, Mapping, Optional, SupportsInt, Tuple
 
 import anyio.lowlevel
 from discord_typings import UserData
@@ -12,7 +12,7 @@ from ..protocol import Cache, Channel
 __all__ = ('BaseMemoryCache',)
 
 
-EventProcessor = Callable[[Dict[str, Any]], Tuple[Optional[Any], Any]]
+EventProcessor = Callable[[Mapping[str, Any]], Tuple[Optional[Any], Any]]
 
 
 class BaseMemoryCache(Cache):
@@ -25,7 +25,7 @@ class BaseMemoryCache(Cache):
 
     __slots__ = ()
 
-    async def update(self, payload: dict) -> Any:
+    async def update(self, payload: Mapping[str, Any]) -> Any:
         """Propogate the `update()` to a processor.
 
         Processors needs to follow: `_process_discord_event` naming; starting

@@ -1,8 +1,6 @@
-from typing import (
-    TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Union
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
-from .component import Component, ComponentEmoji
+from .component import Component, ComponentEmoji, Coro
 
 if TYPE_CHECKING:
     from wumpy.models import ComponentInteraction
@@ -90,7 +88,7 @@ class SelectMenu(Component):
         min: int = 1,
         max: int = 1,
         disabled: bool = False,
-        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
+        callback: Optional[Callable[['ComponentInteraction'], Coro[object]]] = None
     ) -> None:
         super().__init__(callback)
 

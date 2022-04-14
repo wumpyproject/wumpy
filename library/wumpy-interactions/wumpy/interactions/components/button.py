@@ -1,9 +1,9 @@
 from enum import Enum
 from typing import (
-    TYPE_CHECKING, Any, Callable, Coroutine, Dict, Optional, Union, overload
+    TYPE_CHECKING, Any, Callable, Dict, Optional, Union, overload
 )
 
-from .component import Component, ComponentEmoji
+from .component import Component, ComponentEmoji, Coro
 
 if TYPE_CHECKING:
     from wumpy.models import ComponentInteraction
@@ -54,7 +54,7 @@ class Button(Component):
         label: Optional[str] = None,
         emoji: Optional[Union[ComponentEmoji, str]] = None,
         disabled: bool = False,
-        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
+        callback: Optional[Callable[['ComponentInteraction'], Coro[object]]] = None
     ) -> None:
         ...
 
@@ -78,7 +78,7 @@ class Button(Component):
         custom_id: Optional[str] = None,
         url: Optional[str] = None,
         disabled: bool = False,
-        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
+        callback: Optional[Callable[['ComponentInteraction'], Coro[object]]] = None
     ) -> None:
         super().__init__(callback=callback)
 

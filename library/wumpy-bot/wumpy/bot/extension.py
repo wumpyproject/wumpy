@@ -42,14 +42,14 @@ class Extension(CommandRegistrar, EventDispatcher):
         self,
         target: Union[CommandRegistrar, EventDispatcher],
         data: Dict[str, Any]
-    ) -> Callable:
+    ) -> Callable[[Union[CommandRegistrar, EventDispatcher]], None]:
         return self.load(target, data)
 
     def load(
         self,
         target: Union[CommandRegistrar, EventDispatcher],
         data: Dict[str, Any]
-    ) -> Callable:
+    ) -> Callable[[Union[CommandRegistrar, EventDispatcher]], None]:
         """Load the extension and add all listeners and commands to the target.
 
         When the extension should be unloaded again the function returned
@@ -90,7 +90,9 @@ def _is_submodule(a: str, b: str) -> bool:
 class ExtensionLoader(CommandRegistrar, EventDispatcher):
     """Simple mixin that allows dynamically loading extensions."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    extensions: Dict[str, Callable[[Union[CommandRegistrar, EventDispatcher]], object]]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.extensions = {}

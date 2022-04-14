@@ -1,8 +1,6 @@
-from typing import (
-    TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Union
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
-from .component import Component
+from .component import Component, Coro
 
 if TYPE_CHECKING:
     from wumpy.models import ComponentInteraction
@@ -19,7 +17,7 @@ class ActionRow(Component):
     def __init__(
         self,
         *children: Component,
-        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
+        callback: Optional[Callable[['ComponentInteraction'], Coro[object]]] = None
     ) -> None:
         super().__init__(callback)
 
@@ -40,8 +38,8 @@ class ComponentList(Component):
 
     def __init__(
         self,
-        *children: Union[List, ActionRow],
-        callback: Optional[Callable[['ComponentInteraction'], Coroutine]] = None
+        *children: Union[List[ActionRow], ActionRow],
+        callback: Optional[Callable[['ComponentInteraction'], Coro[object]]] = None
     ) -> None:
         super().__init__(callback)
 

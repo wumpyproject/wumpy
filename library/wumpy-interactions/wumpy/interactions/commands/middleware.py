@@ -25,7 +25,7 @@ class CommandMiddlewareMixin:
 
     _invoke_stack: MiddlewareCallback
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._invoke_stack = self._inner_call
@@ -101,7 +101,7 @@ class ErrorMiddleware(Generic[ET]):
     call_next: MiddlewareCallback
 
     error: Type[ET]
-    handler: ErrorHandler
+    handler: ErrorHandler[ET]
 
     __slots__ = ('call_next', 'error', 'handler')
 

@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Callable, Coroutine, Optional, Union
 
 from .button import *
 from .component import *
+from .component import Coro
 from .containers import *
 from .handler import *
 from .select import *
@@ -17,7 +18,7 @@ def button(
     label: Optional[str] = None,
     emoji: Optional[Union[ComponentEmoji, str]] = None,
     disabled: bool = False,
-) -> Callable[[Callable[['ComponentInteraction'], Coroutine]], Button]:
+) -> Callable[[Callable[['ComponentInteraction'], Coro[object]]], Button]:
     """Decorator that creates a Button from a function.
 
     The Button instance's callback will be setup to use the decorated function.
@@ -61,3 +62,4 @@ def button(
 
 # Clean up so that it can't be imported
 del TYPE_CHECKING, Callable, Coroutine, Optional, Union  # type: ignore
+del Coro

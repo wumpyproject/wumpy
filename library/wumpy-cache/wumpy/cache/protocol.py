@@ -4,8 +4,8 @@ from typing import (
 )
 
 from wumpy.models import (
-    Category, Emoji, Guild, Member, Message,
-    Role, Sticker, TextChannel, Thread, User, VoiceChannel
+    Category, Emoji, Guild, Member, Message, Role, Sticker, TextChannel,
+    Thread, User, VoiceChannel
 )
 
 __all__ = ['Cache', 'CacheProtocol']

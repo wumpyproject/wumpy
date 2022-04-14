@@ -31,6 +31,8 @@ class OptionType:
         enum: The ApplicationCommandOption value of this type.
     """
 
+    enum: ApplicationCommandOption
+
     __slots__ = ('enum',)
 
     def __init__(self, enum: ApplicationCommandOption) -> None:
@@ -135,7 +137,7 @@ class OptionClass:
 
     # Mapping of primitive types to their equivalent ApplicationCommandOption
     # enum values, placed in the class so that it can be overwritten.
-    type_mapping: ClassVar[Dict[Type, ApplicationCommandOption]] = {
+    type_mapping: ClassVar[Dict[Type[Any], ApplicationCommandOption]] = {
         str: ApplicationCommandOption.string,
         int: ApplicationCommandOption.integer,
         bool: ApplicationCommandOption.boolean,

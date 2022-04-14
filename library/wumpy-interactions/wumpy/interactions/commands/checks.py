@@ -1,7 +1,7 @@
 import time
 from enum import Enum
 from functools import partial, wraps
-from typing import Callable, Dict, Hashable, List, TypeVar
+from typing import Any, Callable, Dict, Hashable, List, TypeVar
 from weakref import WeakValueDictionary
 
 import anyio
@@ -56,7 +56,7 @@ class CheckMiddleware:
             raise CheckFailure(f'Check {self.predicate} failed for interaction {interaction}')
 
 
-def check(predicate: MiddlewareCallback) -> MiddlewareDecorator:
+def check(predicate: MiddlewareCallback) -> MiddlewareDecorator[CommandT]:
     """Create a check for an application command.
 
     This is a public wrapper over the middleware API to simplify creating
@@ -170,7 +170,7 @@ class MaxConcurrencyMiddleware:
 def max_concurrency(
     number: int,
     key: Callable[[CommandInteraction], Hashable]
-) -> MiddlewareDecorator:
+) -> MiddlewareDecorator[CommandT]:
     """Create a middleware that limits concurrent uses of a command.
 
     There are utility functions under `wumpy.interactions.BucketType` for the
@@ -209,13 +209,16 @@ def max_concurrency(
 class CommandOnCooldown(Exception):
     """Raised when a command could not be run because it is on cooldown."""
 
-    def __init__(self, *args, retry_after: float, **kwargs) -> None:
+    def __init__(self, *args: Any, retry_after: float, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self.retry_after = retry_after
 
 
 class Cooldown:
+
+    rate: int
+    per: float
 
     __slots__ = ('rate', 'per', '_reset', '_value')
 
@@ -313,7 +316,7 @@ def cooldown(
     per: float,
     key: Callable[[CommandInteraction], Hashable],
     wait: bool = False,
-) -> MiddlewareDecorator:
+) -> MiddlewareDecorator[CommandT]:
     """Apply cooldowns to the application command.
 
     The `key` paramater is similar to `max_concurrent`'s `key` parameter.

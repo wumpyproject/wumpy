@@ -11,7 +11,7 @@ __all__ = ['GuildMemoryCache', 'RoleMemoryCache', 'EmojiMemoryCache']
 class GuildMemoryCache(BaseMemoryCache):
     _guilds: Dict[int, Guild]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._guilds = {}
@@ -42,7 +42,7 @@ class GuildMemoryCache(BaseMemoryCache):
 class RoleMemoryCache(BaseMemoryCache):
     _roles: Dict[int, Role]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._roles = {}
@@ -72,7 +72,7 @@ class EmojiMemoryCache(BaseMemoryCache):
     _stickers: Dict[int, Sticker]
     _guild_stickers: Dict[int, Tuple[int, ...]]
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._emojis = {}

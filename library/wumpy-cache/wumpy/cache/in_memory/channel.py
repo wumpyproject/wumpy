@@ -1,6 +1,7 @@
 import collections
 from typing import (
-    Any, Deque, Dict, Optional, Sequence, SupportsInt, Tuple, Union
+    Any, Deque, Dict, Mapping, Optional, Sequence, SupportsInt,
+    Tuple, Type, Union
 )
 
 from discord_typings import ChannelData, MessageData
@@ -13,12 +14,14 @@ from .base import BaseMemoryCache, Channel
 __all__ = ('ChannelMemoryCache', 'MessageMemoryCache')
 
 
-class ChannelMemoryCache(BaseMemoryCache):
-    _channels: Dict[int, Channel]
+AllChannels = Union[Channel, Category, Thread]
 
-    CHANNELS = {
+
+class ChannelMemoryCache(BaseMemoryCache):
+    _channels: Dict[int, AllChannels]
+
+    CHANNELS: Mapping[int, Type[AllChannels]] = {
         0: TextChannel,
-        1: DMChannel,
         2: VoiceChannel,
         4: Category,
         5: TextChannel,
@@ -28,21 +31,24 @@ class ChannelMemoryCache(BaseMemoryCache):
         13: VoiceChannel,
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._channels = {}
 
-    def _process_create_channel(self, data: ChannelData) -> Tuple[None, Channel]:
+    def _process_create_channel(self, data: ChannelData) -> Tuple[None, AllChannels]:
         cls = self.CHANNELS[data['type']]
-        channel = cls.from_data(data)
+        # The type checker doesn't understand the relation between data['type']
+        # and the class returned so it thinks that any channel data may be
+        # passed to any channel class.
+        channel = cls.from_data(data)  # type: ignore
         self._channels[channel.id] = channel
-        return channel
+        return None, channel
 
     def _process_channel_update(
             self,
             data: ChannelData
-    ) -> Tuple[Optional[Channel], Channel]:
+    ) -> Tuple[Optional[AllChannels], AllChannels]:
         return (
             self._process_channel_delete(data)[0],
             self._process_create_channel(data)[1]
@@ -51,10 +57,10 @@ class ChannelMemoryCache(BaseMemoryCache):
     def _process_channel_delete(
         self,
         data: ChannelData
-    ) -> Tuple[Optional[Channel], None]:
+    ) -> Tuple[Optional[AllChannels], None]:
         return (self._channels.pop(int(data['id']), None), None)
 
-    async def get_channel(self, channel: SupportsInt) -> Optional[Channel]:
+    async def get_channel(self, channel: SupportsInt) -> Optional[AllChannels]:
         return self._channels.get(int(channel))
 
     async def get_thread(self, thread: SupportsInt) -> Optional[Thread]:
@@ -75,7 +81,7 @@ class ChannelMemoryCache(BaseMemoryCache):
 class MessageMemoryCache(BaseMemoryCache):
     _messages: Deque[Message]
 
-    def __init__(self, *args, max_messages: int, **kwargs) -> None:
+    def __init__(self, *args: Any, max_messages: int, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         self._messages = collections.deque(maxlen=max_messages)

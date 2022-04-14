@@ -1,5 +1,7 @@
 import json
-from typing import TYPE_CHECKING, Any, Mapping, Optional, overload
+from typing import (
+    TYPE_CHECKING, Any, Awaitable, Callable, Dict, Mapping, Optional, overload
+)
 
 from typing_extensions import Protocol
 
@@ -38,7 +40,12 @@ class Request(Protocol):
 
 
 class ASGIRequest(Request):
-    def __init__(self, scope, receive, send) -> None:
+    def __init__(
+            self,
+            scope: Dict[str, Any],
+            receive: Callable[[], Awaitable[Dict[str, Any]]],
+            send: Callable[[Dict[str, Any]], Awaitable[None]]
+    ) -> None:
         self._responded = False
 
         self.scope = scope
