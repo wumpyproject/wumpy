@@ -91,7 +91,7 @@ class ErrorHandlerMixin:
     and any passed will be forwarded to `super()`.
     """
 
-    error_handers: List[Tuple[Type[Exception], Callable['...', Awaitable[object]]]]
+    error_handlers: List[Tuple[Type[Exception], Callable['...', Awaitable[object]]]]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
