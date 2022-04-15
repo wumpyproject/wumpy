@@ -19,7 +19,7 @@ class MessageDeleteEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    NAME = "MESSAGE_DELETE"
+    NAME: ClassVar[str] = "MESSAGE_DELETE"
 
     __slots__ = ('message_id', 'channel_id', 'guild_id')
 
@@ -36,7 +36,7 @@ class BulkMessageDeleteEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    NAME = "MESSAGE_DELETE_BULK"
+    NAME: ClassVar[str] = "MESSAGE_DELETE_BULK"
 
     __slots__ = ('message_ids', 'channel_id', 'guild_id')
 
@@ -57,7 +57,7 @@ class ReactionAddEvent(Event):
     emoji: Dict[str, Any]
     member: Dict[str, Any]
 
-    NAME = "MESSAGE_REACTION_ADD"
+    NAME: ClassVar[str] = "MESSAGE_REACTION_ADD"
 
     __slots__ = ('message_id', 'user_id', 'channel_id', 'guild_id', 'emoji', 'member')
 
@@ -83,7 +83,7 @@ class ReactionRemoveEvent(Event):
 
     emoji: Dict[str, Any]
 
-    NAME = "MESSAGE_REACTION_REMOVE"
+    NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE"
 
     __slots__ = ('message_id', 'user_id', 'channel_id', 'guild_id', 'emoji')
 
@@ -105,7 +105,7 @@ class ReactionClearEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    NAME = "MESSAGE_REACTION_REMOVE_ALL"
+    NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE_ALL"
 
     __slots__ = ('message_id', 'channel_id', 'guild_id')
 
@@ -126,7 +126,7 @@ class ReactionEmojiClearEvent(Event):
 
     emoji: Dict[str, Any]
 
-    NAME = "MESSAGE_REACTION_REMOVE_EMOJI"
+    NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE_EMOJI"
 
     __slots__ = ('message_id', 'channel_id', 'guild_id', 'emoji')
 

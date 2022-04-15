@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from wumpy.models import Snowflake
 
@@ -19,7 +19,7 @@ class TypingEvent(Event):
     timestamp: datetime
     member: Optional[Dict[str, Any]]
 
-    NAME = "TYPING_START"
+    NAME: ClassVar[str] = "TYPING_START"
 
     __slots__ = ('user_id', 'channel_id', 'guild_id', 'timestamp', 'member')
 
@@ -45,7 +45,7 @@ class ChannelPinsUpdateEvent(Event):
     channel_id: Snowflake
     last_pin_timestamp: Optional[datetime]
 
-    NAME = "CHANNEL_PINS_UPDATE"
+    NAME: ClassVar[str] = "CHANNEL_PINS_UPDATE"
 
     __slots__ = ('channel_id', 'last_pin_timestamp')
 
