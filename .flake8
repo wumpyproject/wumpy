@@ -9,6 +9,6 @@ per-file-ignores =
 ignore =
     # Bare except (needed to catch cancellations)
     E722,
-    # Line break before binary operator (Flake8 has one fo before- and after
+    # Line break before binary operator (Flake8 has one for before- and after
     # linebreaks. From my understanding you're meant to disable one of them).
     W503

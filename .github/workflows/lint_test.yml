@@ -1,0 +1,205 @@
+name: Lint and Test codebase
+
+on:
+  push:
+    branches:
+      # We don't run this on any other branches because we assume that
+      # pull requests will be opened for them:
+      - main
+
+    paths:
+      - '.github/workflows/**'
+      - 'library/**'
+      - 'tests/**'
+
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - reopened
+    paths:
+      - '.github/workflows/**'
+      - 'library/**'
+      - 'tests/**'
+
+env:
+  # This is ordered from lowlevel to toplevel, such that any subpackages
+  # that depend on other subpackages are installed last (so that it isn't
+  # installed from PyPI).
+  subpackages: 'gateway rest models cache interactions bot'
+
+jobs:
+  import:
+    # This job is a very quick sanity check: if we can't import all
+    # subpackages (usually thanks to syntax errors) we shouldn't run the rest.
+    name: Import the library
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Install Flit
+        run: pip install flit
+
+      - name: Install all subpackages
+        run: |
+          cd library/
+          for subpackage in ${{ env.subpackages }}; do
+            cd wumpy-$subpackage/
+            flit install --extras all
+            cd ..
+          done
+          cd ..
+
+      - name: Import subpackages
+        run: |
+          for subpackage in ${{ env.subpackages }}; do
+            python -c "import wumpy.$subpackage"
+          done
+
+  flake8:
+    name: Lint with flake8
+
+    runs-on: ubuntu-latest
+    needs: import
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Install Flake8
+        run: pip install flake8
+
+      - name: Lint codebase with Flake8
+        run: flake8 library/
+
+  isort:
+    name: Verify import order
+
+    runs-on: ubuntu-latest
+    needs: import
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+  
+      - name: Install Isort
+        run: pip install isort
+
+      - name: Run isort on codebase
+        run: isort . --check-only
+
+  pyright:
+    name: Verify static types
+
+    runs-on: ubuntu-latest
+    # Isort is exluded here because the import order being wrong doesn't mean
+    # that this will fail (flake8 complains about missing imports though).
+    needs: [import, flake8]
+
+    strategy:
+      # If one of the subpackages fail this step, we want to continue running
+      # the rest as to not mask errors.
+      fail-fast: false
+      matrix:
+        subpackage:
+          - cache
+          - bot
+          - gateway
+          - interactions
+          - models
+          - rest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Attempt to access cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          # The subpackage isn't included here because it should be shared
+          key: 'pyright-v3.7'
+
+      - name: Install Pyright and Flit
+        run: pip install pyright flit
+
+      - name: Install all subpackages
+        run: |
+          cd library/
+          for subpackage in ${{ env.subpackages }}; do
+            cd wumpy-$subpackage/
+            flit install --extras all
+            cd ..
+          done
+          cd ..
+
+      - name: Verify wumpy-${{ matrix.subpackage }} types
+        run: pyright --verifytypes wumpy/${{ matrix.subpackage }}/
+
+  pytest:
+    name: Run unit tests
+
+    runs-on: ubuntu-latest
+    needs: [import, flake8, isort]
+
+    strategy:
+      # If one of the Python versions fail we still want to continue testing
+      # the rest if possible.
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.7'
+          - '3.8'
+          - '3.9'
+          - '3.10'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Pytest and flit
+        run: pip install pytest flit
+
+      - name: Install wumpy-testing utility
+        run: pip install git+https://github.com/wumpyproject/wumpy-testing
+
+        # If we're unsuccessful in installing wumpy-testing because it is
+        # currently broken or similar we can still run all other tests because
+        # it is an optional dependency.
+        continue-on-error: true
+
+      - name: Install all subpackages
+        run: |
+          cd library/
+          for subpackage in ${{ env.subpackages }}; do
+            cd wumpy-$subpackage/
+            flit install --extras all
+            cd ..
+          done
+          cd ..
+
+      - name: Run pytest tests
+        run: pytest tests/
