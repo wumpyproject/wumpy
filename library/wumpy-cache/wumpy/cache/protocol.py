@@ -1,8 +1,8 @@
 from typing import (
-    Any, AsyncContextManager, Dict, Optional, Protocol, SupportsInt, Tuple,
-    Union
+    Any, AsyncContextManager, Dict, Optional, SupportsInt, Tuple, Union
 )
 
+from typing_extensions import Protocol
 from wumpy.models import (
     Category, Emoji, Guild, Member, Message, Role, Sticker, TextChannel,
     Thread, User, VoiceChannel
