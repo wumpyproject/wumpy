@@ -192,6 +192,32 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         This method returns once all callbacks have finished executing.
 
+        Examples:
+
+            ```python
+            from sanic import Blueprint, Request
+            from wumpy.interactions import (
+                InteractionApp, SanicMiddleware, SanicRequest
+            )
+
+            app = InteractionApp(...)
+            bp = Blueprint(...)
+
+            verification = SanicMiddleware(...)
+
+            # It is recommended to attach this to a specific blueprint with the
+            # route that interactions should go to.
+            bp.on_request(verification.verify)
+
+            @bp.route('/interactions')
+            async def interactions(request: Request):
+                await app,.
+                await app.handle_interaction(
+                    request.json,
+                    SanicRequest(request)
+                )
+            ```
+
         Parameters:
             data: JSON serialized data received from the request.
             request:
