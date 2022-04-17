@@ -8,12 +8,148 @@ from .context import MessageCommand, UserCommand
 from .option import CommandType
 from .slash import Command, SubcommandGroup
 
-__all__ = ('CommandRegistrar',)
+__all__ = ['group', 'command', 'CommandRegistrar']
 
 
 P = ParamSpec('P')
 RT = TypeVar('RT')
 CommandUnion = Union[Command[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
+
+
+def group(
+    *,
+    name: str,
+    description: str
+) -> SubcommandGroup:
+    """Independently create a slash command group without a callback.
+
+    This exist so that slash commands can be created without attaching a
+    dummy-callback. Context menu commands cannot have subcommands, therefore
+    this will always return a slash command.
+
+    After using this decorator on a callback, you will need to register the
+    command with the registrar. This is useful for defining a command in a
+    different file than the main app.
+
+    Examples:
+
+        ```python
+        from wumpy import interactions
+
+        parent = interactions.group(
+            name='hello',
+            description='Greet and say hello'
+        )
+
+        ...  # Register subcommands
+        ```
+
+    Parameters:
+        name: The name of the command.
+        description: The description of the command.
+
+    Returns:
+        A subcommand group that can have subcommands added to it. You will need
+        to register it with the registrar later on.
+    """
+    return SubcommandGroup(name=name, description=description)
+
+
+@overload
+def command(
+    type: Callback[P, RT]
+) -> Command[P, RT]:
+    ...
+
+
+@overload
+def command(
+    type: CommandType = CommandType.chat_input,
+    *,
+    name: Optional[str] = None,
+    description: Optional[str] = None
+) -> Callable[[Callback[P, RT]], Command[P, RT]]:
+    ...
+
+
+@overload
+def command(
+    type: Literal[CommandType.message],
+    *,
+    name: Optional[str] = None
+) -> Callable[[Callback[P, RT]], MessageCommand[P, RT]]:
+    ...
+
+
+@overload
+def command(
+    type: Literal[CommandType.user],
+    *,
+    name: Optional[str] = None
+) -> Callable[[Callback[P, RT]], UserCommand[P, RT]]:
+    ...
+
+
+def command(
+    type: Union[CommandType, Callback[P, RT]] = CommandType.chat_input,
+    *,
+    name: Optional[str] = None,
+    description: Optional[str] = None
+) -> Union[CommandUnion[P, RT], Callable[[Callback[P, RT]], CommandUnion[P, RT]]]:
+    """Independently create a command from a callback.
+
+    After using this decorator on a callback, you will need to register the
+    command with the registrar. This is useful for defining a command in a
+    different file than the main app.
+
+    The decorator can be used both with and without the parentheses.
+
+    Examples:
+
+        ```python
+        from wumpy import interactions
+
+        @interactions.command()
+        async def random(interaction: interactions.CommandInteraction) -> None:
+            await interaction.respond('4')  # Chosen by fair dice roll
+
+        # Import the random command and register it on your app:
+        from wumpy.interactions import InteractionApp
+
+        from .other import random
+
+        app = InteractionApp(...)
+        app.add_command(random)
+        ```
+
+    Parameters:
+        type: The type of the command. Defaults to a slash command.
+        name: The name of the command.
+        description: The description of the command.
+
+    Returns:
+        A command or function that returns a command. Depending on whether
+        the decorator was used with or without parentheses.
+
+    Exceptions:
+        ValueError: The type wasn't a CommandType value
+    """
+    def decorator(func: Callback[P, RT]) -> CommandUnion[P, RT]:
+        if type is CommandType.chat_input:
+            command = Command(func, name=name, description=description)
+        elif type is CommandType.message:
+            command = MessageCommand(func, name=name)
+        elif type is CommandType.user:
+            command = UserCommand(func, name=name)
+        else:
+            raise ValueError("Unknown value of 'type':", type)
+
+        return command
+
+    if callable(type):
+        return decorator(type)
+
+    return decorator
 
 
 class CommandRegistrar:
@@ -88,23 +224,10 @@ class CommandRegistrar:
         name: str,
         description: str
     ) -> SubcommandGroup:
-        """Register and create a slash command without a callback.
+        """Register and create a slash command group without a callback.
 
-        This exist so that slash commands can be created without attaching a
-        dummy-callback. Context menu commands cannot have subcommands, for that
-        reason this will always return a slash command.
-
-        Examples:
-
-            ```python
-            from wumpy import interactions
-
-            app = interactions.InteractionApp(...)
-
-            parent = app.group(name='hello', description='Greet and say hello')
-
-            ...  # Register subcommands
-            ```
+        This is similar to `interactions.group()`, except that it automatically
+        registers the command at the same time.
 
         Parameters:
             name: The name of the command.
@@ -161,18 +284,8 @@ class CommandRegistrar:
     ) -> Union[CommandUnion[P, RT], Callable[[Callback[P, RT]], CommandUnion[P, RT]]]:
         """Register and create a new application command through a decorator.
 
-        The decorator can be used both with and without the parentheses.
-
-        Examples:
-            ```python
-            from wumpy.interactions import InteractionApp, CommandInteraction
-
-            app = InteractionApp(...)
-
-            @app.command()
-            async def random(interaction: CommandInteraction) -> None:
-                await interaction.respond('4')  # chosen by fair dice roll
-            ```
+        This is similar to the `@interactions.command()` decorator, except that
+        it automatically registers the command at the same time.
 
         Parameters:
             type: The type of the command. Defaults to a slash command.
