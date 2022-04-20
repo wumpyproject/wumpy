@@ -28,6 +28,9 @@ __all__ = ('Shard',)
 _log = logging.getLogger(__name__)
 
 
+_DISCONNECT_ERRS = (OSError, anyio.BrokenResourceError)
+
+
 GatewayLimiter = Callable[[Opcode], AsyncContextManager[None]]
 
 
@@ -224,7 +227,7 @@ class Shard:
 
             try:
                 data = await self._sock.receive()
-            except (OSError, anyio.EndOfStream):
+            except (*_DISCONNECT_ERRS, anyio.EndOfStream):
                 # This should not happen, generally discord-gateway will raise
                 # and we then respond to the closure. This error means that
                 # something went wrong with the socket we weren't expecting.
@@ -239,7 +242,7 @@ class Shard:
                     try:
                         for send in self._conn.receive(None):
                             await self._sock.send(send)
-                    except OSError:
+                    except _DISCONNECT_ERRS:
                         pass
 
                     await self._reconnect()
@@ -255,7 +258,7 @@ class Shard:
                 try:
                     for send in self._conn.receive(data):
                         await self._sock.send(send)
-                except OSError:
+                except _DISCONNECT_ERRS:
                     _log.warning(
                         'Failed to respond to data received by Discord;'
                         ' reconnecting to the gateway.'
@@ -264,7 +267,7 @@ class Shard:
                     try:
                         for send in self._conn.receive(None):
                             await self._sock.send(send)
-                    except OSError:
+                    except _DISCONNECT_ERRS:
                         pass
 
                     await self._reconnect()
@@ -278,7 +281,7 @@ class Shard:
                     try:
                         if err.data is not None:
                             await self._sock.send(err.data)
-                    except OSError:
+                    except _DISCONNECT_ERRS:
                         pass
 
                     await self._reconnect()
@@ -295,7 +298,7 @@ class Shard:
             try:
                 for send in self._conn.receive(await self._sock.receive()):
                     await self._sock.send(send)
-            except (OSError, anyio.EndOfStream):
+            except (*_DISCONNECT_ERRS, anyio.EndOfStream):
                 _log.warning(
                     'Receiving the HELLO event failed with a general OSError or the socket'
                     ' closed; reconnecting to the gateway.'
@@ -303,7 +306,7 @@ class Shard:
                 try:
                     for send in self._conn.receive(None):
                         await self._sock.send(send)
-                except OSError:
+                except _DISCONNECT_ERRS:
                     pass
 
                 return None
@@ -311,7 +314,7 @@ class Shard:
                 if err.data is not None:
                     try:
                         await self._sock.send(err.data)
-                    except OSError:
+                    except _DISCONNECT_ERRS:
                         pass
 
                 if not should_reconnect(err.code):
@@ -350,7 +353,7 @@ class Shard:
             if self._sock is not None:
                 try:
                     await self._sock.aclose()
-                except OSError:
+                except _DISCONNECT_ERRS:
                     pass
 
             # Reset the internal state of the connection to prepare for a new
@@ -367,7 +370,7 @@ class Shard:
                     # usually perform the closing TLS handshake
                     tls_standard_compatible=False, ssl_context=self._ssl
                 )
-            except OSError:
+            except _DISCONNECT_ERRS:
                 # SSLError is a subclass of OSError so we can just directly
                 # use OSError since it can also be raised by connect_tcp().
                 _log.warning(
@@ -380,7 +383,7 @@ class Shard:
             # formatted HTTP 1.1 request
             try:
                 await self._sock.send(self._conn.connect())
-            except OSError:
+            except _DISCONNECT_ERRS:
                 _log.warning(
                     'Failed to send HTTP/1.1 opening request; reconnecting to the gateway.'
                 )
@@ -408,7 +411,7 @@ class Shard:
                             },
                             shard=self.shard_id
                         ))
-            except OSError:
+            except _DISCONNECT_ERRS:
                 _log.warning(
                     'Failed to RESUME/IDENTIFY to the new connection because of an OSError;'
                     ' reconnecting to the gateway.'
@@ -417,7 +420,7 @@ class Shard:
                 try:
                     for send in self._conn.receive(None):
                         await self._sock.send(send)
-                except OSError:
+                except _DISCONNECT_ERRS:
                     pass
 
                 continue
@@ -444,7 +447,7 @@ class Shard:
 
                 try:
                     await self._sock.send(self._conn.close())
-                except OSError:
+                except _DISCONNECT_ERRS:
                     _log.warning(
                         'Failed to send WebSocket close message over TCP connection;'
                         ' closing the connection as usual.'
@@ -457,7 +460,7 @@ class Shard:
                         # WebSocket protocol
                         for data in self._conn.receive(await self._sock.receive()):
                             await self._sock.send(data)
-                except (OSError, anyio.EndOfStream):
+                except (*_DISCONNECT_ERRS, anyio.EndOfStream):
                     # According to the WebSocket protocol we should've gotten a
                     # closing frame but it's not a big deal - we're closing the
                     # socket either way. Just close the socket as usual in the
@@ -470,7 +473,7 @@ class Shard:
                     if err.data is not None:
                         try:
                             await self._sock.send(err.data)
-                        except OSError:
+                        except _DISCONNECT_ERRS:
                             pass
         finally:
             # No matter what happened - whether we completed the closing
