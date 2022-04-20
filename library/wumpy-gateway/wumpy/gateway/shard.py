@@ -164,7 +164,7 @@ class Shard:
                 self._ratelimiter_manager
             )
 
-            await self._reconnect()
+            await self._reconnect(startup=True)
 
             tg = await self._exit_stack.enter_async_context(anyio.create_task_group())
             tg.start_soon(self._run_heartbeater)
@@ -349,7 +349,7 @@ class Shard:
 
         return event
 
-    async def _reconnect(self) -> None:
+    async def _reconnect(self, *, startup: bool = False) -> None:
         if self.ratelimiter is None:
             raise RuntimeError('Cannot (re)connect without a initialized ratelimiter')
 
@@ -362,12 +362,18 @@ class Shard:
                 except _DISCONNECT_ERRS:
                     pass
 
-            # Reset the internal state of the connection to prepare for a new
-            # WebSocket connection. This will exponentially backoff until it
-            # receives a READY event.
-            delay = self._conn.reconnect()
-            _log.debug(f'Exponentially backing off reconnecting ({delay}s)')
-            await anyio.sleep(delay)
+            if startup:
+                # Reset the internal state of the connection to prepare for a new
+                # WebSocket connection. This will exponentially backoff until it
+                # receives a READY event.
+                delay = self._conn.reconnect()
+                _log.debug(f'Exponentially backing off reconnecting ({delay}s)')
+                await anyio.sleep(delay)
+
+            # In case this code loops, we are actually reconnecting and not
+            # just connecting for the first time. The second iteration we
+            # '*want* to back off.
+            startup = False
 
             try:
                 self._sock = await anyio.connect_tcp(
