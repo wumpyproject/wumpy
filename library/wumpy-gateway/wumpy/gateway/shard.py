@@ -244,6 +244,18 @@ class Shard:
                             await self._sock.send(send)
                     except _DISCONNECT_ERRS:
                         pass
+                    except CloseDiscordConnection as err:
+                        if err.data is not None:
+                            try:
+                                await self._sock.send(err.data)
+                            except _DISCONNECT_ERRS:
+                                pass
+
+                        if not should_reconnect(err.code):
+                            raise ConnectionClosed(
+                                f'Discord closed the connection with code {err.code}'
+                                f': {err.reason}' if err.reason else ''
+                            )
 
                     await self._reconnect()
 
