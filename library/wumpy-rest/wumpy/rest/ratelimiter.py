@@ -13,6 +13,7 @@ import anyio
 import anyio.lowlevel
 from typing_extensions import Self
 
+from .config import RatelimiterContext
 from .errors import RateLimited, ServerException
 from .route import Route
 
@@ -78,7 +79,6 @@ class Ratelimit:
         self._ratelimited.set()
 
         self._event = anyio.Event()
-        self._event.set()
 
         self._limit = limit
         self._remaining = remaining
@@ -132,36 +132,62 @@ class Ratelimit:
         self._event.set()
         self._event = anyio.Event()
 
+    def acquire_nowait(self) -> None:
+        """Acquire the semaphore, raising an error if blocking is necessary."""
+        if self._lock.locked or not self._ratelimited.is_set():
+            raise anyio.WouldBlock
+
+        if self._remaining >= 1:
+            self._remaining -= 1
+            return
+
+        if self._reset_at is not None and self._reset_at < time.perf_counter():
+            self._remaining = self._limit - 1
+            self._reset_at = None
+            return
+
+        raise anyio.WouldBlock
+
     async def acquire(self) -> None:
         """Decrement the semaphore value, blocking if necessary."""
-        async with self._lock:
-            await self._ratelimited.wait()
+        await anyio.lowlevel.checkpoint_if_cancelled()
 
-            if self._remaining >= 1:
-                self._remaining -= 1
-                return
+        try:
+            self.acquire_nowait()
+        except anyio.WouldBlock:
+            async with self._lock:
+                await self._ratelimited.wait()
 
-            if self._reset_at is None:
-                _log.debug('Waiting for reset_at timestamp to be updated for lock')
+                # We have to repeat all code inside of acquire_nowait() because
+                # while we were waiting on the lock and ratelimited event these
+                # values may have changed...
 
-                await self._event.wait()
+                if self._remaining >= 1:
+                    self._remaining -= 1
+                    return
 
-            if self._reset_at is None:
-                raise RuntimeError(
-                    'Ratelimit was notified of a new reset, but no reset time was set.'
-                )
+                if self._reset_at is None:
+                    _log.debug('Waiting for reset_at timestamp to be updated for lock')
 
-            if self._reset_at < time.perf_counter():
-                self._remaining = self._limit - 1
-                self._reset_at = None
-                self._event = anyio.Event()
-                return
+                    await self._event.wait()
 
-            else:
-                await anyio.sleep(self._reset_at - time.perf_counter())
-                self._remaining = self._limit - 1
-                self._reset_at = None
-                self._event = anyio.Event()
+                if self._reset_at is None:
+                    raise RuntimeError(
+                        'Ratelimit was notified of a new reset, but no reset time was set.'
+                    )
+
+                if self._reset_at < time.perf_counter():
+                    self._remaining = self._limit - 1
+                    self._reset_at = None
+                    return
+
+                else:
+                    await anyio.sleep(self._reset_at - time.perf_counter())
+                    self._remaining = self._limit - 1
+                    self._reset_at = None
+
+        else:
+            await anyio.lowlevel.cancel_shielded_checkpoint()
 
     def lock(self) -> None:
         self._ratelimited = anyio.Event()
@@ -188,9 +214,16 @@ class _RouteRatelimit:
     ]:
         await self._parent.wait()
 
+        if RatelimiterContext.abort_if_ratelimited:
+            try:
+                self._lock.acquire_nowait()
+            except anyio.WouldBlock:
+                raise RateLimited(429, {})
+        else:
+            await self._lock.acquire()
+
         try:
-            async with self._lock:
-                yield self.update
+            yield self.update
         except ServerException as exc:
             if exc.status_code == 503:
                 raise
@@ -202,6 +235,9 @@ class _RouteRatelimit:
             await anyio.sleep(1 + exc.attempt * 2)
 
         except RateLimited as exc:
+            if RatelimiterContext.abort_if_ratelimited:
+                raise
+
             # The data is somewhat duplicated, which means we can try our best
             # to find it in different places.
             if isinstance(exc.data, dict):
