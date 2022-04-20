@@ -284,6 +284,12 @@ class Shard:
                     except _DISCONNECT_ERRS:
                         pass
 
+                    if not should_reconnect(err.code):
+                        raise ConnectionClosed(
+                            f'Discord closed the WebSocket with code {err.code}'
+                            f': {err.reason}' if err.reason else ''
+                        )
+
                     await self._reconnect()
 
             for event in self._conn.events():
