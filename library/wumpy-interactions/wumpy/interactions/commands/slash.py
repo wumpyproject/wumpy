@@ -19,7 +19,7 @@ __all__ = ('Command', 'SubcommandGroup', 'command_payload')
 
 
 P = ParamSpec('P')
-RT = TypeVar('RT')
+RT = TypeVar('RT', covariant=True)
 
 
 class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):

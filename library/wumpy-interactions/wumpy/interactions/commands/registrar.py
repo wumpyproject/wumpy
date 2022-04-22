@@ -12,7 +12,7 @@ __all__ = ['group', 'command', 'CommandRegistrar']
 
 
 P = ParamSpec('P')
-RT = TypeVar('RT')
+RT = TypeVar('RT', covariant=True)
 CommandUnion = Union[Command[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
 
 

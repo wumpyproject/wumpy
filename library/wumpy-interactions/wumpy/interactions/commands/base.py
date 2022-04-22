@@ -10,7 +10,7 @@ __all__ = ('CommandCallback',)
 
 
 P = ParamSpec('P')
-RT = TypeVar('RT')
+RT = TypeVar('RT', covariant=True)
 
 
 Callback = Callable[P, Awaitable[RT]]
