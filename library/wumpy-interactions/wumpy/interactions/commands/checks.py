@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Hashable, List, TypeVar
 from weakref import WeakValueDictionary
 
 import anyio
+import anyio.lowlevel
 from wumpy.models import CommandInteractionOption
 
 from ..models import CommandInteraction
@@ -220,31 +221,74 @@ class Cooldown:
     rate: int
     per: float
 
-    __slots__ = ('rate', 'per', '_reset', '_value')
+    __slots__ = ('rate', 'per', '_window', '_value')
 
     def __init__(self, rate: int, per: float) -> None:
         self.rate = rate
         self.per = per
 
-        self._reset = None
+        self._window = None
         self._value = rate
 
     @property
     def expired(self) -> bool:
-        return self._reset is None or self._reset < time.perf_counter()
+        if self._window is None:
+            return True
 
-    def acquire(self) -> None:
-        if self._reset is None or self._reset < time.perf_counter():
-            self._reset = time.perf_counter() + self.per
-            self._value = self.rate - 1
+        if (self._window + self.per) > time.perf_counter():
+            return False
 
-        elif self._value <= 0:
+        # This means that we have passed at least one window, since the tokens
+        # were last incremented. We can shortcut some computation if the value
+        # is not negative because that means the tokens have been reset fully
+        if self._value >= 0:
+            return True
+
+        # The following code is similar to the one in acquire_nowait():
+        passed = (time.perf_counter() - self._window) // self.per
+
+        if min(self._value + (self.rate * passed), self.rate) == self.rate:
+            # Return if no tokens have been taken from this window
+            return True
+
+        return False  # There are currently acquired tokens for this window
+
+    def acquire_nowait(self) -> None:
+        if self._window is None:
+            self._window = time.perf_counter()
+            self._value = self.rate
+
+        elif (self._window + self.per) < time.perf_counter():
+            # Because self._value goes negative for reserved tokens, we need to
+            # compute the amount of windows passed
+            passed = (time.perf_counter() - self._window) // self.per
+
+            # Depending on the value of self._value, this may enter a new
+            # window which we don't want to have more tokens than what a window
+            # really should have.
+            self._value = min(self._value + (self.rate * passed), self.rate)
+            self._window = time.perf_counter()
+
+        if self._value <= 0:
+            # The extra 1 added at the end is to compensate for the computation
+            # being off by one: ((0 - (-4)) // 5) == 0
+            amount = ((0 - self._value) // self.rate) + 1
+
             raise CommandOnCooldown(
                 'Command is on cooldown.',
-                retry_after=self._reset - time.perf_counter()
+                retry_after=amount * self.per
             )
+
+        self._value -= 1
+
+    async def acquire(self) -> None:
+        await anyio.lowlevel.checkpoint_if_cancelled()
+        try:
+            self.acquire_nowait()
+        except CommandOnCooldown as cooldown:
+            await anyio.sleep(cooldown.retry_after)
         else:
-            self._value -= 1
+            await anyio.lowlevel.cancel_shielded_checkpoint()
 
 
 class CooldownMiddleware:
@@ -295,18 +339,14 @@ class CooldownMiddleware:
 
         cooldown = self.cooldowns.setdefault(key, Cooldown(self.rate, self.per))
 
-        while True:
-            try:
-                cooldown.acquire()
-            except CommandOnCooldown as on_cooldown:
-                if self.wait:
-                    await interaction.defer()
-                    await anyio.sleep(on_cooldown.retry_after)
-                    continue
-                else:
-                    raise
-
-            break
+        try:
+            cooldown.acquire_nowait()
+        except CommandOnCooldown as on_cooldown:
+            if self.wait:
+                await interaction.defer()
+                await anyio.sleep(on_cooldown.retry_after)
+            else:
+                raise
 
         await self.call_next(interaction, options)
 
