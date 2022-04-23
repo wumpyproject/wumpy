@@ -1,6 +1,7 @@
 from contextlib import AsyncExitStack
+from contextvars import ContextVar
 from types import TracebackType
-from typing import Any, Generator, NoReturn, Optional, Type
+from typing import Any, Generator, NoReturn, Optional, Type, TypeVar, cast
 
 import anyio
 import anyio.abc
@@ -11,7 +12,15 @@ from wumpy.rest import APIClient
 from .dispatch import EventDispatcher
 from .utils import RuntimeVar
 
-__all__ = ('Bot',)
+__all__ = ['Bot', 'get_bot']
+
+
+BotT = TypeVar('BotT', bound='Bot')
+
+
+# The get_bot() method is defined below the Bot class, because its default
+# is the Bot which hasn't been defined at this point.
+_running_bot: ContextVar['Bot'] = ContextVar('_running_bot')
 
 
 class Bot(EventDispatcher):
@@ -72,6 +81,8 @@ class Bot(EventDispatcher):
             raise RuntimeError('Bot has already been entered.')
 
         self._started = True
+        self._old_token = _running_bot.set(self)
+
         await self._stack.__aenter__()
         return self
 
@@ -82,6 +93,7 @@ class Bot(EventDispatcher):
         traceback: Optional[TracebackType]
     ) -> Optional[bool]:
         self._started = False
+        _running_bot.reset(self._old_token)
 
         return await self._stack.__aexit__(exc_type, exc_val, traceback)
 
@@ -142,12 +154,33 @@ class Bot(EventDispatcher):
         if self._started:
             raise RuntimeError("Cannot use 'run()' and 'async with' together")
 
-        self._started = True
+        async with self:
+            await self.login()
 
-        try:
-            async with self._stack:
-                await self.login()
+            await self.run_gateway()
 
-                await self.run_gateway()
-        finally:
-            self._started = False
+
+def get_bot(subclass: Type[BotT] = Bot) -> BotT:
+    """Get the currently running bot.
+
+    This helper-function allows independent parts of the code to access the
+    bot without having to pass it around. The benefit of which, is that a lot
+    of internal logic can be simplified.
+
+    The `subclass` parameter can be used for the return type, assuming you know
+    the type of the bot currently running. **This is not checked for**, and
+    should only be used for static type checking purposes.
+
+    Parameters:
+        subclass: The type of the return type for the type checker.
+
+    Raises:
+        RuntimeError: There is no currently running bot.
+
+    Returns:
+        The currently running instance.
+    """
+    try:
+        return cast(subclass, _running_bot.get())
+    except LookupError:
+        raise RuntimeError('There is no currently running bot')
