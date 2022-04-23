@@ -24,9 +24,8 @@ class RatelimiterContext:
     error to signal to the developer that this configuration cannot be used.
     """
 
-    @classmethod
-    @property
-    def abort_if_ratelimited(cls) -> bool:
+    @staticmethod
+    def abort_if_ratelimited() -> bool:
         """Abort the request if it will hit ratelimits.
 
         This ratelimiting configuration is what powers the context manager of

@@ -214,7 +214,7 @@ class _RouteRatelimit:
     ]:
         await self._parent.wait()
 
-        if RatelimiterContext.abort_if_ratelimited:
+        if RatelimiterContext.abort_if_ratelimited():
             try:
                 self._lock.acquire_nowait()
             except anyio.WouldBlock:
@@ -235,7 +235,7 @@ class _RouteRatelimit:
             await anyio.sleep(1 + exc.attempt * 2)
 
         except RateLimited as exc:
-            if RatelimiterContext.abort_if_ratelimited:
+            if RatelimiterContext.abort_if_ratelimited():
                 raise
 
             # The data is somewhat duplicated, which means we can try our best
