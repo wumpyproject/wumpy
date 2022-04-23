@@ -52,7 +52,7 @@ jobs:
           cd library/
           for subpackage in ${{ env.subpackages }}; do
             cd wumpy-$subpackage/
-            flit install --extras all
+            flit install --extras all --pth-file
             cd ..
           done
           cd ..
@@ -147,7 +147,7 @@ jobs:
           cd library/
           for subpackage in ${{ env.subpackages }}; do
             cd wumpy-$subpackage/
-            flit install --extras all
+            flit install --extras all --pth-file
             cd ..
           done
           cd ..
@@ -196,7 +196,7 @@ jobs:
           cd library/
           for subpackage in ${{ env.subpackages }}; do
             cd wumpy-$subpackage/
-            flit install --extras all
+            flit install --extras all --pth-file
             cd ..
           done
           cd ..
