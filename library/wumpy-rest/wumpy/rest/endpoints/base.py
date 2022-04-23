@@ -44,26 +44,26 @@ class Requester:
     are properly cleaned up.
     """
 
-    headers: Dict[str, str]
-
     _session: httpx.AsyncClient
 
     __slots__ = (
-        'headers', '_user_ratelimiter', '_ratelimiter', '_session', '_stack'
+        '_user_ratelimiter', '_ratelimiter', '_session', '_stack'
     )
 
     def __init__(
         self,
         ratelimiter: Optional[Ratelimiter] = None,
         *,
-        headers: Dict[str, str] = {}
+        headers: Dict[str, str] = {},
+        proxy: Optional[str] = None,
     ) -> None:
-        # Headers global to the requester
-        self.headers: Dict[str, str] = {
-            'User-Agent': self.build_user_agent(),
-            'X-RateLimit-Precision': 'millisecond',
-            **headers,
-        }
+        self._session = httpx.AsyncClient(
+            headers={
+                'User-Agent': self.build_user_agent(),
+                **headers
+            },
+            proxies=proxy, http2=True, follow_redirects=True
+        )
 
         self._user_ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
 
@@ -74,9 +74,7 @@ class Requester:
         self._stack = contextlib.AsyncExitStack()
 
         try:
-            self._session = await self._stack.enter_async_context(
-                httpx.AsyncClient(headers=self.headers, http2=True, follow_redirects=True)
-            )
+            await self._stack.enter_async_context(self._session)
             self._ratelimiter = await self._stack.enter_async_context(self._user_ratelimiter)
         except:
             # If any of the __aenter__s fails in the above block the finalizer
