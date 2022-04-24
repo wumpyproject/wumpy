@@ -181,6 +181,6 @@ def get_bot(subclass: Type[BotT] = Bot) -> BotT:
         The currently running instance.
     """
     try:
-        return cast(subclass, _running_bot.get())
+        return cast(BotT, _running_bot.get())
     except LookupError:
         raise RuntimeError('There is no currently running bot')
