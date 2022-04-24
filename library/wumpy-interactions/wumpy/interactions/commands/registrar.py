@@ -13,7 +13,10 @@ __all__ = ['group', 'command', 'CommandRegistrar']
 
 P = ParamSpec('P')
 RT = TypeVar('RT', covariant=True)
-CommandUnion = Union[Command[P, RT], MessageCommand[P, RT], UserCommand[P, RT]]
+CommandUnion = Union[
+    Command[P, RT], MessageCommand[P, RT],
+    UserCommand[P, RT], SubcommandGroup
+]
 
 
 def group(
@@ -153,18 +156,14 @@ def command(
 
 
 class CommandRegistrar:
-    """Root registrar of command handlers.
+    """Root registrar of command handlers."""
 
-    Attributes:
-        commands: A dictionary of all registered commands.
-    """
-
-    commands: Dict[str, Command['...', object]]
+    _commands: Dict[str, CommandUnion['...', object]]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self.commands = {}
+        self._commands = {}
 
     async def invoke_command(self, interaction: CommandInteraction) -> None:
         """Handle the interaction and trigger appropriate callbacks.
@@ -176,7 +175,7 @@ class CommandRegistrar:
             interaction: The interaction to handle.
             tg: An anyio task group that will be used to launch callbacks.
         """
-        command = self.commands.get(interaction.name)
+        command = self._commands.get(interaction.name)
         if command is None:
             return
 
@@ -193,7 +192,18 @@ class CommandRegistrar:
         if command.name is None:
             raise ValueError('Command cannot be registered with no name')
 
-        self.commands[command.name] = command
+        self._commands[command.name] = command
+
+    def get_command(self, name: str) -> Optional[CommandUnion['...', object]]:
+        """Get a registered command from the registrar.
+
+        Parameters:
+            name: The name of the command to lookup.
+
+        Returns:
+            The command if found, otherwise `None`.
+        """
+        return self._commands.get(name)
 
     def remove_command(self, command: Command['...', object]) -> None:
         """Unregister a command from the internal dictionary.
@@ -210,13 +220,13 @@ class CommandRegistrar:
         if command.name is None:
             raise ValueError("Cannot unregister a command with no name")
 
-        if self.commands.get(command.name) != command:
+        if self._commands.get(command.name) != command:
             raise ValueError(
                 "'command' has not been registered previously or another"
                 "command is registered in its place"
             )
 
-        del self.commands[command.name]
+        del self._commands[command.name]
 
     def group(
         self,
