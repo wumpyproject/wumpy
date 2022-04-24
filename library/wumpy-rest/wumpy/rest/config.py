@@ -1,4 +1,4 @@
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from types import TracebackType
 from typing import Optional, Type
 
@@ -9,7 +9,7 @@ from .errors import RateLimited
 __all__ = ['RatelimiterContext', 'abort_if_ratelimited']
 
 
-_abort_if_ratelimited: 'ContextVar[bool]' = ContextVar('_abort_if_ratelimited', default=False)
+_abort_if_ratelimited: ContextVar[bool] = ContextVar('_abort_if_ratelimited', default=False)
 
 
 class RatelimiterContext:
@@ -46,15 +46,13 @@ class RatelimiterContext:
 class _AbortRatelimitsManager:
 
     _aborted: Optional[bool]
-    _previous: bool
+    _previous: Token
 
     def __init__(self) -> None:
         self._aborted = None
-        self._previous = False  # Default of the context variable
 
     def __enter__(self) -> Self:
-        self._previous = _abort_if_ratelimited.get()
-        _abort_if_ratelimited.set(True)
+        self._previous = _abort_if_ratelimited.set(True)
 
         return self
 
@@ -64,7 +62,7 @@ class _AbortRatelimitsManager:
             exc_val: Optional[BaseException] = None,
             traceback: Optional[TracebackType] = None
     ) -> Optional[bool]:
-        _abort_if_ratelimited.set(self._previous)
+        _abort_if_ratelimited.reset(self._previous)
 
         if isinstance(exc_val, RateLimited):
             self._aborted = True
