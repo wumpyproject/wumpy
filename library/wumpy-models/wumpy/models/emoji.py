@@ -1,21 +1,19 @@
 import dataclasses
-from datetime import datetime
+import re
 from typing import Optional, Tuple
 
 from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
-from .base import Snowflake
+from .base import DISCORD_EPOCH, Snowflake, Model
 from .user import User
-from .utils import _get_as_snowflake
 
-__all__ = ('Emoji', 'MessageReaction')
+__all__ = ['Emoji', 'MessageReaction']
 
 
-@dataclasses.dataclass(frozen=True)
-class Emoji(str):
+@dataclasses.dataclass(frozen=True, eq=False)
+class Emoji(Model):
 
-    id: Optional[Snowflake]
     name: str
 
     roles: Tuple[Snowflake, ...]
@@ -25,6 +23,8 @@ class Emoji(str):
     managed: bool
     animated: bool
     available: bool
+
+    REGEX = re.compile(r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?')
 
     __slots__ = (
         'id', 'name', 'animated', 'roles', 'user', 'require_colons', 'managed',
@@ -38,7 +38,7 @@ class Emoji(str):
             user = User.from_data(user)
 
         return cls(
-            id=_get_as_snowflake(data, 'id'),
+            id=int(data['id'] or DISCORD_EPOCH << 22),
             name=data.get('name') or '_',
             roles=tuple(Snowflake(int(s)) for s in data.get('roles', [])),
             user=user,
@@ -48,18 +48,35 @@ class Emoji(str):
             available=data.get('available', True),
         )
 
-    @property
-    def created_at(self) -> datetime:
-        """When the emoji was created extracted from the ID.
+    @classmethod
+    def from_string(cls, value: str) -> Self:
+        match = cls.REGEX.match(value)
+        if match:
+            return cls(
+                id=int(match.group('id')),
+                name=match.group('name'),
+                roles=(),
+                user=None,
 
-        This raises `ValueError` if there is no ID because the emoji is a
-        default Discord emoji. This is so that you don't need to deal with
-        None when you know that this should return a datetime.
-        """
-        if self.id is None:
-            raise ValueError('Cannot extract a datetime from an emoji without an ID.')
+                require_colons=True,
+                managed=False,
+                animated=bool(match.group('animated')),
+                available=True
+            )
 
-        return self.id.created_at
+        # The regex didn't match, we'll just have to assume the user passed a
+        # built-in unicode emoji
+        return cls(
+            id=DISCORD_EPOCH << 22,
+            name=value,
+            roles=(),
+            user=None,
+
+            require_colons=False,
+            managed=False,
+            animated=False,
+            available=True
+        )
 
 
 @dataclasses.dataclass(frozen=True)

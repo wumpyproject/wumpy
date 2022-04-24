@@ -1,12 +1,10 @@
 from enum import Enum
 from typing import (
-    TYPE_CHECKING, Any, Callable, Dict, Optional, Union, overload
+    Any, Callable, Dict, Optional, Union, overload
 )
 
-from .component import Component, ComponentEmoji, Coro
-
-if TYPE_CHECKING:
-    from wumpy.models import ComponentInteraction
+from wumpy.models import Emoji, ComponentInteraction
+from .component import Component, Coro
 
 
 __all__ = ('ButtonStyle', 'Button')
@@ -36,7 +34,7 @@ class Button(Component):
 
     style: ButtonStyle
     label: Optional[str]
-    emoji: Optional[ComponentEmoji]
+    emoji: Optional[Emoji]
 
     custom_id: Optional[str]
     url: Optional[str]
@@ -52,7 +50,7 @@ class Button(Component):
         style: ButtonStyle,
         custom_id: str,
         label: Optional[str] = None,
-        emoji: Optional[Union[ComponentEmoji, str]] = None,
+        emoji: Optional[Union[Emoji, str]] = None,
         disabled: bool = False,
         callback: Optional[Callable[['ComponentInteraction'], Coro[object]]] = None
     ) -> None:
@@ -64,7 +62,7 @@ class Button(Component):
         *,
         url: str,
         label: Optional[str] = None,
-        emoji: Optional[Union[ComponentEmoji, str]] = None,
+        emoji: Optional[Union[Emoji, str]] = None,
         disabled: bool = False
     ) -> None:
         ...
@@ -74,7 +72,7 @@ class Button(Component):
         *,
         style: ButtonStyle = ButtonStyle.link,
         label: Optional[str] = None,
-        emoji: Optional[Union[ComponentEmoji, str]] = None,
+        emoji: Optional[Union[Emoji, str]] = None,
         custom_id: Optional[str] = None,
         url: Optional[str] = None,
         disabled: bool = False,
@@ -95,7 +93,7 @@ class Button(Component):
         self.label = label
 
         if isinstance(emoji, str):
-            emoji = ComponentEmoji.from_string(emoji)
+            emoji = Emoji.from_string(emoji)
 
         self.emoji = emoji
 

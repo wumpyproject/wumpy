@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from .component import Component, ComponentEmoji, Coro
+from .component import Component, Coro
 
-if TYPE_CHECKING:
-    from wumpy.models import ComponentInteraction
+from wumpy.models import Emoji, ComponentInteraction
 
 
 __all__ = ('SelectOption', 'SelectMenu')
@@ -22,7 +21,7 @@ class SelectOption:
     label: str
     value: str
     description: Optional[str]
-    emoji: Optional[ComponentEmoji]
+    emoji: Optional[Emoji]
     default: bool
 
     def __init__(
@@ -31,14 +30,14 @@ class SelectOption:
         label: str,
         value: Optional[str] = None,
         description: Optional[str] = None,
-        emoji: Optional[Union[ComponentEmoji, str]] = None,
+        emoji: Optional[Union[Emoji, str]] = None,
         default: bool = False
     ) -> None:
         self.label = label
         self.value = value or label
 
         if isinstance(emoji, str):
-            emoji = ComponentEmoji.from_string(emoji)
+            emoji = Emoji.from_string(emoji)
 
         self.emoji = emoji
         self.description = description
