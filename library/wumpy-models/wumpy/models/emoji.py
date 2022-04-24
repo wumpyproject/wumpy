@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
-from .base import DISCORD_EPOCH, Snowflake, Model
+from .base import DISCORD_EPOCH, Model, Snowflake
 from .user import User
 
 __all__ = ['Emoji', 'MessageReaction']

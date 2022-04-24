@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Coroutine, Optional, Union
 
+from wumpy.models import ComponentInteraction, Emoji
+
 from .button import *
 from .component import *
 from .component import Coro
@@ -7,16 +9,13 @@ from .containers import *
 from .handler import *
 from .select import *
 
-if TYPE_CHECKING:
-    from wumpy.models import ComponentInteraction
-
 
 def button(
     *,
     style: ButtonStyle,
     custom_id: str,
     label: Optional[str] = None,
-    emoji: Optional[Union[ComponentEmoji, str]] = None,
+    emoji: Optional[Union[Emoji, str]] = None,
     disabled: bool = False,
 ) -> Callable[[Callable[['ComponentInteraction'], Coro[object]]], Button]:
     """Decorator that creates a Button from a function.

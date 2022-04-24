@@ -1,9 +1,8 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from wumpy.models import ComponentInteraction, Emoji
+
 from .component import Component, Coro
-
-from wumpy.models import Emoji, ComponentInteraction
-
 
 __all__ = ('SelectOption', 'SelectMenu')
 

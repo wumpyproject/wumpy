@@ -1,11 +1,9 @@
 from enum import Enum
-from typing import (
-    Any, Callable, Dict, Optional, Union, overload
-)
+from typing import Any, Callable, Dict, Optional, Union, overload
 
-from wumpy.models import Emoji, ComponentInteraction
+from wumpy.models import ComponentInteraction, Emoji
+
 from .component import Component, Coro
-
 
 __all__ = ('ButtonStyle', 'Button')
 
