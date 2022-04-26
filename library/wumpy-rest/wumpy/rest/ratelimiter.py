@@ -268,11 +268,13 @@ class _RouteRatelimit:
                 )
 
             self._lock.lock()
-            await anyio.sleep(float(retry))
-            self._lock.unlock()
+            try:
+                await anyio.sleep(float(retry))
+            finally:
+                self._lock.unlock()
 
-            if globally:
-                self._parent.unlock()
+                if globally:
+                    self._parent.unlock()
 
             _log.debug(f'Finished sleeping from ratelimit for {self._route}')
 
