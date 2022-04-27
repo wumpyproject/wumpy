@@ -4,6 +4,7 @@ import sys
 from typing import Any, Callable, Dict, Optional, Union
 
 from wumpy.interactions import CommandRegistrar
+from wumpy.interactions.commands.slash import SubcommandGroup
 
 from .dispatch import EventDispatcher
 from .errors import ExtensionFailure
@@ -61,7 +62,7 @@ class Extension(CommandRegistrar, EventDispatcher):
                     target.add_listener(callback)
 
         if isinstance(target, CommandRegistrar):
-            for command in self.commands.values():
+            for command in self._commands.values():
                 target.add_command(command)
 
         self._data = data
@@ -75,7 +76,7 @@ class Extension(CommandRegistrar, EventDispatcher):
                     target.remove_listener(callback, event=annotation)
 
         if isinstance(target, CommandRegistrar):
-            for command in self.commands.values():
+            for command in self._commands.values():
                 target.remove_command(command)
 
 
@@ -108,8 +109,11 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
                 if _is_submodule(callback.__module__, module):
                     self.remove_listener(callback, event=annotation)
 
-        for command in self.commands.values():
-            if _is_submodule(command.callback.__module__, module):
+        for command in self._commands.values():
+            if (
+                    not isinstance(command, SubcommandGroup)
+                    and _is_submodule(command.callback.__module__, module)
+            ):
                 self.remove_command(command)
 
     def load_extension(self, path: str, package: Optional[str] = None, **kwargs: Any) -> None:

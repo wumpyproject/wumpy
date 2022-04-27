@@ -158,7 +158,7 @@ def command(
 class CommandRegistrar:
     """Root registrar of command handlers."""
 
-    _commands: Dict[str, CommandUnion['...', object]]
+    _commands: Dict[str, 'CommandUnion[..., object]']
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -194,7 +194,7 @@ class CommandRegistrar:
 
         self._commands[command.name] = command
 
-    def get_command(self, name: str) -> Optional[CommandUnion['...', object]]:
+    def get_command(self, name: str) -> Optional['CommandUnion[..., object]']:
         """Get a registered command from the registrar.
 
         Parameters:

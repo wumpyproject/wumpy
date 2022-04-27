@@ -15,7 +15,7 @@ class TestContextCommand:
         async def test(interaction, argument):
             ...
 
-        assert registrar.commands['test'] == test
+        assert registrar.get_command('test') == test
 
     def test_non_async(self, commandtype: CommandType):
         registrar = CommandRegistrar()
