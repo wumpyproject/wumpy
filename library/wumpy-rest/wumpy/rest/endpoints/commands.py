@@ -326,24 +326,3 @@ class ApplicationCommandRequester(Requester):
             'PUT', '/application/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions',
             application_id=int(application), guild_id=int(guild), command_id=int(command)
         ), json={'permissions': permissions})
-
-    async def edit_all_guild_commands_permissions(
-        self,
-        application: SupportsInt,
-        guild: SupportsInt,
-        permissions: List[BatchEditApplicationCommandPermissionsData],
-    ) -> List[GuildApplicationCommandPermissionData]:
-        """Edit all guild command permissions.
-
-        Parameters:
-            application: The ID of the application.
-            guild: The ID of the guild.
-            permissions: The new permissions for all commands.
-
-        Returns:
-            The new guild application command permissions.
-        """
-        return await self.request(Route(
-            'PUT', '/application/{application_id}/guilds/{guild_id}/commands/permissions',
-            application_id=int(application), guild_id=int(guild)
-        ), json=permissions)
