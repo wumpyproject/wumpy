@@ -107,7 +107,12 @@ class Bot(EventDispatcher):
             APIClient(headers={'Authorization': f'Bot {self.token}'})
         )
 
-    async def run_gateway(self) -> None:
+    # This can in fact return, if the WebSocket connection closes or similar.
+    # Which is why PyRight complains that it can return None, hence the
+    # 'type: ignore' comment. That said, this SHOULD never return in a
+    # typical use-case, and NoReturn means that IDEs can help the user by
+    # making code after it greyed out or marking it as an error.
+    async def run_gateway(self) -> NoReturn:  # type: ignore
         if not self._started:
             raise RuntimeError(
                 "Cannot run the gateway outside of 'run()' or the asynchronous context manager"
@@ -122,12 +127,7 @@ class Bot(EventDispatcher):
             async for data in self.gateway:
                 self.dispatch(data['t'], data, tg=tasks)
 
-    # This can in fact return, if the WebSocket connection closes or similar.
-    # Which is why PyRight complains that it can return None, hence the
-    # 'type: ignore' comment. That said, this SHOULD never return in a
-    # typical use-case, and NoReturn means that IDEs can help the user by
-    # making code after it greyed out or marking it as an error.
-    async def run(self) -> NoReturn:  # type: ignore
+    async def run(self) -> NoReturn:
         """Run the main bot.
 
         Compared to other Discord API wrappers this method should be `await`ed
