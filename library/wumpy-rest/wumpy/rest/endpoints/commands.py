@@ -2,9 +2,7 @@ from typing import List, Sequence, SupportsInt
 
 from discord_typings import (
     ApplicationCommandData, ApplicationCommandPayload,
-    ApplicationCommandPermissionsData,
-    BatchEditApplicationCommandPermissionsData,
-    GuildApplicationCommandPermissionData
+    ApplicationCommandPermissionsData, GuildApplicationCommandPermissionData
 )
 
 from ..route import Route
