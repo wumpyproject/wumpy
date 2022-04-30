@@ -1,9 +1,7 @@
 from contextlib import AsyncExitStack
 from contextvars import ContextVar
 from types import TracebackType
-from typing import (
-    Any, Generator, NoReturn, Optional, Type, TypeVar, cast, overload
-)
+from typing import NoReturn, Optional, Type, TypeVar, cast, overload
 
 import anyio
 import anyio.abc
@@ -41,7 +39,7 @@ class Bot(EventDispatcher):
 
 
     # Run the bot with no registered events or commands.
-    anyio.run(bot)
+    anyio.run(bot.run)
     ```
 
     Alternatively, you can use the bot as an asynchronous context manager and
@@ -59,6 +57,7 @@ class Bot(EventDispatcher):
         async with bot:
             await bot.login()
 
+            await bot.connect_cache()
             # This will run the bot and only exit once the gateway has closed.
             await bot.run_gateway()
 
@@ -76,9 +75,6 @@ class Bot(EventDispatcher):
 
         self._started = False
         self._stack = AsyncExitStack()
-
-    def __await__(self) -> Generator[Any, None, NoReturn]:
-        return self.run().__await__()
 
     async def __aenter__(self) -> Self:
         if self._started:
