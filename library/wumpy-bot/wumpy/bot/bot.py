@@ -8,6 +8,7 @@ from typing import (
 import anyio
 import anyio.abc
 from typing_extensions import Self
+from wumpy.cache import Cache, InMemoryCache
 from wumpy.gateway import Shard
 from wumpy.rest import APIClient
 
@@ -67,6 +68,7 @@ class Bot(EventDispatcher):
 
     api: RuntimeVar[APIClient] = RuntimeVar()
     gateway: RuntimeVar[Shard] = RuntimeVar()
+    cache: RuntimeVar[Cache] = RuntimeVar()
 
     def __init__(self, token: str, *, intents: int) -> None:
         self.token = token
@@ -109,6 +111,16 @@ class Bot(EventDispatcher):
             APIClient(headers={'Authorization': f'Bot {self.token}'})
         )
 
+    async def connect_cache(self) -> None:
+        if not self._started:
+            raise RuntimeError(
+                "Cannot connect the cahce outside of 'run()' or the async context manager"
+            )
+
+        self.cache = await self._stack.enter_async_context(
+            InMemoryCache(max_messages=2000)
+        )
+
     # This can in fact return, if the WebSocket connection closes or similar.
     # Which is why PyRight complains that it can return None, hence the
     # 'type: ignore' comment. That said, this SHOULD never return in a
@@ -127,7 +139,9 @@ class Bot(EventDispatcher):
 
         async with anyio.create_task_group() as tasks:
             async for data in self.gateway:
-                self.dispatch(data['t'], data, tg=tasks)
+                cached = await self.cache.update(data)
+
+                self.dispatch(data['t'], data, cached, tg=tasks)
 
     async def run(self) -> NoReturn:
         """Run the main bot.
@@ -159,6 +173,7 @@ class Bot(EventDispatcher):
         async with self:
             await self.login()
 
+            await self.connect_cache()
             await self.run_gateway()
 
 
