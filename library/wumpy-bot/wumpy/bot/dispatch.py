@@ -124,7 +124,14 @@ class EventDispatcher:
 
         self._listeners = {}
 
-    def dispatch(self, event: str, *args: Any, tg: anyio.abc.TaskGroup) -> None:
+    def dispatch(
+            self,
+            event: str,
+            payload: Dict[str, Any],
+            cached: Tuple[Optional[Any], Optional[Any]],
+            *,
+            tg: anyio.abc.TaskGroup
+    ) -> None:
         """Dispatch appropriate listeners.
 
         The callbacks will be started with the task group and passed the
@@ -136,7 +143,7 @@ class EventDispatcher:
             tg: Task group to start the callbacks with
         """
         for initializer, callback in self._listeners.get(event, []):
-            tg.start_soon(callback, initializer(*args))
+            tg.start_soon(callback, initializer.from_payload(payload, cached))
 
     def add_listener(
             self,
