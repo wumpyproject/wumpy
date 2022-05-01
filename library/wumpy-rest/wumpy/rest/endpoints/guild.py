@@ -520,7 +520,7 @@ class GuildRequester(Requester):
             The member data of the user.
         """
         return await self.request(Route(
-            'GET', '/guilds/{guild_id}/embers/{user_id}',
+            'GET', '/guilds/{guild_id}/members/{user_id}',
             guild_id=int(guild), user_id=int(user)
         ))
 
