@@ -273,7 +273,7 @@ class GuildRequester(Requester):
         it must be discoverable or have a live public stage.
 
         Parameters:
-            guid: The ID of the guild to fetch a preview of.
+            guild: The ID of the guild to fetch a preview of.
 
         Returns:
             The preview of the guild.
