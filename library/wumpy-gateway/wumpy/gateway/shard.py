@@ -17,7 +17,7 @@ from discord_gateway import (
     CloseDiscordConnection, ConnectionRejected, DiscordConnection, Opcode,
     should_reconnect
 )
-from typing_extensions import Self
+from typing_extensions import Literal, Self
 
 from .errors import ConnectionClosed
 from .utils import DefaultGatewayLimiter, race
@@ -116,10 +116,11 @@ class Shard:
         shard_id: Optional[Tuple[int, int]] = None,
         *,
         max_concurrency: int = 1,
+        encoding: Literal['json', 'etf'] = 'json',
         ratelimiter: Optional[Callable[[int], AsyncContextManager[GatewayLimiter]]] = None,
         ssl_context: Optional[ssl.SSLContext] = None
     ) -> None:
-        self._conn = DiscordConnection(uri, encoding='json', compress='zlib-stream')
+        self._conn = DiscordConnection(uri, encoding=encoding, compress='zlib-stream')
         self._sock = None
         self._ssl = ssl_context
 
