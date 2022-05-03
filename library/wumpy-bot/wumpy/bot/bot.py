@@ -137,7 +137,7 @@ class Bot(EventDispatcher):
             async for data in self.gateway:
                 cached = await self.cache.update(data)
 
-                self.dispatch(data['t'], data, cached, tg=tasks)
+                await self.dispatch(data['t'], data, cached, tg=tasks)
 
     async def run(self) -> NoReturn:
         """Run the main bot.

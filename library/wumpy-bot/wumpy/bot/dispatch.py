@@ -35,11 +35,11 @@ class Event:
 
     @classmethod
     @abstractmethod
-    def from_payload(
+    async def from_payload(
             cls,
             payload: Dict[str, Any],
-            cached: Tuple[Optional[Any], Optional[Any]]
-    ) -> Self:
+            cached: Tuple[Optional[Any], Optional[Any]] = (None, None)
+    ) -> Optional[Self]:
         """Initialize the event from a payload and cached values.
 
         This classmethod is meant as an initializer, and should return the
@@ -124,7 +124,7 @@ class EventDispatcher:
 
         self._listeners = {}
 
-    def dispatch(
+    async def dispatch(
             self,
             event: str,
             payload: Dict[str, Any],
@@ -143,7 +143,9 @@ class EventDispatcher:
             tg: Task group to start the callbacks with
         """
         for initializer, callback in self._listeners.get(event, []):
-            tg.start_soon(callback, initializer.from_payload(payload, cached))
+            instance = await initializer.from_payload(payload, cached)
+            if instance is not None:
+                tg.start_soon(callback, instance)
 
     def add_listener(
             self,
