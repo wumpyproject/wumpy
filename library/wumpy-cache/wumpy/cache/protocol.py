@@ -20,7 +20,27 @@ class Cache(Protocol):
     This is not the default implementation for the cache, rather it is the
     typehint that should be used for the cache. All methods return None, so
     this can be used if you do not wish to implement a cache.
+
+    There are some attributes the cache should set, which allows code using it
+    to take the base course of action in relation to caching. Subclass this
+    protocol to get sensible defaults, as new attributes may be added at any
+    minor version bump.
+
+    The first - and most significant one - is `remote`. It defines whether the
+    cache stores its content remotely in another process's memory, on the hard
+    drive, or over the network. This means that different parts of the library
+    may opt to initialize objects it has data for rather than re-use the cached
+    ones, since that would involve copying memory if the cache is not stored in
+    the current process's memory (voiding any benefits from re-using the cached
+    models already loaded in memory).
+
+    Attributes:
+        remote:
+            Whether the cache is considered remote and stores its data
+            remotely. Accessing the cache will lead to copying of memory.
     """
+
+    remote: bool = False
 
     async def update(self, payload: Dict[str, Any]) -> Tuple[Optional[Any], Optional[Any]]:
         """Update the cache with new information from an event.
