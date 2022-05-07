@@ -35,22 +35,29 @@ class TypingEvent(Event):
             cached: Tuple[Optional[Any], Optional[Any]] = (None, None)
     ) -> Self:
         data = payload['d']
+        cache = get_bot().cache
+
+        user_id = Snowflake(data['user_id'])
+        guild_id = _get_as_snowflake(data, 'guild_id')
 
         member = None
-        if data.get('member') is not None:
-            member = await get_bot().cache.get_member(data['guild_id'], data['user_id'])
+        if guild_id is not None and not cache.remote:
+            member = await get_bot().cache.get_member(guild_id.id, user_id.id)
 
         if member is None:
-            user = await get_bot().cache.get_user(data['user_id'])
+            user = None
+            if not cache.remote:
+                user = await get_bot().cache.get_user(data['user_id'])
+
             if user is not None:
                 member = Member.from_user(user, data['member'])
             else:
-                member = Member.from_data(data['member'].get('user'), data['member'])
+                member = Member.from_data(data['member'])
 
         return cls(
-            user_id=Snowflake(data['user_id']),
+            user_id=user_id,
             channel_id=Snowflake(data['channel_id']),
-            guild_id=_get_as_snowflake(data, 'guild_id'),
+            guild_id=guild_id,
 
             timestamp=datetime.fromtimestamp(data['timestamp'], tz=timezone.utc),
             member=member
