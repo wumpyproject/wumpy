@@ -68,7 +68,7 @@ class ResolvedInteractionData:
         return cls(
             users={int(k): User.from_data(v) for k, v in data.get('users', {}).items()},
             members={
-                int(k): InteractionMember.from_data(data.get('users', {}).get(k), v)
+                int(k): InteractionMember.from_data(v, data.get('users', {}).get(k))
                 for k, v in data.get('members', {}).items()
                 if data.get('users', {}).get(k)
             },

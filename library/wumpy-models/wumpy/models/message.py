@@ -187,7 +187,7 @@ class MessageMentions:
         if data['mentions'] and 'member' in data['mentions'][0]:
             # Pyright doesn't understand that the type has narrowed down to
             # List[UserMentionData] with the 'member' key.
-            users = tuple(Member.from_data(m, m['member']) for m in data['mentions'])  # type: ignore
+            users = tuple(Member.from_data(m['member'], m) for m in data['mentions'])  # type: ignore
         else:
             users = tuple(User.from_data(u) for u in data['mentions'])
 
@@ -243,7 +243,7 @@ class Message(Model):
     @classmethod
     def from_data(cls, data: MessageData) -> Self:
         if 'member' in data:
-            author = Member.from_data(data['author'], data['member'])
+            author = Member.from_data(data['member'], data['author'])
         else:
             author = User.from_data(data['author'])
 

@@ -91,7 +91,7 @@ class Member(Model):
         )
 
     @classmethod
-    def from_data(cls, user: Optional[UserData], data: GuildMemberData) -> Self:
+    def from_data(cls, data: GuildMemberData, user: Optional[UserData] = None) -> Self:
         if user is None and 'user' in data:
             user = data['user']
         else:
@@ -152,7 +152,7 @@ class InteractionMember(Member):
         )
 
     @classmethod
-    def from_data(cls, user: Optional[UserData], data: GuildMemberData) -> Self:
+    def from_data(cls, data: GuildMemberData, user: Optional[UserData] = None) -> Self:
         if user is None and 'user' in data:
             user = data['user']
         else:
