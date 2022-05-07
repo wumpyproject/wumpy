@@ -1,6 +1,6 @@
 import dataclasses
 from datetime import datetime, timezone
-from typing import SupportsInt
+from typing import SupportsInt, Union
 
 from typing_extensions import Self
 
@@ -89,7 +89,7 @@ class Snowflake(Model):
 
     __slots__ = ()
 
-    def __init__(self, id: SupportsInt) -> None:
+    def __init__(self, id: Union[SupportsInt, str]) -> None:
         super().__init__(int(id))
 
     def __repr__(self) -> str:
