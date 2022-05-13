@@ -4,7 +4,7 @@ from typing import Optional, Type
 
 from typing_extensions import Self
 
-from .errors import RateLimited
+from .errors import RequestException
 
 __all__ = ['RatelimiterContext', 'abort_if_ratelimited']
 
@@ -64,7 +64,7 @@ class _AbortRatelimitsManager:
     ) -> Optional[bool]:
         _abort_if_ratelimited.reset(self._previous)
 
-        if isinstance(exc_val, RateLimited):
+        if isinstance(exc_val, RequestException) and exc_val.status_code in {408, 429}:
             self._aborted = True
             return True
 

@@ -214,9 +214,7 @@ class Requester:
         if res.status_code == 429:
             raise RateLimited(res.status_code, res.headers, payload)
 
-        raise HTTPException(
-            f'Unknown response {res.status_code} {res.reason_phrase}: {payload}'
-        )
+        raise RequestException(res.status_code, res.headers, payload)
 
     async def request(
         self,
