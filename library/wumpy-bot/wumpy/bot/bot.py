@@ -170,7 +170,7 @@ def get_bot(subclass: Type[BotT]) -> BotT:
     ...
 
 
-def get_bot(subclass: Type[BotT] = Bot) -> BotT:
+def get_bot(subclass: Type[BotT] = Bot, *, verify: bool = False) -> BotT:
     """Get the currently running bot.
 
     This helper-function allows independent parts of the code to access the
@@ -178,19 +178,26 @@ def get_bot(subclass: Type[BotT] = Bot) -> BotT:
     of internal logic can be simplified.
 
     The `subclass` parameter can be used for the return type, assuming you know
-    the type of the bot currently running. **This is not checked for**, and
-    should only be used for static type checking purposes.
+    the type of the bot currently running. **This is not checked for** by
+    default, but can be enabled by passing `verify=True`.
 
     Parameters:
         subclass: The type of the return type for the type checker.
+        verify: Whether to do an `isinstance()` check on the gotten instance.
 
     Raises:
         RuntimeError: There is no currently running bot.
+        RuntimeError: If `verify` is True, the `isinstance()` check failed
 
     Returns:
         The currently running instance.
     """
     try:
-        return cast(BotT, _running_bot.get())
+        instance = _running_bot.get()
     except LookupError:
-        raise RuntimeError('There is no currently running bot')
+        raise RuntimeError('There is no currently running bot') from None
+
+    if verify and not isinstance(instance, subclass):
+        raise RuntimeError(f'Currently running bot is not of type {subclass.__name__!r}')
+
+    return cast(BotT, instance)
