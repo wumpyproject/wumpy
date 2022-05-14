@@ -1,7 +1,7 @@
 from contextlib import AsyncExitStack
 from contextvars import ContextVar
 from types import TracebackType
-from typing import Any, Generator, NoReturn, Optional, Type, TypeVar, cast
+from typing import Any, Generator, NoReturn, Optional, Type, TypeVar, cast, overload
 
 import anyio
 import anyio.abc
@@ -158,6 +158,16 @@ class Bot(EventDispatcher):
             await self.login()
 
             await self.run_gateway()
+
+
+@overload
+def get_bot() -> Bot:
+    ...
+
+
+@overload
+def get_bot(subclass: Type[BotT]) -> BotT:
+    ...
 
 
 def get_bot(subclass: Type[BotT] = Bot) -> BotT:
