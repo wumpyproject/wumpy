@@ -1,8 +1,8 @@
-import dataclasses
 import contextlib
-import warnings
+import dataclasses
 import itertools
-from typing import Any, Mapping, Optional, Union, overload, Callable, TypeVar
+import warnings
+from typing import Any, Callable, Mapping, Optional, TypeVar, Union, overload
 
 from wumpy.rest.utils import MISSING as MISSING
 

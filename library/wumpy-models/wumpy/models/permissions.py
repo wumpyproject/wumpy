@@ -7,14 +7,15 @@ from typing_extensions import Self
 
 from .base import Model
 from .flags import DiscordFlags, flag
+from .utils import backport_slots
 
 __all__ = ('Permissions', 'PermissionTarget', 'PermissionOverwrite')
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class Permissions(DiscordFlags):
     """A bitfield for wrapping Discord permissions."""
-
-    __slots__ = ()
 
     @overload
     @classmethod
@@ -351,6 +352,8 @@ class Permissions(DiscordFlags):
         return 1 << 40
 
 
+@backport_slots(weakref_slot=False)
+@dataclasses.dataclass(frozen=True)
 class TriBitMask:
     """Representing one bit of two bitfields similar to BitMask.
 
@@ -359,11 +362,6 @@ class TriBitMask:
     """
 
     mask: int
-
-    __slots__ = ('mask',)
-
-    def __init__(self, mask: int) -> None:
-        self.mask = mask
 
     def __get__(self, instance: 'PermissionOverwrite', _: Optional[type]) -> Union[bool, None, int]:
         if instance is None:
@@ -387,6 +385,7 @@ class PermissionTarget(Enum):
     member = 1
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class PermissionOverwrite(Model):
     """"Discord permission overwrite object.
@@ -396,11 +395,9 @@ class PermissionOverwrite(Model):
     library.
     """
 
-    type: Optional[PermissionTarget]
     allow: Permissions
     deny: Permissions
-
-    __slots__ = ('type', 'allow', 'deny')
+    type: Optional[PermissionTarget] = None
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
@@ -416,10 +413,6 @@ class PermissionOverwrite(Model):
 
     @classmethod
     def from_data(cls, data: PermissionOverwriteData) -> Self:
-        """Initialize a permission overwrite object from Discord data.
-
-        This is used because a PermissionOverwrite object is often initialized by users.
-        """
         return cls(
             id=int(data['id']),
             type=PermissionTarget(int(data['type'])),

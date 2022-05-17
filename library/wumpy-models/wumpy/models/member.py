@@ -4,15 +4,17 @@ from typing import Optional, Tuple
 
 from discord_typings import GuildMemberData, UserData
 from typing_extensions import Self
-from wumpy.models.flags import UserFlags
 
 from .base import Model, Snowflake
+from .flags import UserFlags
 from .permissions import Permissions
 from .user import User
+from .utils import backport_slots
 
 __all__ = ('Member', 'InteractionMember')
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Member(Model):
     user: User
@@ -120,6 +122,7 @@ class Member(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class InteractionMember(Member):
     permissions: Permissions

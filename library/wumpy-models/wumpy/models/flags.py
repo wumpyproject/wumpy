@@ -3,11 +3,14 @@ from typing import Callable, Optional, Type, Union, overload
 
 from typing_extensions import Self
 
+from .utils import backport_slots
+
 __all__ = (
     'ApplicationFlags', 'Intents', 'MessageFlags', 'UserFlags'
 )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class DiscordFlags:
     """The base for all bitfield wrappers.
@@ -20,8 +23,6 @@ class DiscordFlags:
     """
 
     value: int
-
-    __slots__ = ('value',)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, self.__class__):
@@ -82,7 +83,17 @@ class DiscordFlags:
 
         return self.__class__(self.value | value)
 
+    @classmethod
+    def none(cls) -> Self:
+        """Construct a flag instance with no set values.
 
+        Returns:
+            An instance of this flag with no set values.
+        """
+        return cls(0)
+
+
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class BitMask:
     """Representing one bit of a bitfield, using discriptors.
@@ -95,8 +106,6 @@ class BitMask:
     """
 
     mask: int
-
-    __slots__ = ('mask',)
 
     @overload
     def __get__(self, instance: None, cls: Type[DiscordFlags]) -> int:
@@ -136,10 +145,10 @@ def flag(func: Callable[[], int]) -> BitMask:
     return BitMask(func())
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class ApplicationFlags(DiscordFlags):
     """Bitfield flags for a Discord application."""
-
-    __slots__ = ()
 
     @flag
     def gateway_presence() -> int:
@@ -182,6 +191,8 @@ class ApplicationFlags(DiscordFlags):
         return 1 << 17
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class Intents(DiscordFlags):
     """Bitfield for Discord gateway intents.
 
@@ -210,8 +221,6 @@ class Intents(DiscordFlags):
         intents = Intents.all() ^ Intents.direct_messages
         ```
     """
-
-    __slots__ = ()
 
     @flag
     def guilds() -> int:
@@ -290,10 +299,10 @@ class Intents(DiscordFlags):
         return cls.all() ^ cls.guild_presences ^ cls.guild_members ^ cls.messages
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class MessageFlags(DiscordFlags):
     """Flags for a message object sent by Discord."""
-
-    __slots__ = ()
 
     @flag
     def crossposted() -> int:
@@ -341,10 +350,10 @@ class MessageFlags(DiscordFlags):
         return 1 << 8
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class UserFlags(DiscordFlags):
     """Bitfield flags for a Discord user object."""
-
-    __slots__ = ()
 
     @flag
     def employee() -> int:

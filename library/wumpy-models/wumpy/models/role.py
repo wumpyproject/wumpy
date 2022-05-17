@@ -6,13 +6,15 @@ from typing_extensions import Self
 
 from .base import Model, Snowflake
 from .permissions import Permissions
+from .utils import backport_slots
 
 __all__ = ('RoleTags', 'Role')
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class RoleTags:
-    """Tabs on a particular Discord role.
+    """Tags on a particular Discord role.
 
     This contains extra metadata about a role, such as what makes the role
     managed or whether it is the role members get when boosting.
@@ -22,8 +24,6 @@ class RoleTags:
     integration_id: Optional[Snowflake]
 
     premium_subscriber: bool
-
-    __slots__ = ('bot_id', 'integration_id', 'premium_subscriber')
 
     @classmethod
     def from_data(cls, data: RoleTagsData) -> Self:
@@ -42,7 +42,8 @@ class RoleTags:
         )
 
 
-@dataclasses.dataclass(frozen=True)
+@backport_slots()
+@dataclasses.dataclass(frozen=True, eq=False)
 class Role(Model):
     """Representation of a Discord role with permissions.¨
 
@@ -73,11 +74,6 @@ class Role(Model):
     managed: bool
     mentionable: bool
     tags: RoleTags
-
-    __slots__ = (
-        'name', 'color', 'hoist', 'position', 'permissions',
-        'managed', 'mentionable', 'tags'
-    )
 
     @property
     def premium_subscriber(self) -> bool:

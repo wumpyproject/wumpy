@@ -11,7 +11,7 @@ from typing_extensions import Literal, Self
 from .base import Model, Snowflake
 from .permissions import PermissionOverwrite, Permissions
 from .user import User
-from .utils import _get_as_snowflake
+from .utils import _get_as_snowflake, backport_slots
 
 __all__ = (
     'PartialChannel', 'InteractionChannel', 'DMChannel', 'VoiceChannel',
@@ -19,6 +19,7 @@ __all__ = (
 )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class PartialChannel(Model):
     """Channel with only a handful of fields.
@@ -44,11 +45,10 @@ class PartialChannel(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class ChannelMention(PartialChannel):
     guild_id: Snowflake
-
-    __slots__ = ('guild_id',)
 
     @classmethod
     def from_data(cls, data: ChannelMentionData) -> Self:
@@ -60,6 +60,7 @@ class ChannelMention(PartialChannel):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class InteractionChannel(PartialChannel):
     """Channel with only a handful of fields.
@@ -71,9 +72,7 @@ class InteractionChannel(PartialChannel):
         permissions: The permissions for the user who invoked the interaction.
     """
 
-    permissions: Permissions
-
-    __slots__ = ('permissions',)
+    permissions: Permissions = Permissions(0)
 
     @classmethod
     def from_data(cls, data: PartialChannelData) -> Self:
@@ -85,14 +84,15 @@ class InteractionChannel(PartialChannel):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class DMChannel(Model):
 
     type: Literal[1]
 
     recipients: Tuple[User, ...]
-    last_message_id: Optional[Snowflake]
-    last_pin_timestamp: Optional[datetime]
+    last_message_id: Optional[Snowflake] = None
+    last_pin_timestamp: Optional[datetime] = None
 
     @classmethod
     def from_data(cls, data: DMChannelData) -> Self:
@@ -110,13 +110,14 @@ class DMChannel(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class TextChannel(PartialChannel):
 
     type: Literal[0, 5]
 
-    guild_id: Optional[Snowflake]
     parent_id: Optional[Snowflake]
+    guild_id: Optional[Snowflake]
 
     position: int
     overwrites: Tuple[PermissionOverwrite, ...]
@@ -124,9 +125,9 @@ class TextChannel(PartialChannel):
     nsfw: bool
     slowmode_delay: int
 
-    last_message_id: Optional[Snowflake]
-    last_pin_timestamp: Optional[datetime]
-    default_auto_archive: Optional[timedelta]
+    last_message_id: Optional[Snowflake] = None
+    last_pin_timestamp: Optional[datetime] = None
+    default_auto_archive: Optional[timedelta] = None
 
     @classmethod
     def from_data(cls, data: TextChannelData) -> Self:
@@ -146,8 +147,8 @@ class TextChannel(PartialChannel):
             id=int(data['id']),
             name=data['name'],
             type=data['type'],
-            guild_id=_get_as_snowflake(data, 'guild_id'),
             parent_id=_get_as_snowflake(data, 'parent_id'),
+            guild_id=_get_as_snowflake(data, 'guild_id'),
 
             position=data['position'],
             overwrites=overwrites,
@@ -161,6 +162,7 @@ class TextChannel(PartialChannel):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class ThreadMember:
     id: Optional[Snowflake]
@@ -178,6 +180,7 @@ class ThreadMember:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Thread(PartialChannel):
 
@@ -193,13 +196,13 @@ class Thread(PartialChannel):
     archived: bool
     auto_archive_delay: int
     locked: bool
-    invitable: bool
-
-    thread_member: Optional[ThreadMember]
     slowmode_delay: int
 
-    last_message_id: Optional[Snowflake]
-    last_pin_timestamp: Optional[datetime]
+    invitable: bool = True
+    thread_member: Optional[ThreadMember] = None
+
+    last_message_id: Optional[Snowflake] = None
+    last_pin_timestamp: Optional[datetime] = None
 
     @classmethod
     def from_data(cls, data: ThreadChannelData) -> Self:
@@ -227,16 +230,17 @@ class Thread(PartialChannel):
             archived=metadata['archived'],
             auto_archive_delay=metadata['auto_archive_duration'],
             locked=metadata['locked'],
-            invitable=metadata.get('invitable', True),
-
-            thread_member=thread_member,
             slowmode_delay=data['rate_limit_per_user'],
+
+            invitable=metadata.get('invitable', True),
+            thread_member=thread_member,
 
             last_message_id=_get_as_snowflake(data, 'last_message_id'),
             last_pin_timestamp=last_pin_timestamp,
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class VoiceChannel(PartialChannel):
 
@@ -250,7 +254,7 @@ class VoiceChannel(PartialChannel):
     nsfw: bool
     bitrate: int
     user_limit: int
-    rtc_region: Optional[str]
+    rtc_region: Optional[str] = None
 
     @classmethod
     def from_data(cls, data: VoiceChannelData) -> Self:
@@ -271,10 +275,10 @@ class VoiceChannel(PartialChannel):
             bitrate=data['bitrate'],
             user_limit=data['user_limit'],
             rtc_region=data['rtc_region'],
-
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Category(PartialChannel):
 

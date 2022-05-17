@@ -4,12 +4,15 @@ from typing import SupportsInt, Union
 
 from typing_extensions import Self
 
+from .utils import backport_slots
+
 __all__ = ('DISCORD_EPOCH', 'Model', 'Snowflake')
 
 
 DISCORD_EPOCH = 1420070400000
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class Model:
     """The root for all Wumpy objects, a Discord object with an ID.
@@ -25,7 +28,6 @@ class Model:
 
     id: int
 
-    __slots__ = ('id',)
     __match_args__ = ('id',)
 
     def __repr__(self) -> str:
@@ -75,6 +77,7 @@ class Model:
         return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class Snowflake(Model):
     """Standalone Discord snowflake.
@@ -86,8 +89,6 @@ class Snowflake(Model):
     Attributes:
         id: The underlying integer value representing the Discord snowflake.
     """
-
-    __slots__ = ()
 
     def __init__(self, id: Union[SupportsInt, str]) -> None:
         super().__init__(int(id))

@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, Literal, Optional, Tuple
 
-from typing_extensions import Self
 from discord_typings import TypingStartData
 from discord_typings.gateway import ChannelPinsUpdateData
-from wumpy.models import Snowflake, User, Member
+from typing_extensions import Self
+from wumpy.models import Member, Snowflake, User
 
 from ..bot import get_bot
 from ..dispatch import Event
