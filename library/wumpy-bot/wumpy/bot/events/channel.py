@@ -1,20 +1,19 @@
-from dataclasses import dataclass
+import dataclasses
 from datetime import datetime, timezone
-from typing import Any, ClassVar, Dict, Literal, Optional, Tuple
+from typing import ClassVar, Optional
 
-from discord_typings import TypingStartData
-from discord_typings.gateway import ChannelPinsUpdateData
+from discord_typings import ChannelPinsUpdateData, TypingStartData
 from typing_extensions import Self
-from wumpy.models import Member, Snowflake, User
+from wumpy.models import Member, Snowflake
 
-from ..bot import get_bot
 from ..dispatch import Event
-from ..utils import _get_as_snowflake
+from ..utils import _get_as_snowflake, backport_slots
 
 __all__ = ('TypingEvent', 'ChannelPinsUpdateEvent')
 
 
-@dataclass(frozen=True)
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class TypingEvent(Event):
     """Dispatched when a user starts typing in a channel."""
 
@@ -23,59 +22,32 @@ class TypingEvent(Event):
     guild_id: Optional[Snowflake]
 
     timestamp: datetime
-
-    user: Optional[User]
     member: Optional[Member]
 
     NAME: ClassVar[str] = "TYPING_START"
-
-    __slots__ = ('user_id', 'channel_id', 'guild_id', 'timestamp', 'member')
 
     @classmethod
     async def from_payload(
             cls,
             payload: TypingStartData,
-            cached: Tuple[Optional[Any], Optional[Any]] = (None, None)
+            cached: None = None
     ) -> Self:
-        cache = get_bot().cache
-
-        user_id = Snowflake(payload['user_id'])
-        guild_id = _get_as_snowflake(payload, 'guild_id')
-
-        user = None
-        if not cache.remote:
-            user = await cache.get_user(payload['user_id'])
-
         member = None
-        if guild_id is not None and not cache.remote:
-            member = await cache.get_member(guild_id.id, user_id.id)
-
-        member_data = payload.get('member')
-        if member is None and member_data is not None:
-            if user is not None:
-                member = Member.from_user(user, member_data)
-            else:
-                member = Member.from_data(member_data)
-
-            # The user data may have been inside of the member object. If it
-            # wasn't - and user is currently None - we would've gotten an error
-            # and this code won't run.
-            if user is None:
-                user = member.user
+        if 'member' in payload:
+            member = Member.from_data(payload['member'])
 
         return cls(
-            user_id=user_id,
+            user_id=Snowflake(payload['user_id']),
             channel_id=Snowflake(payload['channel_id']),
-            guild_id=guild_id,
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
             timestamp=datetime.fromtimestamp(payload['timestamp'], tz=timezone.utc),
-
-            user=user,
             member=member,
         )
 
 
-@dataclass(frozen=True)
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class ChannelPinsUpdateEvent(Event):
     """Dispatched when a channel's pins are updated.
 
@@ -93,15 +65,12 @@ class ChannelPinsUpdateEvent(Event):
 
     NAME: ClassVar[str] = "CHANNEL_PINS_UPDATE"
 
-    __slots__ = ('channel_id', 'guild_id', 'last_pin_timestamp')
-
     @classmethod
     async def from_payload(
             cls,
             payload: ChannelPinsUpdateData,
-            cached: Tuple[Optional[Any], Optional[Any]] = (None, None)
+            cached: None = None
     ) -> Self:
-
         last_pin = payload.get('last_pin_timestamp')
         if last_pin is not None:
             last_pin = datetime.fromisoformat(last_pin)

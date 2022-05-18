@@ -20,63 +20,28 @@ class Cache(Protocol):
     This is not the default implementation for the cache, rather it is the
     typehint that should be used for the cache. All methods return None, so
     this can be used if you do not wish to implement a cache.
-
-    There are some attributes the cache should set, which allows code using it
-    to take the base course of action in relation to caching. Subclass this
-    protocol to get sensible defaults, as new attributes may be added at any
-    minor version bump.
-
-    The first - and most significant one - is `remote`. It defines whether the
-    cache stores its content remotely in another process's memory, on the hard
-    drive, or over the network. This means that different parts of the library
-    may opt to initialize objects it has data for rather than re-use the cached
-    ones, since that would involve copying memory if the cache is not stored in
-    the current process's memory (voiding any benefits from re-using the cached
-    models already loaded in memory).
-
-    Attributes:
-        remote:
-            Whether the cache is considered remote and stores its data
-            remotely. Accessing the cache will lead to copying of memory.
     """
 
-    remote: bool = False
-
-    async def update(self, payload: Dict[str, Any]) -> Tuple[Optional[Any], Optional[Any]]:
+    async def update(
+            self,
+            payload: Dict[str, Any],
+            *,
+            return_old: bool = True
+    ) -> Optional[Any]:
         """Update the cache with new information from an event.
 
-        This method should return a tuple with two items depicting the old
-        model that was stored in the cache and the new model that was created.
-
-        Because of the huge amounts of types of events that Discord sends it is
-        not worth it to document the specific return types per event, but here
-        are the rules to follow:
-
-        - Events that CREATE new data should return the model that was created.
-          Even if the data was not used to create a model, one should be
-          returned to then be dispatched to the user. Since there is no
-          previous data the first item will always be None.
-
-        - Events that UPDATE existing data should return the older data if
-          present in the cache. That way it can be used by the user. Both
-          items of the tuple may be used for the old model, and the new one.
-
-        - Events that DELETE objects should return the existing data if it can
-          be found in the cache. This should be in the first item because it is
-          older data, the second item should be None because there is no new
-          model that is created.
-
-        - All other events, such as RESUMED or TYPING_START which does not have
-          any data should return None for both items.
+        This method should return the old value in the cache if `return_old` is
+        `True`. If `return_old` is `False`, that means that no event will be
+        dispatched with the returnd value so it is unnecessary to construct.
 
         Parameters:
             payload:
                 The dictionary representation of the payload received by
                 Discord over the gateway.
+            return_old: Whether to return the old value in the cache.
 
         Returns:
-            A tuple with two items (models) depicting the old model that was
-            popped and the new model that was created `(old, new)`.
+            The old value replaced by the incoming event, or `None`.
         """
         ...
 

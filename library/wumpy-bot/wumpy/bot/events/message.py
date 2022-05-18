@@ -1,5 +1,5 @@
 import dataclasses
-from typing import ClassVar, FrozenSet, Optional, Sequence, Tuple
+from typing import ClassVar, FrozenSet, Optional, Sequence
 
 from discord_typings import (
     MessageCreateData, MessageDeleteBulkData, MessageDeleteData,
@@ -9,7 +9,6 @@ from discord_typings import (
 from typing_extensions import Self
 from wumpy.models import Emoji, Member, Message, Snowflake
 
-from ..bot import get_bot
 from ..dispatch import Event
 from ..utils import _get_as_snowflake, backport_slots
 
@@ -30,14 +29,9 @@ class MessageCreateEvent(Event):
     async def from_payload(
             cls,
             payload: MessageCreateData,
-            cached: Tuple[None, Optional[Message]] = (None, None)
+            cached: None = None
     ) -> Self:
-        if cached[1] is None:
-            message = Message.from_data(payload)
-        else:
-            message = cached[1]
-
-        return cls(message=message)
+        return cls(message=Message.from_data(payload))
 
 
 @backport_slots()
@@ -52,14 +46,9 @@ class MessageUpdateEvent(Event):
     async def from_payload(
             cls,
             payload: MessageUpdateData,
-            cached: Tuple[Optional[Message], Optional[Message]] = (None, None)
+            cached: Optional[Message] = None
     ) -> Self:
-        if cached[1] is None:
-            message = Message.from_data(payload)
-        else:
-            message = cached[1]
-
-        return cls(message=message, cached=cached[0])
+        return cls(message=Message.from_data(payload), cached=cached)
 
 
 @backport_slots()
@@ -77,14 +66,14 @@ class MessageDeleteEvent(Event):
     async def from_payload(
             cls,
             payload: MessageDeleteData,
-            cached: Tuple[Optional[Message], None] = (None, None)
+            cached: Optional[Message] = None
     ) -> Self:
         return cls(
             message_id=Snowflake(payload['id']),
             channel_id=Snowflake(payload['channel_id']),
             guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-            cached=cached[0]
+            cached=cached
         )
 
 
@@ -105,14 +94,14 @@ class BulkMessageDeleteEvent(Event):
     async def from_payload(
             cls,
             payload: MessageDeleteBulkData,
-            cached: Tuple[Optional[Sequence[Message]], None] = (None, None)
+            cached: Optional[Sequence[Message]] = None
     ) -> Self:
         return cls(
             message_ids=frozenset([Snowflake(id_) for id_ in payload['ids']]),
             channel_id=Snowflake(payload['channel_id']),
             guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-            cached=frozenset(cached[0]) if cached[0] is not None else None
+            cached=frozenset(cached) if cached is not None else None
         )
 
 
@@ -135,35 +124,17 @@ class ReactionAddEvent(Event):
     async def from_payload(
             cls,
             payload: MessageReactionAddData,
-            cached: Tuple[None, None] = (None, None)
+            cached: None = None
     ) -> Self:
-        cache = get_bot().cache
-
-        user_id = Snowflake(payload['user_id'])
-        guild_id = _get_as_snowflake(payload, 'guild_id')
-
         member = None
-        member_data = payload.get('member')
-        if member_data is not None:
-            user = None
-            if not cache.remote:
-                member = await cache.get_member(guild_id, user_id)
-                if member is None:
-                    user = await cache.get_user(user_id)
-
-            if member is None:
-                if user is not None:
-                    # We can re-use the User object already in-memory from the
-                    # cache we looked up
-                    member = Member.from_user(user, member_data)
-                else:
-                    member = Member.from_data(member_data)
+        if 'member' in payload:
+            member = Member.from_data(payload['member'])
 
         return cls(
             message_id=Snowflake(payload['message_id']),
-            user_id=user_id,
+            user_id=Snowflake(payload['user_id']),
             channel_id=Snowflake(payload['channel_id']),
-            guild_id=guild_id,
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
             emoji=Emoji.from_data(payload['emoji']),
             member=member,
@@ -188,7 +159,7 @@ class ReactionRemoveEvent(Event):
     async def from_payload(
             cls,
             payload: MessageReactionRemoveData,
-            cached: Tuple[None, None] = (None, None)
+            cached: None = None
     ) -> Self:
         return cls(
             message_id=Snowflake(payload['message_id']),
@@ -215,7 +186,7 @@ class ReactionClearEvent(Event):
     async def from_payload(
             cls,
             payload: MessageDeleteData,
-            cached: Tuple[None, None] = (None, None)
+            cached: None = None
     ) -> Self:
         return cls(
             message_id=Snowflake(payload['id']),
@@ -241,7 +212,7 @@ class ReactionEmojiClearEvent(Event):
     async def from_payload(
             cls,
             payload: MessageReactionRemoveEmojiData,
-            cached: Tuple[None, None] = (None, None)
+            cached: None = None
     ) -> Self:
         return cls(
             message_id=Snowflake(payload['message_id']),

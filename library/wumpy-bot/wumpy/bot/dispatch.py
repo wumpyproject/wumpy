@@ -2,8 +2,8 @@ import inspect
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import (
-    Any, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple, Type,
-    TypeVar, Union, overload
+    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, Optional, Tuple,
+    Type, TypeVar, Union, overload
 )
 
 import anyio.abc
@@ -37,8 +37,8 @@ class Event:
     @abstractmethod
     async def from_payload(
             cls,
-            payload: Dict[str, Any],
-            cached: Tuple[Optional[Any], Optional[Any]] = (None, None)
+            payload: Mapping[str, Any],
+            cached: Optional[Any] = None
     ) -> Optional[Self]:
         """Initialize the event from a payload and cached values.
 
