@@ -69,7 +69,7 @@ class Ratelimit:
     _reset_at: Optional[float]
 
     __slots__ = (
-        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at', 
+        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at',
         '_in_progress', '__weakref__'
     )
 
