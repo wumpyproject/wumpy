@@ -69,7 +69,8 @@ class Ratelimit:
     _reset_at: Optional[float]
 
     __slots__ = (
-        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at', '__weakref__'
+        '_lock', '_ratelimited', '_event', '_limit', '_remaining', '_reset_at', 
+        '_in_progress', '__weakref__'
     )
 
     def __init__(self, limit: int = 1, remaining: int = 1) -> None:
@@ -84,6 +85,8 @@ class Ratelimit:
         self._remaining = remaining
         self._reset_at = None
 
+        self._in_progress = 0
+
     async def __aenter__(self) -> Self:
         await self.acquire()
         return self
@@ -94,7 +97,7 @@ class Ratelimit:
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType]
     ) -> None:
-        pass
+        self.release()
 
     @property
     def remaining(self) -> int:
@@ -139,11 +142,13 @@ class Ratelimit:
 
         if self._remaining >= 1:
             self._remaining -= 1
+            self._in_progress += 1
             return
 
         if self._reset_at is not None and self._reset_at < time.perf_counter():
             self._remaining = self._limit - 1
             self._reset_at = None
+            self._in_progress += 1
             return
 
         raise anyio.WouldBlock
@@ -164,12 +169,20 @@ class Ratelimit:
 
                 if self._remaining >= 1:
                     self._remaining -= 1
+                    self._in_progress += 1
                     return
 
                 if self._reset_at is None:
                     _log.debug('Waiting for reset_at timestamp to be updated for lock')
 
                     await self._event.wait()
+
+                    # Another task may have updated the remaining tokens when
+                    # it got ratelimit information (or released the lock).
+                    if self._remaining >= 1:
+                        self._remaining -= 1
+                        self._in_progress += 1
+                        return
 
                 if self._reset_at is None:
                     raise RuntimeError(
@@ -179,15 +192,37 @@ class Ratelimit:
                 if self._reset_at < time.perf_counter():
                     self._remaining = self._limit - 1
                     self._reset_at = None
+                    self._in_progress += 1
                     return
 
                 else:
                     await anyio.sleep(self._reset_at - time.perf_counter())
                     self._remaining = self._limit - 1
                     self._reset_at = None
-
+                    self._in_progress += 1
         else:
             await anyio.lowlevel.cancel_shielded_checkpoint()
+
+    def release(self) -> None:
+        self._in_progress -= 1
+
+        # If all requests fail (especially if this is the first request on this
+        # newly created lock) then we may cause a dead-lock because there are
+        # no remaining tokens and we don't know when the next reset will be.
+        if self._in_progress > 0 or self._remaining > 0:
+            return
+
+        # Since there are no more requests which can give us ratelimit
+        # information, we should artificially add another token to ensure that
+        # at least one request can go through and give us ratelimit information
+        # again so that we can lock efficiently.
+        if self._reset_at is not None:
+            self._remaining = 1
+
+            # In-case there are requests waiting for a reset_at, we should wake
+            # them up because they are occupying the lock.
+            self._event.set()
+            self._event = anyio.Event()
 
     def lock(self) -> None:
         self._ratelimited = anyio.Event()
@@ -277,6 +312,8 @@ class _RouteRatelimit:
                     self._parent.unlock()
 
             _log.debug(f'Finished sleeping from ratelimit for {self._route}')
+        finally:
+            self._lock.release()
 
     async def update(self, headers: Mapping[str, str]) -> None:
         """Update the ratelimiter with the rate limit headers from Discord."""
