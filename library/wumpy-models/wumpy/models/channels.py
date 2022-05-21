@@ -15,7 +15,7 @@ from .utils import _get_as_snowflake
 
 __all__ = (
     'PartialChannel', 'InteractionChannel', 'DMChannel', 'VoiceChannel',
-    'TextChannel', 'Category', 'Thread'
+    'TextChannel', 'Category', 'ThreadMember', 'Thread'
 )
 
 
