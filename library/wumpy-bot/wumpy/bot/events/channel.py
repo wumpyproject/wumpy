@@ -1,10 +1,13 @@
 import dataclasses
 from datetime import datetime, timezone
-from typing import ClassVar, Optional
+from typing import ClassVar, FrozenSet, Optional
 
-from discord_typings import ChannelPinsUpdateData, TypingStartData
-from typing_extensions import Self
-from wumpy.models import Member, Snowflake
+from discord_typings import (
+    ChannelPinsUpdateData, ThreadCreateData, ThreadDeleteData,
+    ThreadListSyncData, ThreadUpdateData, TypingStartData
+)
+from typing_extensions import Literal, Self
+from wumpy.models import Member, Snowflake, Thread, ThreadMember
 
 from ..dispatch import Event
 from ..utils import _get_as_snowflake, backport_slots
@@ -43,6 +46,104 @@ class TypingEvent(Event):
 
             timestamp=datetime.fromtimestamp(payload['timestamp'], tz=timezone.utc),
             member=member,
+        )
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ThreadCreateEvent(Event):
+    thread: Thread
+
+    newly_created: bool
+
+    NAME: ClassVar[str] = "THREAD_CREATE"
+
+    @classmethod
+    async def from_payload(
+            cls,
+            payload: ThreadCreateData,
+            cached: None = None
+    ) -> Self:
+        return cls(
+            thread=Thread.from_data(payload),
+            newly_created=payload.get('newly_created', False)
+        )
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ThreadUpdateEvent(Event):
+    thread: Thread
+    cached: Optional[Thread]
+
+    NAME: ClassVar[str] = "THREAD_UPDATE"
+
+    @classmethod
+    async def from_payload(
+            cls,
+            payload: ThreadUpdateData,
+            cached: Optional[Thread] = None
+    ) -> Self:
+        return cls(
+            thread=Thread.from_data(payload),
+            cached=cached
+        )
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ThreadDeleteEvent(Event):
+    thread_id: Snowflake
+    parent_id: Snowflake
+    guild_id: Snowflake
+    type: Literal[10, 11, 12]
+
+    cached: Optional[Thread]
+
+    NAME: ClassVar[str] = "THREAD_DELETE"
+
+    @classmethod
+    async def from_payload(
+            cls,
+            payload: ThreadDeleteData,
+            cached: Optional[Thread] = None
+    ) -> Self:
+        return cls(
+            thread_id=Snowflake(payload['id']),
+            parent_id=Snowflake(payload['parent_id']),
+            guild_id=Snowflake(payload['guild_id']),
+            type=payload['type'],
+            cached=cached
+        )
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ThreadListSyncEvent(Event):
+    guild_id: Snowflake
+    channel_ids: FrozenSet[Snowflake]
+
+    threads: FrozenSet[Thread]
+    thread_members: FrozenSet[ThreadMember]
+
+    NAME: ClassVar[str] = "THREAD_LIST_SYNC"
+
+    @classmethod
+    async def from_payload(
+            cls,
+            payload: ThreadListSyncData,
+            cached: None = None
+    ) -> Self:
+        return cls(
+            guild_id=Snowflake(payload['guild_id']),
+            channel_ids=frozenset([
+                Snowflake(channel_id) for channel_id in payload.get('channel_ids', ())
+            ]),
+            threads=frozenset([Thread.from_data(thread) for thread in payload['threads']]),
+            thread_members=frozenset([
+                ThreadMember.from_data(thread_member)
+                for thread_member in payload['members']
+            ]),
         )
 
 
