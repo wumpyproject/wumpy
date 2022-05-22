@@ -1,14 +1,13 @@
-from typing import (
-    Any, AsyncContextManager, Dict, Optional, SupportsInt, Tuple, Union
-)
+from types import TracebackType
+from typing import Any, Dict, Optional, SupportsInt, Tuple, Type, Union
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, Self
 from wumpy.models import (
     Category, Emoji, Guild, Member, Message, Role, Sticker, TextChannel,
     Thread, User, VoiceChannel
 )
 
-__all__ = ['Cache', 'CacheProtocol']
+__all__ = ['Cache']
 
 
 Channel = Union[VoiceChannel, TextChannel]
@@ -21,6 +20,17 @@ class Cache(Protocol):
     typehint that should be used for the cache. All methods return None, so
     this can be used if you do not wish to implement a cache.
     """
+
+    async def __aenter__(self) -> Self:
+        ...
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
+        ...
 
     async def update(
             self,
@@ -163,6 +173,3 @@ class Cache(Protocol):
             The User model representation, if found in the cache.
         """
         ...
-
-
-CacheProtocol = AsyncContextManager[Cache]
