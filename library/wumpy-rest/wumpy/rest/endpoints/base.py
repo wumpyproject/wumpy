@@ -56,13 +56,14 @@ class Requester:
         *,
         headers: Dict[str, str] = {},
         proxy: Optional[str] = None,
+        timeout: Union[httpx.Timeout, float] = 5.0,
     ) -> None:
         self._session = httpx.AsyncClient(
             headers={
                 'User-Agent': self.build_user_agent(),
                 **headers
             },
-            proxies=proxy, http2=True, follow_redirects=True
+            proxies=proxy, follow_redirects=True, timeout=timeout
         )
 
         self._user_ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
