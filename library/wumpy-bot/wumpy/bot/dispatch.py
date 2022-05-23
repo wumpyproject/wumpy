@@ -7,11 +7,15 @@ from typing import (
 )
 
 import anyio.abc
-from typing_extensions import Self
+from typing_extensions import Self, TypeAlias
 
 from .utils import _eval_annotations
 
 __all__ = ['Event', 'EventDispatcher']
+
+
+T = TypeVar('T')
+CoroFunc: TypeAlias = 'Callable[..., Coroutine[Any, Any, T]]'
 
 
 @dataclass(frozen=True)
@@ -42,18 +46,18 @@ class Event:
     ) -> Optional[Self]:
         """Initialize the event from a payload and cached values.
 
+        Subclasses **must** override this method.
+
         This classmethod is meant as an initializer, and should return the
-        instance that will be passed to the callback.
+        instance that will be passed to the callback, or `None` to have the
+        handler of this event be ignored.
 
         Parameters:
-            payload:
-                Deserialized JSON event directly from the gateway (including
-                the `op`, `t`, `d` and `s` keys).
+            payload: Deserialized JSON event from the gateway (`d` field).
             cached:
-                Return value of the current cache. This will be a tuple with
-                the first value - unless `None` - represents the "previous"
-                value that was found in the cache. The second item in the tuple
-                is the newly created and now cached value.
+                Return value of the current cache. This will be the "old" value
+                which was replaced by this event, or `None` if the cache did
+                not keep any value.
         """
         raise NotImplementedError()
 
@@ -97,7 +101,7 @@ def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
             "The first parameter of 'callback' has to be annotated with an 'Event' subclass"
         )
 
-    if annotation == Event:
+    if annotation is Event:
         # It should be a subclass of Event
         raise TypeError(
             "The first parameter of 'callback' cannot be annotated with 'Event' directly"
@@ -105,16 +109,16 @@ def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
     return annotation
 
 
-C = TypeVar('C', bound='Callable[..., Coroutine[Any, Any, object]]')
+C = TypeVar('C', bound='CoroFunc[object]')
 
 
 class EventDispatcher:
     """Mixin to be able to dispatch events."""
 
     _listeners: Dict[
-        str, List[Tuple[
-            Type[Event], 'Callable[..., Coroutine[Any, Any, object]]'
-        ]]
+        str, Dict[
+            Type[Event], List['CoroFunc[object]']
+        ]
     ]
 
     __slots__ = ('_listeners',)
@@ -124,9 +128,12 @@ class EventDispatcher:
 
         self._listeners = {}
 
+    def get_dispatch_handlers(self, event: str) -> Dict[Type[Event], List['CoroFunc[object]']]:
+        return self._listeners.get(event, {})
+
     async def dispatch(
             self,
-            event: str,
+            handlers: Dict[Type[Event], List['CoroFunc[object]']],
             payload: Dict[str, Any],
             cached: Tuple[Optional[Any], Optional[Any]],
             *,
@@ -142,14 +149,20 @@ class EventDispatcher:
             *args: Arguments to pass onto the Event initializer
             tg: Task group to start the callbacks with
         """
-        for initializer, callback in self._listeners.get(event, []):
-            instance = await initializer.from_payload(payload, cached)
-            if instance is not None:
-                tg.start_soon(callback, instance)
+        if not handlers:
+            raise ValueError('Cannot dispatch an empty dictionary of handlers')
+
+        for event, callbacks in handlers.items():
+            instance = await event.from_payload(payload, cached)
+            if instance is None:
+                continue
+
+            for func in callbacks:
+                tg.start_soon(func, instance)
 
     def add_listener(
             self,
-            callback: 'Callable[..., Coroutine[Any, Any, object]]',
+            callback: 'CoroFunc[object]',
             *,
             event: Optional[Type[Event]] = None
     ) -> None:
@@ -166,13 +179,17 @@ class EventDispatcher:
             event = _extract_event(callback)
 
         if event.NAME in self._listeners:
-            self._listeners[event.NAME].append((event, callback))
+            types = self._listeners[event.NAME]
+            if event in types:
+                types[event].append(callback)
+            else:
+                types[event] = [callback]
         else:
-            self._listeners[event.NAME] = [(event, callback)]
+            self._listeners[event.NAME] = {event: [callback]}
 
     def remove_listener(
         self,
-        callback: 'Callable[..., Coroutine[Any, Any, object]]',
+        callback: 'CoroFunc[object]',
         *,
         event: Union[str, Type[Event], None] = None
     ) -> None:
@@ -197,21 +214,28 @@ class EventDispatcher:
                 f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'"
             )
 
-        container = self._listeners.get(name, [])
-        for i, (_, listener) in enumerate(container):
-            if listener != callback:
-                continue
+        try:
+            container = self._listeners[name]
+        except KeyError:
+            raise ValueError(f"{callback} isn't a registered callback under {event}") from None
 
-            container.pop(i)
+        if isinstance(event, type):
+            container[event].remove(callback)
+        else:
+            for event, callbacks in container.items():
+                if callback in callbacks:
+                    callbacks.remove(callback)
+                    break
+            else:
+                raise ValueError(f"{callback} isn't a registered callback under {event}")
 
-            if not container:
-                # The container is now empty so we can remove it from the
-                # dictionary
-                del self._listeners[name]
+        # If, as a result of removing this callback, the container and list of
+        # callbacks are empty, we can now remove them completely and clean up.
+        if not container[event]:
+            del container[event]
 
-            return
-
-        raise ValueError(f"{callback} isn't a registered callback under {event}")
+        if not container:
+            del self._listeners[name]
 
     @overload
     def listener(self) -> Callable[[C], C]:
