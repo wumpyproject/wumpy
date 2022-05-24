@@ -1,13 +1,19 @@
+import dataclasses
 import inspect
+import sys
+import traceback
 from abc import abstractmethod
-from dataclasses import dataclass
+from functools import partial
 from typing import (
     Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, Optional, Tuple,
     Type, TypeVar, Union, overload
 )
 
+import anyio
 import anyio.abc
+import anyio.lowlevel
 from typing_extensions import Self, TypeAlias
+from wumpy.models.utils import backport_slots
 
 from .utils import _eval_annotations
 
@@ -18,7 +24,7 @@ T = TypeVar('T')
 CoroFunc: TypeAlias = 'Callable[..., Coroutine[Any, Any, T]]'
 
 
-@dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True)
 class Event:
     """Parent class for events, meant to be read from annotations.
 
@@ -60,6 +66,23 @@ class Event:
                 not keep any value.
         """
         raise NotImplementedError()
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ErrorEvent(Event):
+    """Event dispatched when an error occured.
+
+    This event only catches subclasses of `Exception`. Other exceptions, such
+    as `KeyboardInterrupt` will not be dispatched with this event.
+
+    If callbacks of this event raises an error, it is printed and ignored.
+
+    Attributes:
+        exception: The exception that was raised.
+    """
+
+    exception: Exception
 
 
 def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
@@ -109,11 +132,44 @@ def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
     return annotation
 
 
+def _ignore_dispatch_error(
+        exc: Exception,
+        *,
+        event: Union[str, Type[Event], Event, None] = None,
+) -> None:
+    # We can't trust that the user has defined a NAME class variable like they
+    # should have. Maybe that's why we're printing this error...
+    if (isinstance(event, type) or isinstance(event, Event)) and hasattr(event, 'NAME'):
+        name = event.NAME
+    else:
+        name = event
+
+    print(f'Ignoring exception handling event {name!r}:', file=sys.stderr)
+    traceback.print_exception(type(exc), exc, exc.__traceback__)
+
+
+async def _wrap_error_callback(callback: 'CoroFunc[object]', event: Event) -> None:
+    try:
+        await callback(event)
+    except Exception as exc:
+        _ignore_dispatch_error(exc, event=event)
+
+
 C = TypeVar('C', bound='CoroFunc[object]')
 
 
 class EventDispatcher:
-    """Mixin to be able to dispatch events."""
+    """Small mixin class adding the ability to dispatch events.
+
+    This class can be inherited from to get the `get_dispatch_handlers()` and
+    `dispatch()` methods for dispatching event objects.
+
+    Dispatching works by first calling `get_dispatch_handlers()` with the name
+    of the event you wish to dispatch. This allows you to know whether later
+    calling `dispatch()` will call any handlers - although it isn't completely
+    correct as the event objects may return in their constructors. Afterwards
+    you should call `dispatch()` to launch the handlers as tasks.
+    """
 
     _listeners: Dict[
         str, Dict[
@@ -128,8 +184,75 @@ class EventDispatcher:
 
         self._listeners = {}
 
-    def get_dispatch_handlers(self, event: str) -> Dict[Type[Event], List['CoroFunc[object]']]:
+    def get_dispatch_handlers(
+            self,
+            event: str
+    ) -> Dict[Type[Event], List['CoroFunc[object]']]:
+        """Get the dispatch handlers for the event passed.
+
+        The point of this separation from `dispatch()` is being able to know
+        whether calling `dispatch()` will actually dispatch any handlers. That
+        said, there is a possibility that all event objects will `None` meaning
+        that no handler will be dispatched anyways.
+
+        Parameters:
+            event: The name of the event to dispatch.
+
+        Returns:
+            A dictionary with the key being the event constructor, and the
+            value a list of callbacks that should be called with that event.
+        """
         return self._listeners.get(event, {})
+
+    def dispatch_error(
+            self,
+            exc: Exception,
+            *,
+            tg: anyio.abc.TaskGroup,
+            event: Union[str, Type[Event], Event, None] = None,
+    ) -> None:
+        """Dispatch an error that happened.
+
+        This is safe to call for errors that happened while dispatching other
+        events (it is not recursive).
+
+        Parameters:
+            exc: Exception instance that was raised.
+            tg: Task group to dispatch callbacks with.
+            event: The event instance that failed to dispatch.
+        """
+        if isinstance(exc, Exception) and isinstance(exc, BaseException):
+            # If it is a BaseException subclass (but not a subclass of
+            # Exception like normal exceptions) then we want to raise an error.
+            # The issue is that if we raise another type of error like a
+            # TypeError then that may be swallowed somewhere (unlike these
+            # subclasses of BaseException).
+            raise exc  # Re-raise if it is a BaseException subclass
+        elif not isinstance(exc, Exception):
+            raise TypeError(f'Expected subclass of Exception but got {type(exc).__name__!r}')
+
+        handlers = self.get_dispatch_handlers('__ERROR')
+        if not handlers:
+            return _ignore_dispatch_error(exc, event=event)
+
+        instance = ErrorEvent(exc)
+        # There should only be one class (ErrorEvent)
+        callbacks = next(iter(handlers.values()))
+
+        for func in callbacks:
+            tg.start_soon(_wrap_error_callback, func, instance)
+
+    async def _wrap_dispatch_callback(
+            self,
+            callback: 'CoroFunc[object]',
+            event: Event,
+            *,
+            tg: anyio.abc.TaskGroup
+    ) -> None:
+        try:
+            await callback(event)
+        except Exception as exc:
+            self.dispatch_error(exc, event=event, tg=tg)
 
     async def dispatch(
             self,
@@ -142,23 +265,30 @@ class EventDispatcher:
         """Dispatch appropriate listeners.
 
         The callbacks will be started with the task group and passed the
-        arguments given.
+        arguments given. Error handling is handled meaning that the task group
+        should not get cancelled by an error in a callback.
 
         Parameters:
-            event: The event to dispatch
-            *args: Arguments to pass onto the Event initializer
-            tg: Task group to start the callbacks with
+            handlers: The return value of `get_dispatch_handlers()`.
+            payload: Data returned by the gateway to dispatch.
+            cached: Return value of the cache representing the "old" value.
+            tg: Task group to use when launching the callbacks.
         """
         if not handlers:
-            raise ValueError('Cannot dispatch an empty dictionary of handlers')
+            return
 
         for event, callbacks in handlers.items():
-            instance = await event.from_payload(payload, cached)
+            try:
+                instance = await event.from_payload(payload, cached)
+            except Exception as exc:
+                self.dispatch_error(exc, event=event, tg=tg)
+                continue
+
             if instance is None:
                 continue
 
             for func in callbacks:
-                tg.start_soon(func, instance)
+                tg.start_soon(partial(self._wrap_dispatch_callback, func, instance, tg=tg))
 
     def add_listener(
             self,
