@@ -84,6 +84,9 @@ class ErrorEvent(Event):
 
     exception: Exception
 
+    # Note that this is a special event which does not implement the
+    # usual from_payload() method because it does not get dispatched from
+    # gateway events like other events.
     NAME: ClassVar[str] = '__ERROR'
 
 
@@ -141,7 +144,7 @@ def _ignore_dispatch_error(
 ) -> None:
     # We can't trust that the user has defined a NAME class variable like they
     # should have. Maybe that's why we're printing this error...
-    if (isinstance(event, type) or isinstance(event, Event)) and hasattr(event, 'NAME'):
+    if isinstance(event, (type, Event)) and hasattr(event, 'NAME'):
         name = event.NAME
     else:
         name = event
@@ -206,11 +209,10 @@ class EventDispatcher:
         """
         return self._listeners.get(event, {})
 
-    def dispatch_error(
+    async def dispatch_error(
             self,
             exc: Exception,
             *,
-            tg: anyio.abc.TaskGroup,
             event: Union[str, Type[Event], Event, None] = None,
     ) -> None:
         """Dispatch an error that happened.
@@ -235,34 +237,60 @@ class EventDispatcher:
 
         handlers = self.get_dispatch_handlers(ErrorEvent.NAME)
         if not handlers:
-            return _ignore_dispatch_error(exc, event=event)
+            _ignore_dispatch_error(exc, event=event)
+            await anyio.lowlevel.checkpoint()
+            return
 
         instance = ErrorEvent(exc)
         # There should only be one class (ErrorEvent)
         callbacks = next(iter(handlers.values()))
+        if not callbacks:
+            # We should've cleaned this case up in remove_listener() which
+            # would've made handlers completely empty, but if this can happen
+            # we should make sure no error silently gets discarded.
+            _ignore_dispatch_error(exc, event=event)
+            await anyio.lowlevel.checkpoint()
+            return
 
-        for func in callbacks:
-            tg.start_soon(_wrap_error_callback, func, instance)
+        async with anyio.create_task_group() as tg:
+            for func in callbacks:
+                tg.start_soon(_wrap_error_callback, func, instance)
 
     async def _wrap_dispatch_callback(
             self,
             callback: 'CoroFunc[object]',
             event: Event,
-            *,
-            tg: anyio.abc.TaskGroup
     ) -> None:
         try:
             await callback(event)
         except Exception as exc:
-            self.dispatch_error(exc, event=event, tg=tg)
+            await self.dispatch_error(exc, event=event)
+
+    async def _dispatch_event_instance(
+            self,
+            event: Type[Event],
+            payload: Dict[str, Any],
+            cached: Optional[Any],
+            callbacks: List['CoroFunc[object]'],
+    ) -> None:
+        try:
+            instance = await event.from_payload(payload, cached)
+        except Exception as exc:
+            await self.dispatch_error(exc)
+            return
+
+        if instance is None:
+            return
+
+        async with anyio.create_task_group() as tg:
+            for func in callbacks:
+                tg.start_soon(partial(self._wrap_dispatch_callback, func, instance))
 
     async def dispatch(
             self,
             handlers: Dict[Type[Event], List['CoroFunc[object]']],
             payload: Dict[str, Any],
             cached: Tuple[Optional[Any], Optional[Any]],
-            *,
-            tg: anyio.abc.TaskGroup
     ) -> None:
         """Dispatch appropriate listeners.
 
@@ -279,18 +307,12 @@ class EventDispatcher:
         if not handlers:
             return
 
-        for event, callbacks in handlers.items():
-            try:
-                instance = await event.from_payload(payload, cached)
-            except Exception as exc:
-                self.dispatch_error(exc, event=event, tg=tg)
-                continue
-
-            if instance is None:
-                continue
-
-            for func in callbacks:
-                tg.start_soon(partial(self._wrap_dispatch_callback, func, instance, tg=tg))
+        async with anyio.create_task_group() as tg:
+            for event, callbacks in handlers.items():
+                tg.start_soon(partial(
+                    self._dispatch_event_instance,
+                    event, payload, cached, callbacks,
+                ))
 
     def add_listener(
             self,
