@@ -84,6 +84,8 @@ class ErrorEvent(Event):
 
     exception: Exception
 
+    NAME: ClassVar[str] = '__ERROR'
+
 
 def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
     """Extract the event from the callback.
@@ -231,7 +233,7 @@ class EventDispatcher:
         elif not isinstance(exc, Exception):
             raise TypeError(f'Expected subclass of Exception but got {type(exc).__name__!r}')
 
-        handlers = self.get_dispatch_handlers('__ERROR')
+        handlers = self.get_dispatch_handlers(ErrorEvent.NAME)
         if not handlers:
             return _ignore_dispatch_error(exc, event=event)
 
