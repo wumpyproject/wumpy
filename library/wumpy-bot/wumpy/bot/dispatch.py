@@ -80,9 +80,21 @@ class ErrorEvent(Event):
 
     Attributes:
         exception: The exception that was raised.
+        event:
+            The event that was dispatched unless the exception that triggered
+            this event came from the library without a dispatched event.
+        callback:
+            The callback which raised an error trying to handle the event,
+            unless the exception came from the library without a callback.
     """
 
     exception: Exception
+
+    event: Optional[Event] = None
+
+    # Return type is Any because the user might want to use the return type and
+    # having it be object would not allow any meaningful operations.
+    callback: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None
 
     # Note that this is a special event which does not implement the
     # usual from_payload() method because it does not get dispatched from
@@ -213,7 +225,8 @@ class EventDispatcher:
             self,
             exc: Exception,
             *,
-            event: Union[str, Type[Event], Event, None] = None,
+            event: Optional[Event] = None,
+            callback: Optional[CoroFunc[Any]] = None,
     ) -> None:
         """Dispatch an error that happened.
 
@@ -241,7 +254,7 @@ class EventDispatcher:
             await anyio.lowlevel.checkpoint()
             return
 
-        instance = ErrorEvent(exc)
+        instance = ErrorEvent(exc, event=event, callback=callback)
         # There should only be one class (ErrorEvent)
         callbacks = next(iter(handlers.values()))
         if not callbacks:
@@ -264,7 +277,7 @@ class EventDispatcher:
         try:
             await callback(event)
         except Exception as exc:
-            await self.dispatch_error(exc, event=event)
+            await self.dispatch_error(exc, event=event, callback=callback)
 
     async def _dispatch_event_instance(
             self,
