@@ -291,6 +291,7 @@ class EventDispatcher:
             return
 
         if instance is None:
+            await anyio.lowlevel.checkpoint()
             return
 
         async with anyio.create_task_group() as tg:
@@ -316,6 +317,7 @@ class EventDispatcher:
             tg: Task group to use when launching the callbacks.
         """
         if not handlers:
+            await anyio.lowlevel.checkpoint()
             return
 
         async with anyio.create_task_group() as tg:
