@@ -22,6 +22,7 @@ __all__ = ['Event', 'EventDispatcher']
 
 T = TypeVar('T')
 CoroFunc: TypeAlias = 'Callable[..., Coroutine[Any, Any, T]]'
+C = TypeVar('C', bound='CoroFunc[object]')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -170,9 +171,6 @@ async def _wrap_error_callback(callback: 'CoroFunc[object]', event: Event) -> No
         await callback(event)
     except Exception as exc:
         _ignore_dispatch_error(exc, event=event)
-
-
-C = TypeVar('C', bound='CoroFunc[object]')
 
 
 class EventDispatcher:
