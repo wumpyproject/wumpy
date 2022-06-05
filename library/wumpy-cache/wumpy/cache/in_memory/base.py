@@ -38,7 +38,7 @@ class BaseMemoryCache(Cache):
     ) -> None:
         pass
 
-    async def update(self, payload: Mapping[str, Any]) -> Any:
+    async def update(self, payload: Mapping[str, Any], *, return_old: bool = True) -> Any:
         """Propogate the `update()` to a processor.
 
         Processors needs to follow: `_process_discord_event` naming; starting
