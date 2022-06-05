@@ -251,14 +251,15 @@ class EventDispatcher:
             tg: Task group to dispatch callbacks with.
             event: The event instance that failed to dispatch.
         """
-        if isinstance(exc, Exception) and isinstance(exc, BaseException):
-            # If it is a BaseException subclass (but not a subclass of
-            # Exception like normal exceptions) then we want to raise an error.
-            # The issue is that if we raise another type of error like a
-            # TypeError then that may be swallowed somewhere (unlike these
-            # subclasses of BaseException).
-            raise exc  # Re-raise if it is a BaseException subclass
-        elif not isinstance(exc, Exception):
+        if not isinstance(exc, Exception):
+            if isinstance(exc, BaseException):
+                # If it is a BaseException subclass (but not a subclass of
+                # Exception like normal exceptions) then we want to raise an
+                # error. The issue is that if we raise another type of error
+                # like a TypeError then that may be swallowed somewhere (unlike
+                # these subclasses of BaseException).
+                raise exc  # Re-raise if it is a BaseException subclass
+
             raise TypeError(f'Expected subclass of Exception but got {type(exc).__name__!r}')
 
         handlers = self.get_dispatch_handlers(ErrorEvent.NAME)
