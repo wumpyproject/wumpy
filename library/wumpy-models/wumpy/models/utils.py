@@ -2,7 +2,10 @@ import contextlib
 import dataclasses
 import itertools
 import warnings
-from typing import Any, Callable, Mapping, Optional, TypeVar, Union, overload
+from typing import (
+    Any, Callable, Iterable, Iterator, Mapping, Optional, TypeVar, Union,
+    overload
+)
 
 from wumpy.rest.utils import MISSING as MISSING
 
@@ -55,6 +58,17 @@ def backport_slots(
     return decorator
 
 
+def _backported_get_slots(cls: type) -> Iterable[str]:
+    _slots: Union[Iterable[str], Iterator[str], None] = cls.__dict__.get('__slots__')
+    # if _slots_ is None, it turns into an empty tuple
+    cls_slots = (_slots,) if isinstance(_slots, str) else (_slots or ())
+    if hasattr(cls_slots, '__next__'):
+        # Slots may be an iterable, but we cannot handle an iterator because it
+        # will already be (partially) consumed.
+        raise TypeError(f'Slots of {cls.__name__!r} cannot be determined')
+    return cls_slots
+
+
 def _backported_slots(cls, *, weakref_slot):
     """Backport of the internal `_add_slots()` function in dataclasses.
 
@@ -82,22 +96,15 @@ def _backported_slots(cls, *, weakref_slot):
     field_names = tuple(f.name for f in dataclasses.fields(cls))
 
     # Make sure slots don't overlap with those in base classes.
-    _slots = cls_dict.get('__slots__')
-    cls_slots = (_slots,) if isinstance(_slots, str) else _slots
-    if hasattr(cls_slots, '__next__'):
-        # Slots may be an iterable, but we cannot handle an iterator because it
-        # will already be (partially) consumed.
-        raise TypeError(f"Slots of {cls.__name__!r} cannot be determined")
-
     inherited_slots = set(
-        itertools.chain.from_iterable(map(cls_slots, cls.__mro__[1:-1]))
+        itertools.chain.from_iterable(map(_backported_get_slots, cls.__mro__[1:-1]))
     )
     # The slots for our class.  Remove slots from our base classes.  Add
     # '__weakref__' if weakref_slot was given.
-    cls_dict["__slots__"] = tuple(
+    cls_dict['__slots__'] = tuple(
         itertools.chain(
             itertools.filterfalse(inherited_slots.__contains__, field_names),
-            ("__weakref__",) if weakref_slot else ())
+            ('__weakref__',) if weakref_slot and '__weakref__' not in inherited_slots else ())
     )
 
     for field_name in field_names:
