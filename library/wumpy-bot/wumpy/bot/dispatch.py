@@ -239,7 +239,7 @@ class EventDispatcher:
             exc: Exception,
             *,
             event: Optional[Event] = None,
-            callback: Optional[CoroFunc[Any]] = None,
+            callback: Optional['CoroFunc[Any]'] = None,
     ) -> None:
         """Dispatch an error that happened.
 
