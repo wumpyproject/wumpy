@@ -136,15 +136,21 @@ class Bot(EventDispatcher):
 
         async with anyio.create_task_group() as tasks:
             async for data in self.gateway:
-                handlers = self.get_dispatch_handlers(data['t'])
+                try:
+                    handlers = self.get_dispatch_handlers(data['t'])
+                except Exception as exc:
+                    tasks.start_soon(self.dispatch_error, exc)
+                    continue
 
                 try:
+                    # Called *with* the 't' key in it for the cache to know the
+                    # event that was sent from the gateway.
                     cached = await self.cache.update(data, return_old=bool(handlers))
                 except Exception as exc:
                     tasks.start_soon(self.dispatch_error, exc)
                     continue
 
-                tasks.start_soon(self.dispatch, handlers, data, cached)
+                tasks.start_soon(self.dispatch, handlers, data['d'], cached)
 
     async def run(self) -> NoReturn:
         """Run the main bot.
