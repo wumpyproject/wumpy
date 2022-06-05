@@ -106,7 +106,7 @@ class BulkMessageDeleteEvent(Event):
 
 
 @backport_slots()
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class ReactionAddEvent(Event):
     """Dispatched when a user adds a reaction to a message."""
 
