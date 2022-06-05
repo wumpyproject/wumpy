@@ -5,7 +5,7 @@ import traceback
 from abc import abstractmethod
 from functools import partial
 from typing import (
-    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, Optional, Tuple,
+    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, NoReturn, Optional, Tuple,
     Type, TypeVar, Union, overload
 )
 
@@ -79,6 +79,10 @@ class ErrorEvent(Event):
 
     If callbacks of this event raises an error, it is printed and ignored.
 
+    Unlike other events, this one is special in its construction and does not
+    corrolate to any given gateway event. Therefore this is instantiated using
+    `__init__()` and subclasses are required to match the same signature.
+
     Attributes:
         exception: The exception that was raised.
         event:
@@ -89,18 +93,29 @@ class ErrorEvent(Event):
             unless the exception came from the library without a callback.
     """
 
+    # Note that this is a special event which does not implement the
+    # usual from_payload() method because it does not get dispatched from
+    # gateway events like other events.
+    NAME: ClassVar[str] = '__ERROR'
+
     exception: Exception
 
     event: Optional[Event] = None
 
     # Return type is Any because the user might want to use the return type and
     # having it be object would not allow any meaningful operations.
-    callback: Optional[Callable[..., Coroutine[Any, Any, Any]]] = None
+    callback: Optional['CoroFunc[Any]'] = None
 
-    # Note that this is a special event which does not implement the
-    # usual from_payload() method because it does not get dispatched from
-    # gateway events like other events.
-    NAME: ClassVar[str] = '__ERROR'
+    @classmethod
+    @abstractmethod
+    async def from_payload(
+            cls,
+            payload: Mapping[str, Any],
+            cached: Optional[Any] = None
+    ) -> NoReturn:
+        raise RuntimeError(
+            f"{cls.__name__!r} cannot be dispatched using the 'from_payload()' method"
+        )
 
 
 def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
