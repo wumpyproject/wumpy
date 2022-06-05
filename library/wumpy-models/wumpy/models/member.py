@@ -94,10 +94,11 @@ class Member(Model):
 
     @classmethod
     def from_data(cls, data: GuildMemberData, user: Optional[UserData] = None) -> Self:
-        if user is None and 'user' in data:
-            user = data['user']
-        else:
-            raise ValueError('Cannot create a member without a user.')
+        if user is None:
+            if 'user' not in data:
+                raise ValueError('Cannot create a member without a user.')
+            else:
+                user = data['user']
 
         premium_since = data.get('premium_since')
         if premium_since is not None:
