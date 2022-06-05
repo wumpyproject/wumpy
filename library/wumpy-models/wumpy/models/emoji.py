@@ -28,11 +28,6 @@ class Emoji(Model):
 
     REGEX = re.compile(r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?')
 
-    __slots__ = (
-        'id', 'name', 'animated', 'roles', 'user', 'require_colons', 'managed',
-        'animated', 'available',
-    )
-
     @classmethod
     def from_data(cls, data: EmojiData) -> Self:
         user = data.get('user')
