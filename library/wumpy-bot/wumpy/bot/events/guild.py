@@ -2,7 +2,7 @@ import dataclasses
 from typing import ClassVar, FrozenSet, Optional, Sequence
 
 from discord_typings import (
-    Event, GuildBanAddData, GuildBanRemoveData, GuildDeleteData,
+    GuildBanAddData, GuildBanRemoveData, GuildDeleteData,
     GuildEmojisUpdateData, GuildMemberAddData, GuildMemberRemoveData,
     GuildMemberUpdateData, GuildRoleCreateData, GuildRoleDeleteData,
     GuildRoleUpdateData, GuildStickersUpdateData

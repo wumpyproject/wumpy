@@ -5,8 +5,8 @@ import traceback
 from abc import abstractmethod
 from functools import partial
 from typing import (
-    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, NoReturn, Optional, Tuple,
-    Type, TypeVar, Union, overload
+    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, NoReturn,
+    Optional, Tuple, Type, TypeVar, Union, overload
 )
 
 import anyio

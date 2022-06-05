@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, SupportsInt, Tuple
 from weakref import WeakValueDictionary
 
 from discord_typings import (
-    GuildMemberAddData, GuildMemberRemoveData, UserData, GuildMemberUpdateData
+    GuildMemberAddData, GuildMemberRemoveData, GuildMemberUpdateData, UserData
 )
 from wumpy.models import Member, User
 
