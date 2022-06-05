@@ -268,20 +268,20 @@ class EventDispatcher:
             await anyio.lowlevel.checkpoint()
             return
 
-        instance = ErrorEvent(exc, event=event, callback=callback)
-        # There should only be one class (ErrorEvent)
-        callbacks = next(iter(handlers.values()))
-        if not callbacks:
-            # We should've cleaned this case up in remove_listener() which
-            # would've made handlers completely empty, but if this can happen
-            # we should make sure no error silently gets discarded.
-            _ignore_dispatch_error(exc, event=event)
-            await anyio.lowlevel.checkpoint()
-            return
-
         async with anyio.create_task_group() as tg:
-            for func in callbacks:
-                tg.start_soon(_wrap_error_callback, func, instance)
+            for subclass, callbacks in handlers.items():
+                try:
+                    instance = subclass(exc, event=event, callback=callback)
+                except Exception as exc:
+                    _ignore_dispatch_error(exc, event=event)
+                    continue
+
+                if not callbacks:
+                    _ignore_dispatch_error(exc, event=event)
+                    continue
+
+                for func in callbacks:
+                    tg.start_soon(_wrap_error_callback, func, instance)
 
     async def _wrap_dispatch_callback(
             self,
