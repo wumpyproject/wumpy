@@ -70,6 +70,7 @@ class Bot(EventDispatcher):
     cache: RuntimeVar[Cache] = RuntimeVar()
 
     def __init__(self, token: str, *, intents: int) -> None:
+        super().__init__()
         self.token = token
         self.intents = intents
 
