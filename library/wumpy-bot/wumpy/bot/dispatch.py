@@ -296,7 +296,7 @@ class EventDispatcher:
     async def _dispatch_event_instance(
             self,
             event: Type[Event],
-            payload: Dict[str, Any],
+            payload: Mapping[str, Any],
             cached: Optional[Any],
             callbacks: List['CoroFunc[object]'],
     ) -> None:
@@ -317,8 +317,8 @@ class EventDispatcher:
     async def dispatch(
             self,
             handlers: Dict[Type[Event], List['CoroFunc[object]']],
-            payload: Dict[str, Any],
-            cached: Tuple[Optional[Any], Optional[Any]],
+            payload: Mapping[str, Any],
+            cached: Optional[Any],
     ) -> None:
         """Dispatch appropriate listeners.
 
