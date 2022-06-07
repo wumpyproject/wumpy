@@ -192,7 +192,10 @@ class MessageMentions:
 
         return cls(
             users=users,
-            channels=tuple(ChannelMention.from_data(c) for c in data['mention_channels']),
+            channels=tuple(
+                ChannelMention.from_data(c)
+                for c in data.get('mention_channels', [])
+            ),
             roles=tuple(Snowflake(int(r)) for r in data['mention_roles']),
         )
 
@@ -259,7 +262,7 @@ class Message(Model):
             tts=data['tts'],
             attachments=tuple(Attachment.from_data(a) for a in data['attachments']),
             embeds=tuple(Embed.from_data(e) for e in data['embeds']),
-            reactions=tuple(MessageReaction.from_data(r) for r in data['reactions']),
+            reactions=tuple(MessageReaction.from_data(r) for r in data.get('reactions', [])),
             mentions=MessageMentions.from_message(data),
 
             pinned=data['pinned'],
