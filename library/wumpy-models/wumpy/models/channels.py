@@ -165,19 +165,16 @@ class TextChannel(PartialChannel):
 @backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class ThreadMember:
-    id: Optional[int]
-    user_id: Optional[int]
+    id: Optional[Snowflake]
+    user_id: Optional[Snowflake]
     joined_at: datetime
     flags: int
 
     @classmethod
     def from_data(cls, data: ThreadMemberData) -> Self:
-        id = data.get('id')
-        user = data.get('user_id')
-
         return cls(
-            id=int(id) if id is not None else None,
-            user_id=int(user) if user is not None else None,
+            id=_get_as_snowflake(data, 'id'),
+            user_id=_get_as_snowflake(data, 'user_id'),
             joined_at=datetime.fromisoformat(data['join_timestamp']),
             flags=data['flags'],
         )
