@@ -57,9 +57,10 @@ class Extension(CommandRegistrar, EventDispatcher):
         should be called.
         """
         if isinstance(target, EventDispatcher):
-            for event in self.listeners.values():
-                for _, callback in event:
-                    target.add_listener(callback)
+            for name in self._listeners.values():
+                for event, callbacks in name.items():
+                    for callback in callbacks:
+                        target.add_listener(callback, event=event)
 
         if isinstance(target, CommandRegistrar):
             for command in self._commands.values():
@@ -71,9 +72,10 @@ class Extension(CommandRegistrar, EventDispatcher):
 
     def unload(self, target: Union[CommandRegistrar, EventDispatcher]) -> None:
         if isinstance(target, EventDispatcher):
-            for event in self.listeners.values():
-                for annotation, callback in event:
-                    target.remove_listener(callback, event=annotation)
+            for name in self._listeners.values():
+                for event, callbacks in name.items():
+                    for callback in callbacks:
+                        target.remove_listener(callback, event=event)
 
         if isinstance(target, CommandRegistrar):
             for command in self._commands.values():
@@ -104,10 +106,10 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
         This should be used as a last-resort to clean up from a module and
         restore the state of the extension loader.
         """
-        for event in self.listeners.values():
-            for annotation, callback in event:
-                if _is_submodule(callback.__module__, module):
-                    self.remove_listener(callback, event=annotation)
+        for name in self._listeners.values():
+            for event, callbacks in name.items():
+                for callback in [c for c in callbacks if _is_submodule(c.__module__, module)]:
+                    self.remove_listener(callback, event=event)
 
         for command in self._commands.values():
             if (

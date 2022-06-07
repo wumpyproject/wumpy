@@ -1,5 +1,7 @@
-import anyio
+from typing import Any, Mapping, Optional, Union
+
 import pytest
+from typing_extensions import Self
 from wumpy.bot import Event, EventDispatcher, Extension
 
 
@@ -7,8 +9,13 @@ from wumpy.bot import Event, EventDispatcher, Extension
 class DummyEvent(Event):
     NAME = 'DUMMY'
 
-    def __init__(self) -> None:
-        pass
+    @classmethod
+    def from_payload(
+            cls,
+            payload: Mapping[str, Any],
+            cached: Optional[Any] = None
+    ) -> Self:
+        return cls()
 
 
 def test_mixin():
@@ -42,7 +49,7 @@ def test_listener_decorator():
     async def other_callback(other_event: DummyEvent):
         ...
 
-    assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 2
+    assert len(dispatcher._listeners[DummyEvent.NAME][DummyEvent]) == 2
 
 
 # We want to test that the tests work for both of these classes
@@ -51,7 +58,7 @@ class TestAddListener:
     """Test the various ways of adding listeners."""
 
     def test_correct_signatures(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         # Test various different correct signatures that should be
         # supported and added
@@ -77,10 +84,10 @@ class TestAddListener:
         dispatcher.add_listener(extra_defaulted)
         dispatcher.add_listener(extra_kwargs)
 
-        assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 4
+        assert len(dispatcher._listeners[DummyEvent.NAME][DummyEvent]) == 4
 
     def test_wrong_signatures(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         async def no_args():
             ...
@@ -112,8 +119,10 @@ class TestAddListener:
         with pytest.raises(TypeError):
             dispatcher.add_listener(too_many_non_default)
 
+        assert len(dispatcher._listeners) == 0
+
     def test_non_async(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         def non_async(event: DummyEvent):
             ...
@@ -122,13 +131,15 @@ class TestAddListener:
             dispatcher.add_listener(non_async)  # type: ignore
 
     def test_not_event_subclass(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         async def incorrect(arg: int):
             ...
 
         with pytest.raises(TypeError):
             dispatcher.add_listener(incorrect)
+
+        assert len(dispatcher._listeners) == 0
 
     def test_same_name_events(self, cls):
         # Test that two different event subclasses with the same name
@@ -138,10 +149,26 @@ class TestAddListener:
         class DumbEvent(Event):
             NAME = shared_name
 
+            @classmethod
+            def from_payload(
+                    cls,
+                    payload: Mapping[str, Any],
+                    cached: Optional[Any] = None
+            ) -> Self:
+                return cls()
+
         class DumberEvent(Event):  # Not a subclass of DumbEvent
             NAME = shared_name
 
-        dispatcher = cls()
+            @classmethod
+            def from_payload(
+                    cls,
+                    payload: Mapping[str, Any],
+                    cached: Optional[Any] = None
+            ) -> Self:
+                return cls()
+
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         async def dumb_callback(event: DumbEvent):
             ...
@@ -152,13 +179,15 @@ class TestAddListener:
         dispatcher.add_listener(dumb_callback)
         dispatcher.add_listener(dumber_callback)
 
-        assert len(dispatcher.listeners.get(shared_name, [])) == 2
+        assert len(dispatcher._listeners[shared_name]) == 2
+        assert len(dispatcher._listeners[shared_name][DumbEvent]) == 1
+        assert len(dispatcher._listeners[shared_name][DumberEvent]) == 1
 
 
 @pytest.mark.parametrize('cls', [EventDispatcher, Extension])
 class TestRemoveListener:
     def test_remove_no_event(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         @dispatcher.listener
         async def callback(event: DummyEvent):
@@ -166,10 +195,10 @@ class TestRemoveListener:
 
         dispatcher.remove_listener(callback)
 
-        assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 0
+        assert len(dispatcher._listeners) == 0
 
     def test_remove_with_event(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         async def callback(event: DummyEvent):
             ...
@@ -180,10 +209,10 @@ class TestRemoveListener:
         dispatcher.remove_listener(callback, event=DummyEvent.NAME)
         dispatcher.remove_listener(callback, event=DummyEvent)
 
-        assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 0
+        assert len(dispatcher._listeners) == 0
 
     def test_incorrect_event(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         @dispatcher.listener
         async def callback(event: DummyEvent):
@@ -193,7 +222,7 @@ class TestRemoveListener:
             dispatcher.remove_listener(callback, event=123)  # type: ignore
 
     def test_wrong_callback_signature(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         # This is a subset of the test_wrong_signatures() method in the
         # TestAddListener test group
@@ -211,7 +240,7 @@ class TestRemoveListener:
             dispatcher.remove_listener(too_many_args)
 
     def test_duplicate_not_removed(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         async def callback(event: DummyEvent):
             ...
@@ -222,10 +251,10 @@ class TestRemoveListener:
         dispatcher.remove_listener(callback)
 
         # There should still be one reference of the callback in the dict
-        assert len(dispatcher.listeners.get(DummyEvent.NAME, [])) == 1
+        assert len(dispatcher._listeners[DummyEvent.NAME][DummyEvent]) == 1
 
     def test_not_registered(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         @dispatcher.listener
         async def registered(event: DummyEvent):
@@ -239,7 +268,7 @@ class TestRemoveListener:
             dispatcher.remove_listener(callback)
 
     def test_bare_event(self, cls):
-        dispatcher = cls()
+        dispatcher: Union[EventDispatcher, Extension] = cls()
 
         async def callback(event: Event):
             ...
@@ -266,8 +295,8 @@ class TestDispatch:
         for _ in range(expected):
             dispatcher.add_listener(callback)
 
-        async with anyio.create_task_group() as tg:
-            dispatcher.dispatch(DummyEvent.NAME, tg=tg)
+        handlers = dispatcher.get_dispatch_handlers(DummyEvent.NAME)
+        await dispatcher.dispatch(handlers, {}, None)
 
         assert called == expected
 
@@ -276,8 +305,13 @@ class TestDispatch:
         class OtherEvent(Event):
             NAME = 'OTHER'
 
-            def __init__(self) -> None:
-                pass
+            @classmethod
+            def from_payload(
+                    cls,
+                    payload: Mapping[str, Any],
+                    cached: Optional[Any] = None
+            ) -> Self:
+                return cls()
 
         dispatcher = EventDispatcher()
 
@@ -289,8 +323,8 @@ class TestDispatch:
         async def other_callback(event: OtherEvent):
             assert False, 'Wrong callback dispatched'
 
-        async with anyio.create_task_group() as tg:
-            dispatcher.dispatch(DummyEvent.NAME, tg=tg)
+        handlers = dispatcher.get_dispatch_handlers(DummyEvent.NAME)
+        await dispatcher.dispatch(handlers, {}, None)
 
     async def test_correct_instance(self):
         # Test that the listener callback is dispatched with its
@@ -300,14 +334,24 @@ class TestDispatch:
         class DumbEvent(Event):
             NAME = shared_name
 
-            def __init__(self) -> None:
-                pass
+            @classmethod
+            def from_payload(
+                    cls,
+                    payload: Mapping[str, Any],
+                    cached: Optional[Any] = None
+            ) -> Self:
+                return cls()
 
         class DumberEvent(Event):  # Not a subclass of DumbEvent
             NAME = shared_name
 
-            def __init__(self) -> None:
-                pass
+            @classmethod
+            def from_payload(
+                    cls,
+                    payload: Mapping[str, Any],
+                    cached: Optional[Any] = None
+            ) -> Self:
+                return cls()
 
         dispatcher = EventDispatcher()
 
@@ -319,5 +363,5 @@ class TestDispatch:
         async def dumber_callback(event: DumberEvent):
             assert isinstance(event, DumberEvent)
 
-        async with anyio.create_task_group() as tg:
-            dispatcher.dispatch(shared_name, tg=tg)
+        handlers = dispatcher.get_dispatch_handlers(shared_name)
+        await dispatcher.dispatch(handlers, {}, None)
