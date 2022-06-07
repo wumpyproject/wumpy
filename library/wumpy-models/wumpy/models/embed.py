@@ -8,17 +8,18 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
+from .utils import backport_slots
+
 __all__ = ('Embed', 'EmbedBuilder')
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class EmbedThumbnail:
     url: str
-    proxy_url: Optional[str]
-    height: Optional[int]
-    width: Optional[int]
-
-    __slots__ = ('url', 'proxy_url', 'height', 'width')
+    proxy_url: Optional[str] = None
+    height: Optional[int] = None
+    width: Optional[int] = None
 
     @classmethod
     def from_data(cls, data: EmbedThumbnailData) -> Self:
@@ -30,14 +31,13 @@ class EmbedThumbnail:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class EmbedImage:
     url: str
-    proxy_url: Optional[str]
-    height: Optional[int]
-    width: Optional[int]
-
-    __slots__ = ('url', 'proxy_url', 'height', 'width')
+    proxy_url: Optional[str] = None
+    height: Optional[int] = None
+    width: Optional[int] = None
 
     @classmethod
     def from_data(cls, data: EmbedImageData) -> Self:
@@ -49,13 +49,12 @@ class EmbedImage:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class EmbedFooter:
     text: str
-    icon_url: Optional[str]
-    proxy_icon_url: Optional[str]
-
-    __slots__ = ('text', 'icon_url', 'proxy_icon_url')
+    icon_url: Optional[str] = None
+    proxy_icon_url: Optional[str] = None
 
     @classmethod
     def from_data(cls, data: EmbedFooterData) -> Self:
@@ -66,13 +65,12 @@ class EmbedFooter:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class EmbedField:
     name: str
     value: str
-    inline: bool
-
-    __slots__ = ('name', 'value', 'inline')
+    inline: bool = False
 
     @classmethod
     def from_data(cls, data: EmbedFieldData) -> Self:
@@ -83,14 +81,13 @@ class EmbedField:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class EmbedAuthor:
     name: str
-    url: Optional[str]
-    icon_url: Optional[str]
-    proxy_icon_url: Optional[str]
-
-    __slots__ = ('name', 'url', 'icon_url')
+    url: Optional[str] = None
+    icon_url: Optional[str] = None
+    proxy_icon_url: Optional[str] = None
 
     @classmethod
     def from_data(cls, data: EmbedAuthorData) -> Self:
@@ -102,26 +99,21 @@ class EmbedAuthor:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class Embed:
+    title: Optional[str] = None
+    description: Optional[str] = None
+    url: Optional[str] = None
 
-    title: Optional[str]
-    description: Optional[str]
-    url: Optional[str]
+    colour: Optional[int] = None
+    timestamp: Optional[datetime] = None
 
-    colour: Optional[int]
-    timestamp: Optional[datetime]
-
-    footer: Optional[EmbedFooter]
-    image: Optional[EmbedImage]
-    thumbnail: Optional[EmbedThumbnail]
-    author: Optional[EmbedAuthor]
-    fields: Tuple[EmbedField, ...]
-
-    __slots__ = (
-        'title', 'description', 'url', 'colour', 'timestamp', 'footer', 'image',
-        'thumbnail', 'author', 'fields'
-    )
+    footer: Optional[EmbedFooter] = None
+    image: Optional[EmbedImage] = None
+    thumbnail: Optional[EmbedThumbnail] = None
+    author: Optional[EmbedAuthor] = None
+    fields: Tuple[EmbedField, ...] = ()
 
     @classmethod
     def from_data(cls, data: EmbedData) -> Self:
@@ -176,6 +168,7 @@ class Embed:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass()
 class EmbedBuilder:
     """Discord.py-style embed builder."""
@@ -192,9 +185,6 @@ class EmbedBuilder:
     thumbnail: Optional[EmbedThumbnail] = None
     author: Optional[EmbedAuthor] = None
     fields: List[EmbedField] = dataclasses.field(default_factory=list)
-
-    # We don't use __slots__ here because it is incompatible with dataclass
-    # defaults, and those are preferred here for better user experience.
 
     def set_footer(self, *, text: str, icon_url: Optional[str] = None) -> Self:
         self.footer = EmbedFooter(text=text, icon_url=icon_url, proxy_icon_url=None)

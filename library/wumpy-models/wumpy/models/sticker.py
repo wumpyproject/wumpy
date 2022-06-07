@@ -7,7 +7,7 @@ from typing_extensions import Self
 
 from .base import Model, Snowflake
 from .user import User
-from .utils import _get_as_snowflake
+from .utils import _get_as_snowflake, backport_slots
 
 __all__ = ('StickerItem', 'Sticker')
 
@@ -23,12 +23,11 @@ class StickerFormatType(Enum):
     lottie = 3
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class StickerItem(Model):
     name: str
     format_type: StickerFormatType
-
-    __slots__ = ('name', 'format_type')
 
     @classmethod
     def from_data(cls, data: StickerItemData) -> Self:
@@ -39,6 +38,7 @@ class StickerItem(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Sticker(StickerItem):
     description: Optional[str]
@@ -53,11 +53,6 @@ class Sticker(StickerItem):
     guild_id: Optional[Snowflake]
 
     user: Optional[User]
-
-    __slots__ = (
-        'description', 'pack_id', 'sort_value', 'tags', 'type', 'available',
-        'guild_id', 'user'
-    )
 
     @classmethod
     def from_data(cls, data: StickerData) -> Self:

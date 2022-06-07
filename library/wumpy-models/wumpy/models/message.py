@@ -12,7 +12,7 @@ from .embed import Embed
 from .emoji import MessageReaction
 from .member import Member
 from .user import User
-from .utils import _get_as_snowflake
+from .utils import _get_as_snowflake, backport_slots
 
 __all__ = ('AllowedMentions', 'MessageMentions', 'MessageType', 'Message')
 
@@ -174,13 +174,12 @@ class AllowedMentions:
         return cls(everyone=True, users=True, roles=True, replied_user=True)
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class MessageMentions:
     users: Union[Tuple[User, ...], Tuple[Member, ...]]
     channels: Tuple[ChannelMention, ...]
     roles: Tuple[Snowflake, ...]
-
-    __slots__ = ('users', 'channels', 'roles')
 
     @classmethod
     def from_message(cls, data: MessageData) -> Self:
@@ -223,6 +222,7 @@ class MessageType(Enum):
     thread_starter_message = 22
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Message(Model):
     type: MessageType

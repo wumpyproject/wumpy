@@ -7,21 +7,21 @@ from typing_extensions import Self
 
 from .channels import PartialChannel
 from .user import User
+from .utils import backport_slots
 
 __all__ = ('Invite',)
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Invite:
     """Representation of a Discord invite."""
 
     code: str
-    expires_at: Optional[datetime]
+    expires_at: Optional[datetime] = None
 
-    inviter: Optional[User]
-    channel: Optional[PartialChannel]
-
-    __slots__ = ('code', 'expires_at', 'inviter')
+    inviter: Optional[User] = None
+    channel: Optional[PartialChannel] = None
 
     def __str__(self) -> str:
         return self.url
@@ -32,7 +32,7 @@ class Invite:
         return f'https://discord.gg/{self.code}'
 
     @property
-    def is_expired(self) -> bool:
+    def expired(self) -> bool:
         """Whether the invite has expired."""
         if self.expires_at is None:
             return False

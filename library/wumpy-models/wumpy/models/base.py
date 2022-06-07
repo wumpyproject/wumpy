@@ -25,7 +25,7 @@ class Model:
 
     id: int
 
-    __slots__ = ('id',)
+    __slots__ = ('id', '__weakref__')
     __match_args__ = ('id',)
 
     def __repr__(self) -> str:

@@ -11,7 +11,7 @@ from typing_extensions import Self
 
 from .base import Model, Snowflake
 from .user import User
-from .utils import _get_as_snowflake
+from .utils import _get_as_snowflake, backport_slots
 
 __all__ = ('IntegrationExpire', 'IntegrationAccount', 'IntegrationApplication')
 
@@ -27,6 +27,7 @@ class IntegrationType(str, Enum):
     discord = 'discord'
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class IntegrationAccount:
     """Information about the account associated with an integration.
@@ -39,13 +40,12 @@ class IntegrationAccount:
     id: str
     name: str
 
-    __slots__ = ('id', 'name')
-
     @classmethod
     def from_data(cls, data: IntegrationAccountData) -> Self:
         return cls(data['id'], data['name'])
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class IntegrationApplication(Model):
     """Information about a bot/OAuth2 application.
@@ -62,9 +62,18 @@ class IntegrationApplication(Model):
     icon: Optional[str]
     description: str
     summary: str
-    user: Optional[User]
+    user: Optional[User] = None
 
-    __slots__ = ('name', 'icon', 'description', 'summary', 'user')
+    @classmethod
+    def from_user(cls, user: User, data: IntegrationApplicationData) -> Self:
+        return cls(
+            id=int(data['id']),
+            name=data['name'],
+            icon=data.get('icon'),
+            description=data['description'],
+            summary=data['summary'],
+            user=user
+        )
 
     @classmethod
     def from_data(cls, data: IntegrationApplicationData) -> Self:
@@ -82,6 +91,7 @@ class IntegrationApplication(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class BotIntegration(Model):
     """Representation of a bot integration in a guild.
@@ -95,9 +105,7 @@ class BotIntegration(Model):
     enabled: bool
     account: IntegrationAccount
 
-    application: Optional[IntegrationApplication]
-
-    __slots__ = ('name', 'type', 'enabled', 'account', 'application')
+    application: Optional[IntegrationApplication] = None
 
     @property
     def user(self) -> Optional[User]:
@@ -120,6 +128,7 @@ class BotIntegration(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class StreamIntegration(Model):
     """Representation of a guild integration for Twitch or YouTube.
@@ -152,12 +161,6 @@ class StreamIntegration(Model):
     synced_at: datetime
     subscriber_count: int
     revoked: bool
-
-    __slots__ = (
-        'name', 'type', 'enabled', 'account', 'syncing', 'role_id',
-        'enable_emoticons', 'expire_behavior', 'expire_grace_period', 'user',
-        'synced_at', 'subscriber_count', 'revoked'
-    )
 
     @classmethod
     def from_data(cls, data: StreamingIntegrationData) -> Self:

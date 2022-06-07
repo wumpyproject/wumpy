@@ -5,18 +5,20 @@ from typing_extensions import Self
 
 from .base import Model
 from .flags import UserFlags
+from .utils import backport_slots
 
 __all__ = ('BotUser', 'User')
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class User(Model):
     name: str
     discriminator: int
-    public_flags: UserFlags
 
-    bot: bool
-    system: bool
+    bot: bool = False
+    system: bool = False
+    public_flags: UserFlags = UserFlags.none()
 
     def __str__(self) -> str:
         return f'{self.name}#{self.discriminator}'
@@ -37,11 +39,22 @@ class User(Model):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
-class BotUser(User):
+class BotUser(Model):
+    name: str
+    discriminator: int
+
     locale: str
     mfa_enabled: bool
     verified: bool
+
+    # As a result of these defaults, BotUser cannot be a subclass of User,
+    # although that also helps with the REST API methods (cannot DM yourself).
+
+    bot: bool = True
+    system: bool = False
+    public_flags: UserFlags = UserFlags.none()
 
     @classmethod
     def from_data(cls, data: UserData) -> Self:
@@ -56,11 +69,12 @@ class BotUser(User):
             id=int(data['id']),
             name=data['username'],
             discriminator=int(data['discriminator']),
-            public_flags=UserFlags(data.get('public_flags', 0)),
-            bot=data.get('bot', False),
-            system=data.get('system', False),
 
             locale=data['locale'],
             mfa_enabled=data['mfa_enabled'],
             verified=data['verified'],
+
+            bot=data.get('bot', True),
+            system=data.get('system', False),
+            public_flags=UserFlags(data.get('public_flags', 0)),
         )

@@ -1,6 +1,7 @@
 import dataclasses
 import enum
-from typing import Any, Dict, List, Optional, Union
+from types import MappingProxyType
+from typing import Any, List, Optional, Union
 
 from discord_typings import (
     ApplicationCommandInteractionData, ApplicationCommandOptionInteractionData,
@@ -15,7 +16,7 @@ from .member import InteractionMember, Member
 from .message import Message
 from .role import Role
 from .user import User
-from .utils import _get_as_snowflake
+from .utils import _get_as_snowflake, backport_slots
 
 __all__ = (
     'InteractionType', 'ComponentType', 'ApplicationCommandOption',
@@ -50,42 +51,46 @@ class ApplicationCommandOption(enum.Enum):
     number = 10  # Includes decimals
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class ResolvedInteractionData:
 
-    users: Dict[int, User]
-    members: Dict[int, InteractionMember]
+    users: MappingProxyType[int, User]
+    members: MappingProxyType[int, InteractionMember]
 
-    roles: Dict[int, Role]
-    channels: Dict[int, InteractionChannel]
+    roles: MappingProxyType[int, Role]
+    channels: MappingProxyType[int, InteractionChannel]
 
-    messages: Dict[int, Message]
-
-    __slots__ = ('users', 'members', 'roles', 'channels', 'messages')
+    messages: MappingProxyType[int, Message]
 
     @classmethod
     def from_data(cls, data: ResolvedInteractionDataData) -> Self:
         return cls(
-            users={int(k): User.from_data(v) for k, v in data.get('users', {}).items()},
-            members={
+            users=MappingProxyType({
+                int(k): User.from_data(v) for k, v in data.get('users', {}).items()
+            }),
+            members=MappingProxyType({
                 int(k): InteractionMember.from_data(v, data.get('users', {}).get(k))
                 for k, v in data.get('members', {}).items()
                 if data.get('users', {}).get(k)
-            },
+            }),
 
-            roles={int(k): Role.from_data(v) for k, v in data.get('roles', {}).items()},
-            channels={
+            roles=MappingProxyType({
+                int(k): Role.from_data(v) for k, v in data.get('roles', {}).items()
+            }),
+            channels=MappingProxyType({
                 int(k): InteractionChannel.from_data(v)
                 for k, v in data.get('channels', {}).items()
-            },
+            }),
 
-            messages={
+            messages=MappingProxyType({
                 int(k): Message.from_data(v)
                 for k, v in data.get('messages', {}).items()
-            },
+            }),
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class CommandInteractionOption:
     """Application Command option received from Discord.
@@ -100,8 +105,6 @@ class CommandInteractionOption:
     value: Optional[Any]
     options: List['CommandInteractionOption']
 
-    __slots__ = ('name', 'type', 'value', 'options')
-
     @classmethod
     def from_data(cls, data: ApplicationCommandOptionInteractionData) -> Self:
         return cls(
@@ -113,18 +116,17 @@ class CommandInteractionOption:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class SelectInteractionValue:
     """One of the values for a select option."""
 
     label: str
     value: str
-    description: Optional[str]
+    description: Optional[str] = None
 
-    emoji: Optional[Emoji]
-    default: Optional[bool]
-
-    __slots__ = ('label', 'value', 'description', 'emoji', 'default')
+    emoji: Optional[Emoji] = None
+    default: Optional[bool] = None
 
     @classmethod
     def from_data(cls, data: SelectMenuOptionData) -> Self:
@@ -142,6 +144,7 @@ class SelectInteractionValue:
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Interaction(Model):
 
@@ -155,11 +158,8 @@ class Interaction(Model):
     token: str
     version: int
 
-    __slots__ = (
-        'application_id', 'type', 'guild_id', 'channel_id', 'author', 'token', 'version'
-    )
 
-
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class CommandInteraction(Interaction):
 
@@ -170,8 +170,6 @@ class CommandInteraction(Interaction):
     resolved: ResolvedInteractionData
     target_id: Optional[int]
     options: List[CommandInteractionOption]
-
-    __slots__ = ('name', 'invoked', 'invoked_type', 'resolved', 'target_id', 'options')
 
     @classmethod
     def from_data(cls, data: ApplicationCommandInteractionData) -> Self:
@@ -219,6 +217,7 @@ class CommandInteraction(Interaction):
         )
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class ComponentInteraction(Interaction):
 
@@ -228,8 +227,6 @@ class ComponentInteraction(Interaction):
     component_type: ComponentType
 
     values: List[SelectInteractionValue]
-
-    __slots__ = ('message', 'custom_id', 'component_type', 'values')
 
     @classmethod
     def from_data(cls, data: ComponentInteractionData) -> Self:

@@ -6,18 +6,18 @@ from discord_typings import AttachmentData
 from typing_extensions import Literal, Self
 
 from .base import Model
+from .utils import backport_slots
 
 __all__ = ('Asset', 'Attachment')
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True)
 class Asset:
 
     url: str
 
     BASE = 'https://cdn.discordapp.com'
-
-    __slots__ = ('url',)
 
     @classmethod
     def from_path(cls, path: str) -> Self:
@@ -59,31 +59,34 @@ class Asset:
         return self.__class__(f'{url.scheme}://{url.netloc}{path}?{query}')
 
 
+@backport_slots()
 @dataclasses.dataclass(frozen=True, eq=False)
 class Attachment(Model):
     filename: str
-    content_type: Optional[str]
-    description: Optional[str]
 
     size: int
     url: str
     proxy_url: str
 
-    height: Optional[int]
-    width: Optional[int]
-    ephemeral: bool
+    content_type: Optional[str] = None
+    description: Optional[str] = None
+
+    height: Optional[int] = None
+    width: Optional[int] = None
+    ephemeral: bool = False
 
     @classmethod
     def from_data(cls, data: AttachmentData) -> Self:
         return cls(
             id=int(data['id']),
             filename=data['filename'],
-            content_type=data.get('content_type'),
-            description=data.get('description'),
 
             size=int(data['size']),
             url=data['url'],
             proxy_url=data['proxy_url'],
+
+            content_type=data.get('content_type'),
+            description=data.get('description'),
 
             height=data.get('height'),
             width=data.get('width'),
