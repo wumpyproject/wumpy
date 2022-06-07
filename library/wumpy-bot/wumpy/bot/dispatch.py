@@ -46,7 +46,7 @@ class Event:
 
     @classmethod
     @abstractmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: Mapping[str, Any],
             cached: Optional[Any] = None
@@ -293,27 +293,6 @@ class EventDispatcher:
         except Exception as exc:
             await self.dispatch_error(exc, event=event, callback=callback)
 
-    async def _dispatch_event_instance(
-            self,
-            event: Type[Event],
-            payload: Mapping[str, Any],
-            cached: Optional[Any],
-            callbacks: List['CoroFunc[object]'],
-    ) -> None:
-        try:
-            instance = await event.from_payload(payload, cached)
-        except Exception as exc:
-            await self.dispatch_error(exc)
-            return
-
-        if instance is None:
-            await anyio.lowlevel.checkpoint()
-            return
-
-        async with anyio.create_task_group() as tg:
-            for func in callbacks:
-                tg.start_soon(partial(self._wrap_dispatch_callback, func, instance))
-
     async def dispatch(
             self,
             handlers: Dict[Type[Event], List['CoroFunc[object]']],
@@ -338,10 +317,17 @@ class EventDispatcher:
 
         async with anyio.create_task_group() as tg:
             for event, callbacks in handlers.items():
-                tg.start_soon(partial(
-                    self._dispatch_event_instance,
-                    event, payload, cached, callbacks,
-                ))
+                try:
+                    instance = event.from_payload(payload, cached)
+                except Exception as exc:
+                    tg.start_soon(self.dispatch_error, exc)
+                    continue
+
+                if instance is None:
+                    continue
+
+                for func in callbacks:
+                    tg.start_soon(partial(self._wrap_dispatch_callback, func, instance))
 
     def add_listener(
             self,

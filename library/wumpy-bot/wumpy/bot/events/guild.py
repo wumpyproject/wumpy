@@ -177,7 +177,7 @@ class MemberUpdateEvent(Event):
     NAME: ClassVar[str] = 'GUILD_MEMBER_UPDATE'
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: GuildMemberUpdateData,
             cached: Optional[Member] = None
@@ -198,7 +198,7 @@ class RoleCreateEvent(Event):
     NAME: ClassVar[str] = 'GUILD_ROLE_CREATE'
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: GuildRoleCreateData,
             cached: None = None
@@ -219,7 +219,7 @@ class RoleUpdateEvent(Event):
     NAME: ClassVar[str] = 'GUILD_ROLE_UPDATE'
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: GuildRoleCreateData,
             cached: Optional[Role] = None
@@ -241,7 +241,7 @@ class RoleDeleteEvent(Event):
     NAME: ClassVar[str] = 'GUILD_ROLE_DELETE'
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: GuildRoleDeleteData,
             cached: Optional[Role] = None,

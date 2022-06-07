@@ -30,7 +30,7 @@ class TypingEvent(Event):
     NAME: ClassVar[str] = "TYPING_START"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: TypingStartData,
             cached: None = None
@@ -59,7 +59,7 @@ class ThreadCreateEvent(Event):
     NAME: ClassVar[str] = "THREAD_CREATE"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: ThreadCreateData,
             cached: None = None
@@ -79,7 +79,7 @@ class ThreadUpdateEvent(Event):
     NAME: ClassVar[str] = "THREAD_UPDATE"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: ThreadUpdateData,
             cached: Optional[Thread] = None
@@ -103,7 +103,7 @@ class ThreadDeleteEvent(Event):
     NAME: ClassVar[str] = "THREAD_DELETE"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: ThreadDeleteData,
             cached: Optional[Thread] = None
@@ -129,7 +129,7 @@ class ThreadListSyncEvent(Event):
     NAME: ClassVar[str] = "THREAD_LIST_SYNC"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: ThreadListSyncData,
             cached: None = None
@@ -167,7 +167,7 @@ class ChannelPinsUpdateEvent(Event):
     NAME: ClassVar[str] = "CHANNEL_PINS_UPDATE"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: ChannelPinsUpdateData,
             cached: None = None

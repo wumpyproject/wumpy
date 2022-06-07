@@ -26,7 +26,7 @@ class MessageCreateEvent(Event):
     NAME: ClassVar[str] = 'MESSAGE_CREATE'
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageCreateData,
             cached: None = None
@@ -43,7 +43,7 @@ class MessageUpdateEvent(Event):
     NAME: ClassVar[str] = 'MESSAGE_UPDATE'
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageUpdateData,
             cached: Optional[Message] = None
@@ -63,7 +63,7 @@ class MessageDeleteEvent(Event):
     NAME: ClassVar[str] = "MESSAGE_DELETE"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageDeleteData,
             cached: Optional[Message] = None
@@ -91,7 +91,7 @@ class BulkMessageDeleteEvent(Event):
     NAME: ClassVar[str] = "MESSAGE_DELETE_BULK"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageDeleteBulkData,
             cached: Optional[Sequence[Message]] = None
@@ -121,7 +121,7 @@ class ReactionAddEvent(Event):
     NAME: ClassVar[str] = "MESSAGE_REACTION_ADD"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageReactionAddData,
             cached: None = None
@@ -156,7 +156,7 @@ class ReactionRemoveEvent(Event):
     NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageReactionRemoveData,
             cached: None = None
@@ -183,7 +183,7 @@ class ReactionClearEvent(Event):
     NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE_ALL"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageDeleteData,
             cached: None = None
@@ -209,7 +209,7 @@ class ReactionEmojiClearEvent(Event):
     NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE_EMOJI"
 
     @classmethod
-    async def from_payload(
+    def from_payload(
             cls,
             payload: MessageReactionRemoveEmojiData,
             cached: None = None
