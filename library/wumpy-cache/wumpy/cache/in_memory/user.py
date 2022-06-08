@@ -1,7 +1,9 @@
 from typing import Any, Dict, Optional, SupportsInt, Tuple
 from weakref import WeakValueDictionary
 
-from discord_typings import GuildMemberData, UserData
+from discord_typings import (
+    GuildMemberAddData, GuildMemberRemoveData, GuildMemberUpdateData, UserData
+)
 from wumpy.models import Member, User
 
 from .base import BaseMemoryCache
@@ -23,7 +25,7 @@ class UserMemoryCache(BaseMemoryCache):
         # much as possible.
         user = self._users.get(int(data['id']))
         if (
-                user and user.id == data['id']
+                user and user.id == int(data['id'])
                 and user.name == data['username']
                 and user.discriminator == data['discriminator']
                 and user.public_flags == data.get('public_flags')
@@ -44,34 +46,35 @@ class MemberMemoryCache(BaseMemoryCache):
 
         self._members = {}
 
-    def _process_guild_member_add(self, data: GuildMemberData) -> Tuple[None, Member]:
-        if 'guild_id' not in data:
-            raise ValueError("Member data must contain extra 'guild_id' field")
-
-        guild_id = data['guild_id']
+    def _process_guild_member_add(
+            self,
+            data: GuildMemberAddData,
+            *,
+            return_old: bool = True
+    ) -> None:
+        guild_id = int(data['guild_id'])
         user = self._store_user(data['user'])
 
         member = Member.from_user(user, data)
         self._members[(guild_id, member.id)] = member
-        return (None, member)
 
     def _process_guild_member_update(
         self,
-        data: GuildMemberData
-    ) -> Tuple[Optional[Member], Member]:
-        return (
-            self._process_guild_member_remove(data)[0],
-            self._process_guild_member_add(data)[1]
-        )
+        data: GuildMemberUpdateData,
+        *,
+        return_old: bool = True
+    ) -> Optional[Member]:
+        old = self._process_guild_member_remove(data, return_old=return_old)
+        self._process_guild_member_add(data, return_old=return_old)
+        return old
 
     def _process_guild_member_remove(
             self,
-            data: GuildMemberData
-    ) -> Tuple[Optional[Member], None]:
-        if 'guild_id' not in data:
-            raise ValueError("Member data must contain extra 'guild_id' field")
-
-        return (self._members.pop((data['guild_id'], data['user']['id']), None), None)
+            data: GuildMemberRemoveData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Member]:
+        return self._members.pop((int(data['guild_id']), int(data['user']['id'])), None)
 
     async def get_member(self, guild: SupportsInt, user: SupportsInt) -> Optional[Member]:
         return self._members.get((int(guild), int(user)))

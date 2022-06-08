@@ -1,37 +1,121 @@
+import dataclasses
 import inspect
+import sys
+import traceback
+from abc import abstractmethod
+from functools import partial
 from typing import (
-    Any, Awaitable, Callable, ClassVar, Coroutine, Dict, List, Optional, Tuple,
-    Type, TypeVar, Union, overload
+    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, NoReturn,
+    Optional, Tuple, Type, TypeVar, Union, overload
 )
 
+import anyio
 import anyio.abc
+import anyio.lowlevel
+from typing_extensions import Self, TypeAlias
+from wumpy.models.utils import backport_slots
 
 from .utils import _eval_annotations
 
-__all__ = ('Event', 'ErrorHandlerMixin', 'EventDispatcher')
+__all__ = ['Event', 'EventDispatcher']
 
 
+T = TypeVar('T')
+CoroFunc: TypeAlias = 'Callable[..., Coroutine[Any, Any, T]]'
+C = TypeVar('C', bound='CoroFunc[object]')
+
+
+@dataclasses.dataclass(frozen=True)
 class Event:
     """Parent class for events, meant to be read from annotations.
 
-    Subclasses should set the `name` class variable which is used when
+    Subclasses should set the `NAME` class variable which is used when
     dispatching and emitting events.
 
     To start using the event all you need to do is annotate a listener with
     your subclass and it will automatically be registered with the name
     specified in the class variable.
 
-    All arguments passed into the dispatch method will be forwarded to the
-    your subclass' `__init__()`.
+    The event will be initialized in the form of a `from_payload()`
+    classmethod, see the docstring for more information.
     """
 
     NAME: ClassVar[str]
 
     __slots__ = ()  # If subclasses want to use it
 
-    def __init__(self, *args: Any) -> None:
-        """Initializer called with arguments passed to the dispatch method."""
+    @classmethod
+    @abstractmethod
+    def from_payload(
+            cls,
+            payload: Mapping[str, Any],
+            cached: Optional[Any] = None
+    ) -> Optional[Self]:
+        """Initialize the event from a payload and cached values.
+
+        Subclasses **must** override this method.
+
+        This classmethod is meant as an initializer, and should return the
+        instance that will be passed to the callback, or `None` to have the
+        handler of this event be ignored.
+
+        Parameters:
+            payload: Deserialized JSON event from the gateway (`d` field).
+            cached:
+                Return value of the current cache. This will be the "old" value
+                which was replaced by this event, or `None` if the cache did
+                not keep any value.
+        """
         raise NotImplementedError()
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ErrorEvent(Event):
+    """Event dispatched when an error occured.
+
+    This event only catches subclasses of `Exception`. Other exceptions, such
+    as `KeyboardInterrupt` will not be dispatched with this event.
+
+    If callbacks of this event raises an error, it is printed and ignored.
+
+    Unlike other events, this one is special in its construction and does not
+    corrolate to any given gateway event. Therefore this is instantiated using
+    `__init__()` and subclasses are required to match the same signature.
+
+    Attributes:
+        exception: The exception that was raised.
+        event:
+            The event that was dispatched unless the exception that triggered
+            this event came from the library without a dispatched event.
+        callback:
+            The callback which raised an error trying to handle the event,
+            unless the exception came from the library without a callback.
+    """
+
+    # Note that this is a special event which does not implement the
+    # usual from_payload() method because it does not get dispatched from
+    # gateway events like other events.
+    NAME: ClassVar[str] = '__ERROR'
+
+    exception: Exception
+
+    event: Optional[Event] = None
+
+    # Return type is Any because the user might want to use the return type and
+    # having it be object would not allow any meaningful operations.
+    callback: Optional['CoroFunc[Any]'] = None
+
+    @classmethod
+    @abstractmethod
+    async def from_payload(
+            cls,
+            payload: Mapping[str, Any],
+            cached: Optional[Any] = None
+    ) -> NoReturn:
+        raise RuntimeError(
+            f"{cls.__name__!r} cannot be dispatched using the 'from_payload()' method"
+        )
 
 
 def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
@@ -68,12 +152,12 @@ def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
 
     annotation = _eval_annotations(callback).get(param.name)
 
-    if annotation is None or not issubclass(annotation, Event):
+    if annotation is None or (isinstance(annotation, type) and not issubclass(annotation, Event)):
         raise TypeError(
             "The first parameter of 'callback' has to be annotated with an 'Event' subclass"
         )
 
-    if annotation == Event:
+    if annotation is Event:
         # It should be a subclass of Event
         raise TypeError(
             "The first parameter of 'callback' cannot be annotated with 'Event' directly"
@@ -81,169 +165,207 @@ def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
     return annotation
 
 
-C = TypeVar('C', bound='Callable[..., Coroutine]')
-
-
-class ErrorHandlerMixin:
-    """Mixin that allows registering error handlers.
-
-    This being a mixin means that it takes no arguments in its `__init__`
-    and any passed will be forwarded to `super()`.
-    """
-
-    error_handlers: List[Tuple[Type[Exception], 'Callable[..., Awaitable[object]]']]
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.error_handlers = []
-
-    async def handle_error(
-        self,
-        context: Any,
-        raised: Exception,
+def _ignore_dispatch_error(
+        exc: Exception,
         *,
-        callback: Optional['Callable[..., Awaitable[object]]'] = None
-    ) -> None:
-        """Handle an error that occured - calling registered handlers.
+        event: Union[str, Type[Event], Event, None] = None,
+) -> None:
+    # We can't trust that the user has defined a NAME class variable like they
+    # should have. Maybe that's why we're printing this error...
+    if isinstance(event, (type, Event)) and hasattr(event, 'NAME'):
+        name = event.NAME
+    else:
+        name = event
 
-        Following the sorted order of error handlers this will call them by
-        how "broad" the error is considered - so that subclasses are called
-        before their parents.
+    print(f'Ignoring exception handling event {name!r}:', file=sys.stderr)
+    traceback.print_exception(type(exc), exc, exc.__traceback__)
 
-        The way an error handler marks an error as handled is by returning
-        `True`, any other value is discarded.
 
-        If no handler handled the error the `callback` argument is called, this
-        allows chaining error handlers on levels.
-
-        Parameters:
-            context: The one argument to pass onto the handler.
-            raised: The `Exception` subclass that was raised.
-            callback: Callback used if no handler handled the error.
-
-        Raises:
-            Exception: The `Exception` subclass that was passed in.
-        """
-        for error, handler in self.error_handlers:
-            if not isinstance(raised, error):
-                continue
-
-            if await handler(context, raised) is True:
-                break
-        else:
-            if callback is None:
-                return
-
-            # No handler at our level handled the error, propagate it up to a
-            # level above or similar uses.
-            await callback(context, raised)
-
-    def register_error_handler(
-        self,
-        callback: 'Callable[..., Awaitable[object]]',
-        *,
-        exception: Type[Exception] = Exception
-    ) -> None:
-        self.error_handlers.append((exception, callback))
-
-        # First sort the error handlers by name (this makes the result
-        # determinable no matter what the order is) and then by the length of
-        # its __mro__. The more parents the class has the longer its __mro__
-        # will be and the more "narrow" it will be considered.
-        self.error_handlers.sort(key=lambda item: str(item[0]))
-        self.error_handlers.sort(key=lambda item: len(item[0].__mro__), reverse=True)
-
-    @overload
-    def error(self, *, type: Type[Exception]) -> Callable[[C], C]:
-        ...
-
-    @overload
-    def error(self, callback: C) -> C:
-        ...
-
-    def error(
-        self,
-        callback: Optional[C] = None,
-        *,
-        type: Optional[Type[Exception]] = None
-    ) -> Union[Callable[[C], C], C]:
-        """Decorator to register an error handler.
-
-        This decorator is designed to be called with and without parenthesis.
-        """
-        def decorator(func: C) -> C:
-            self.register_error_handler(func, exception=type or Exception)
-            return func
-
-        if callback is not None:
-            return decorator(callback)
-
-        return decorator
+async def _wrap_error_callback(callback: 'CoroFunc[object]', event: Event) -> None:
+    try:
+        await callback(event)
+    except Exception as exc:
+        _ignore_dispatch_error(exc, event=event)
 
 
 class EventDispatcher:
-    """Mixin to be able to dispatch events.
+    """Small mixin class adding the ability to dispatch events.
 
-    Attributes:
-        listeners:
-            A dictionary of event names to a pair of event types and callback
-            associated with it
+    This class can be inherited from to get the `get_dispatch_handlers()` and
+    `dispatch()` methods for dispatching event objects.
+
+    Dispatching works by first calling `get_dispatch_handlers()` with the name
+    of the event you wish to dispatch. This allows you to know whether later
+    calling `dispatch()` will call any handlers - although it isn't completely
+    correct as the event objects may return in their constructors. Afterwards
+    you should call `dispatch()` to launch the handlers as tasks.
     """
 
-    listeners: Dict[
-        str, List[Tuple[
-            Type[Event], 'Callable[..., Coroutine[Any, Any, object]]'
-        ]]
+    _listeners: Dict[
+        str, Dict[
+            Type[Event], List['CoroFunc[object]']
+        ]
     ]
 
-    __slots__ = ('listeners',)
+    __slots__ = ('_listeners',)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self.listeners = {}
+        self._listeners = {}
 
-    def dispatch(self, event: str, *args: Any, tg: anyio.abc.TaskGroup) -> None:
+    def get_dispatch_handlers(
+            self,
+            event: str
+    ) -> Dict[Type[Event], List['CoroFunc[object]']]:
+        """Get the dispatch handlers for the event passed.
+
+        The point of this separation from `dispatch()` is being able to know
+        whether calling `dispatch()` will actually dispatch any handlers. That
+        said, there is a possibility that all event objects will `None` meaning
+        that no handler will be dispatched anyways.
+
+        Parameters:
+            event: The name of the event to dispatch.
+
+        Returns:
+            A dictionary with the key being the event constructor, and the
+            value a list of callbacks that should be called with that event.
+        """
+        return self._listeners.get(event, {})
+
+    async def dispatch_error(
+            self,
+            exc: Exception,
+            *,
+            event: Optional[Event] = None,
+            callback: Optional['CoroFunc[Any]'] = None,
+    ) -> None:
+        """Dispatch an error that happened.
+
+        This is safe to call for errors that happened while dispatching other
+        events (it is not recursive).
+
+        Parameters:
+            exc: Exception instance that was raised.
+            tg: Task group to dispatch callbacks with.
+            event: The event instance that failed to dispatch.
+        """
+        if not isinstance(exc, Exception):
+            if isinstance(exc, BaseException):
+                # If it is a BaseException subclass (but not a subclass of
+                # Exception like normal exceptions) then we want to raise an
+                # error. The issue is that if we raise another type of error
+                # like a TypeError then that may be swallowed somewhere (unlike
+                # these subclasses of BaseException).
+                raise exc  # Re-raise if it is a BaseException subclass
+
+            raise TypeError(f'Expected subclass of Exception but got {type(exc).__name__!r}')
+
+        handlers = self.get_dispatch_handlers(ErrorEvent.NAME)
+        if not handlers:
+            _ignore_dispatch_error(exc, event=event)
+            await anyio.lowlevel.checkpoint()
+            return
+
+        async with anyio.create_task_group() as tg:
+            for subclass, callbacks in handlers.items():
+                try:
+                    instance = subclass(exc, event=event, callback=callback)
+                except Exception as exc:
+                    _ignore_dispatch_error(exc, event=event)
+                    continue
+
+                if not callbacks:
+                    _ignore_dispatch_error(exc, event=event)
+                    continue
+
+                for func in callbacks:
+                    tg.start_soon(_wrap_error_callback, func, instance)
+
+    async def _wrap_dispatch_callback(
+            self,
+            callback: 'CoroFunc[object]',
+            event: Event,
+    ) -> None:
+        try:
+            await callback(event)
+        except Exception as exc:
+            await self.dispatch_error(exc, event=event, callback=callback)
+
+    async def dispatch(
+            self,
+            handlers: Dict[Type[Event], List['CoroFunc[object]']],
+            payload: Mapping[str, Any],
+            cached: Optional[Any],
+    ) -> None:
         """Dispatch appropriate listeners.
 
         The callbacks will be started with the task group and passed the
-        arguments given.
+        arguments given. Error handling is handled meaning that the task group
+        should not get cancelled by an error in a callback.
 
         Parameters:
-            event: The event to dispatch
-            *args: Arguments to pass onto the Event initializer
-            tg: Task group to start the callbacks with
+            handlers: The return value of `get_dispatch_handlers()`.
+            payload: Data returned by the gateway to dispatch.
+            cached: Return value of the cache representing the "old" value.
+            tg: Task group to use when launching the callbacks.
         """
-        for initializer, callback in self.listeners.get(event, []):
-            tg.start_soon(callback, initializer(*args))
+        if not handlers:
+            await anyio.lowlevel.checkpoint()
+            return
 
-    def add_listener(self, callback: 'Callable[..., Coroutine[Any, Any, object]]') -> None:
+        async with anyio.create_task_group() as tg:
+            for event, callbacks in handlers.items():
+                try:
+                    instance = event.from_payload(payload, cached)
+                except Exception as exc:
+                    tg.start_soon(self.dispatch_error, exc)
+                    continue
+
+                if instance is None:
+                    continue
+
+                for func in callbacks:
+                    tg.start_soon(partial(self._wrap_dispatch_callback, func, instance))
+
+    def add_listener(
+            self,
+            callback: 'CoroFunc[object]',
+            *,
+            event: Optional[Type[Event]] = None
+    ) -> None:
         """Register and add a listener callback.
 
-        The event it listens for will be read from the callback's arguments.
+        If `event` is `None`, the actual event will be introspected from the
+        callback's parameter annotations.
 
         Parameters:
-            callback: The callback to register as a listener
+            callback: The callback to register as a listener.
+            event: Event subclass it wishes to listen to.
         """
-        annotation = _extract_event(callback)
+        if event is None:
+            event = _extract_event(callback)
 
-        if annotation.NAME in self.listeners:
-            self.listeners[annotation.NAME].append((annotation, callback))
+        if event.NAME in self._listeners:
+            types = self._listeners[event.NAME]
+            if event in types:
+                types[event].append(callback)
+            else:
+                types[event] = [callback]
         else:
-            self.listeners[annotation.NAME] = [(annotation, callback)]
+            self._listeners[event.NAME] = {event: [callback]}
 
     def remove_listener(
         self,
-        callback: 'Callable[..., Coroutine[Any, Any, object]]',
+        callback: 'CoroFunc[object]',
         *,
         event: Union[str, Type[Event], None] = None
     ) -> None:
         """Remove a particular listener callback.
 
-        It is heavily encouraged to pass `event` if it is known to improve
-        the performance, omitting it means all listeners for all events need to
-        be checked.
+        It is heavily encouraged to pass `event` if it is known. Without it,
+        the event will be introspected from the parameters.
 
         Parameters:
             callback: The registered callback to remove.
@@ -257,31 +379,52 @@ class EventDispatcher:
         elif isinstance(event, type) and issubclass(event, Event):
             name = event.NAME
         else:
-            raise TypeError(f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'")
+            raise TypeError(
+                f"Expected 'str' or 'Event' subclass, got '{type(event).__name__}'"
+            )
 
-        container = self.listeners.get(name, [])
-        for i, (_, listener) in enumerate(container):
-            if listener == callback:
-                container.pop(i)
+        try:
+            container = self._listeners[name]
+        except KeyError:
+            raise ValueError(f"{callback} isn't a registered callback under {event}") from None
 
-                if not container:
-                    # The container is now empty so we can remove it from the
-                    # dictionary
-                    del self.listeners[name]
+        if isinstance(event, type):
+            container[event].remove(callback)
+        else:
+            for event, callbacks in container.items():
+                if callback in callbacks:
+                    callbacks.remove(callback)
+                    break
+            else:
+                raise ValueError(f"{callback} isn't a registered callback under {event}")
 
-                return
+        # If, as a result of removing this callback, the container and list of
+        # callbacks are empty, we can now remove them completely and clean up.
+        if not container[event]:
+            del container[event]
 
-        raise ValueError(f"{callback} isn't a registered callback under {event}")
-
-    @overload
-    def listener(self, callback: C) -> C:
-        ...
+        if not container:
+            del self._listeners[name]
 
     @overload
     def listener(self) -> Callable[[C], C]:
         ...
 
-    def listener(self, callback: Optional[C] = None) -> Union[Callable[[C], C], C]:
+    @overload
+    def listener(self, callback: Type[Event]) -> Callable[[C], C]:
+        # This can technically be joined to the above overload, but it means
+        # that the user will be encouraged (or confused) about passing any
+        # arguments to the function.
+        ...
+
+    @overload
+    def listener(self, callback: C) -> C:
+        ...
+
+    def listener(
+            self,
+            callback: Union[C, Type[Event], None] = None
+    ) -> Union[Callable[[C], C], C]:
         """Decorator to register a listener.
 
         This decorator works both with and without parenthesis.
@@ -294,11 +437,21 @@ class EventDispatcher:
                 ...
             ```
         """
+        event = None
+
         def decorator(func: C) -> C:
-            self.add_listener(func)
+            self.add_listener(func, event=event)
             return func
 
-        if callback is not None:
+        if isinstance(callback, type):
+            if not issubclass(callback, Event):
+                raise TypeError(
+                    f"Expected subclass of 'Event' but received {callback.__name__!r}"
+                    f'with bases {callback.mro()}'
+                )
+
+            event = callback
+        elif callback is not None:
             return decorator(callback)
 
         return decorator

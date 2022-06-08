@@ -1,13 +1,12 @@
 from contextlib import AsyncExitStack
 from contextvars import ContextVar
 from types import TracebackType
-from typing import (
-    Any, Generator, NoReturn, Optional, Type, TypeVar, cast, overload
-)
+from typing import NoReturn, Optional, Type, TypeVar, cast, overload
 
 import anyio
 import anyio.abc
 from typing_extensions import Self
+from wumpy.cache import Cache, InMemoryCache
 from wumpy.gateway import Shard
 from wumpy.rest import APIClient
 
@@ -40,7 +39,7 @@ class Bot(EventDispatcher):
 
 
     # Run the bot with no registered events or commands.
-    anyio.run(bot)
+    anyio.run(bot.run)
     ```
 
     Alternatively, you can use the bot as an asynchronous context manager and
@@ -58,6 +57,7 @@ class Bot(EventDispatcher):
         async with bot:
             await bot.login()
 
+            await bot.connect_cache()
             # This will run the bot and only exit once the gateway has closed.
             await bot.run_gateway()
 
@@ -67,16 +67,15 @@ class Bot(EventDispatcher):
 
     api: RuntimeVar[APIClient] = RuntimeVar()
     gateway: RuntimeVar[Shard] = RuntimeVar()
+    cache: RuntimeVar[Cache] = RuntimeVar()
 
     def __init__(self, token: str, *, intents: int) -> None:
+        super().__init__()
         self.token = token
         self.intents = intents
 
         self._started = False
         self._stack = AsyncExitStack()
-
-    def __await__(self) -> Generator[Any, None, NoReturn]:
-        return self.run().__await__()
 
     async def __aenter__(self) -> Self:
         if self._started:
@@ -109,6 +108,16 @@ class Bot(EventDispatcher):
             APIClient(headers={'Authorization': f'Bot {self.token}'})
         )
 
+    async def connect_cache(self) -> None:
+        if not self._started:
+            raise RuntimeError(
+                "Cannot connect the cahce outside of 'run()' or the async context manager"
+            )
+
+        self.cache = await self._stack.enter_async_context(
+            InMemoryCache(max_messages=2000)
+        )
+
     # This can in fact return, if the WebSocket connection closes or similar.
     # Which is why PyRight complains that it can return None, hence the
     # 'type: ignore' comment. That said, this SHOULD never return in a
@@ -127,7 +136,21 @@ class Bot(EventDispatcher):
 
         async with anyio.create_task_group() as tasks:
             async for data in self.gateway:
-                self.dispatch(data['t'], data, tg=tasks)
+                try:
+                    handlers = self.get_dispatch_handlers(data['t'])
+                except Exception as exc:
+                    tasks.start_soon(self.dispatch_error, exc)
+                    continue
+
+                try:
+                    # Called *with* the 't' key in it for the cache to know the
+                    # event that was sent from the gateway.
+                    cached = await self.cache.update(data, return_old=bool(handlers))
+                except Exception as exc:
+                    tasks.start_soon(self.dispatch_error, exc)
+                    continue
+
+                tasks.start_soon(self.dispatch, handlers, data['d'], cached)
 
     async def run(self) -> NoReturn:
         """Run the main bot.
@@ -159,6 +182,7 @@ class Bot(EventDispatcher):
         async with self:
             await self.login()
 
+            await self.connect_cache()
             await self.run_gateway()
 
 

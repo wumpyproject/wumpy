@@ -1,7 +1,9 @@
-from typing import Any, Callable, Mapping, Optional, SupportsInt, Tuple
+from types import TracebackType
+from typing import Any, Callable, Mapping, Optional, SupportsInt, Tuple, Type
 
 import anyio.lowlevel
 from discord_typings import UserData
+from typing_extensions import Self
 from wumpy.models import (
     Category, Emoji, Guild, Invite, Member, Message, Role, Sticker, Thread,
     User
@@ -25,7 +27,18 @@ class BaseMemoryCache(Cache):
 
     __slots__ = ()
 
-    async def update(self, payload: Mapping[str, Any]) -> Any:
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        traceback: Optional[TracebackType]
+    ) -> None:
+        pass
+
+    async def update(self, payload: Mapping[str, Any], *, return_old: bool = True) -> Any:
         """Propogate the `update()` to a processor.
 
         Processors needs to follow: `_process_discord_event` naming; starting

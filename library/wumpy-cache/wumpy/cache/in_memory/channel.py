@@ -1,10 +1,12 @@
 import collections
 from typing import (
-    Any, Deque, Dict, Mapping, Optional, Sequence, SupportsInt, Tuple, Type,
-    Union
+    Any, Deque, Dict, FrozenSet, Mapping, Optional, SupportsInt, Type, Union
 )
 
-from discord_typings import ChannelData, MessageData
+from discord_typings import (
+    ChannelData, MessageCreateData, MessageDeleteBulkData, MessageDeleteData,
+    MessageUpdateData
+)
 from wumpy.models import Category, Message, TextChannel, Thread, VoiceChannel
 
 from .base import BaseMemoryCache, Channel
@@ -34,29 +36,32 @@ class ChannelMemoryCache(BaseMemoryCache):
 
         self._channels = {}
 
-    def _process_create_channel(self, data: ChannelData) -> Tuple[None, AllChannels]:
+    def _process_create_channel(self, data: ChannelData, *, return_old: bool = True) -> None:
         cls = self.CHANNELS[data['type']]
         # The type checker doesn't understand the relation between data['type']
         # and the class returned so it thinks that any channel data may be
         # passed to any channel class.
         channel = cls.from_data(data)  # type: ignore
         self._channels[channel.id] = channel
-        return None, channel
+        return
 
     def _process_channel_update(
             self,
-            data: ChannelData
-    ) -> Tuple[Optional[AllChannels], AllChannels]:
-        return (
-            self._process_channel_delete(data)[0],
-            self._process_create_channel(data)[1]
-        )
+            data: ChannelData,
+            *,
+            return_old: bool = True
+    ) -> Optional[AllChannels]:
+        old = self._process_channel_delete(data, return_old=return_old)
+        self._process_create_channel(data, return_old=return_old)
+        return old
 
     def _process_channel_delete(
         self,
-        data: ChannelData
-    ) -> Tuple[Optional[AllChannels], None]:
-        return (self._channels.pop(int(data['id']), None), None)
+        data: ChannelData,
+        *,
+        return_old: bool = True
+    ) -> Optional[AllChannels]:
+        return self._channels.pop(int(data['id']), None)
 
     async def get_channel(self, channel: SupportsInt) -> Optional[AllChannels]:
         return self._channels.get(int(channel))
@@ -84,45 +89,53 @@ class MessageMemoryCache(BaseMemoryCache):
 
         self._messages = collections.deque(maxlen=max_messages)
 
-    def _process_message_create(self, data: MessageData) -> Tuple[None, Message]:
+    def _process_message_create(
+            self,
+            data: MessageCreateData,
+            *,
+            return_old: bool = True
+    ) -> None:
         m = Message.from_data(data)
         self._messages.append(m)
-        return (None, m)
 
     def _process_message_update(
-        self,
-        data: MessageData
-    ) -> Tuple[Optional[Message], Message]:
-        return (
-            self._process_message_update(data)[0],
-            self._process_message_create(data)[1]
-        )
+            self,
+            data: MessageUpdateData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Message]:
+        old = self._process_message_delete(data, return_old=return_old)
+        self._process_message_create(data, return_old=return_old)
+        return old
 
     def _process_message_delete(
-        self,
-        data: Dict[str, Union[str, int]]
-    ) -> Tuple[Optional[Message], None]:
-        id_ = int(data['id'])
-        old = None
+            self,
+            data: MessageDeleteData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Message]:
+        if return_old:
+            id_ = int(data['id'])
 
-        # List comprehensions are generally a faster than normal for-loops,
-        # although it does look a little odd.
-        found = [msg for msg in reversed(self._messages) if msg.id == id_]
+            found = [msg for msg in self._messages if msg == id_]
+            if found:
+                return found[0]
 
-        if found:
-            old = found[-1]
-
-        return (old, None)
+        return None
 
     def _process_message_delete_bulk(
         self,
-        data: Dict[str, Any]
-    ) -> Tuple[Sequence[Message], None]:
-        ids = set([int(id_) for id_ in data['ids']])
+        data: MessageDeleteBulkData,
+        *,
+        return_old: bool = True
+    ) -> FrozenSet[Message]:
+        if return_old:
+            ids = set([int(id_) for id_ in data['ids']])
 
-        found = [msg for msg in reversed(self._messages) if msg.id in ids]
+            found = [msg for msg in self._messages if msg.id in ids]
+            return frozenset(found)
 
-        return found, None
+        return frozenset()
 
     async def get_message(
         self,

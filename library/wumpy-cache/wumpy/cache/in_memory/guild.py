@@ -1,6 +1,10 @@
-from typing import Any, Dict, List, Optional, SupportsInt, Tuple
+from typing import Any, Dict, FrozenSet, Optional, SupportsInt, Tuple
 
-from discord_typings import GuildData
+from discord_typings import (
+    GuildCreateData, GuildDeleteData, GuildEmojisUpdateData,
+    GuildRoleCreateData, GuildRoleDeleteData, GuildRoleUpdateData,
+    GuildStickersUpdateData, GuildUpdateData
+)
 from wumpy.models import Emoji, Guild, Role, Sticker
 
 from .base import BaseMemoryCache
@@ -16,24 +20,38 @@ class GuildMemoryCache(BaseMemoryCache):
 
         self._guilds = {}
 
-    def _process_guild_create(self, data: GuildData) -> Tuple[None, Guild]:
-        guild = Guild.from_data(data)
-        self._guilds[guild.id] = guild
-        return (None, guild)
+    def _process_guild_create(
+            self,
+            data: GuildCreateData,
+            *,
+            return_old: bool = True
+    ) -> None:
+        self._guilds[int(data['id'])] = Guild.from_data(data)
 
-    def _process_guild_update(self, data: GuildData) -> Tuple[Optional[Guild], Guild]:
-        return (
-            self._process_guild_delete(data)[0],
-            self._process_guild_create(data)[1]
-        )
+    def _process_guild_update(
+            self,
+            data: GuildUpdateData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Guild]:
+        old = self._process_guild_delete(data, return_old=return_old)
+        self._process_guild_create(data, return_old=return_old)
+        return old
 
-    def _process_guild_delete(self, data: GuildData) -> Tuple[Optional[Guild], None]:
+    def _process_guild_delete(
+            self,
+            data: GuildDeleteData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Guild]:
+        # Don't remove the guild, as it only became unavailable - we didn't
+        # get kicked or left it.
         if not data.get('unavailable', False):
-            return (self._guilds.pop(int(data['id']), None), None)
+            return self._guilds.pop(int(data['id']))
 
-        # Don't remove the guild, as it only became unavailable - we didn't get
-        # kicked or left it.
-        return (self._guilds.get(int(data['id'])), None)
+        if return_old:
+            return self._guilds.get(int(data['id']))
+        return None
 
     async def get_guild(self, guild: SupportsInt) -> Optional[Guild]:
         return self._guilds.get(int(guild))
@@ -47,19 +65,32 @@ class RoleMemoryCache(BaseMemoryCache):
 
         self._roles = {}
 
-    def _process_guild_role_create(self, data: Dict[str, Any]) -> Tuple[None, Role]:
+    def _process_guild_role_create(
+            self,
+            data: GuildRoleCreateData,
+            *,
+            return_old: bool = True
+    ) -> None:
         role = Role.from_data(data['role'])
         self._roles[int(data['role']['id'])] = role
-        return (None, role)
 
-    def _process_guild_role_update(self, data: Dict[str, Any]) -> Tuple[Optional[Role], Role]:
-        return (
-            self._process_guild_role_delete(data)[0],
-            self._process_guild_role_create(data)[1]
-        )
+    def _process_guild_role_update(
+            self,
+            data: GuildRoleUpdateData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Role]:
+        old = self._roles.pop(int(data['role']['id']), None)
+        self._process_guild_role_create(data, return_old=return_old)
+        return old
 
-    def _process_guild_role_delete(self, data: Dict[str, Any]) -> Tuple[Optional[Role], None]:
-        return (self._roles.pop(int(data['role_id']), None), None)
+    def _process_guild_role_delete(
+            self,
+            data: GuildRoleDeleteData,
+            *,
+            return_old: bool = True
+    ) -> Optional[Role]:
+        return self._roles.pop(int(data['role_id']), None)
 
     async def get_role(self, role: SupportsInt) -> Optional[Role]:
         return self._roles.get(int(role))
@@ -83,50 +114,51 @@ class EmojiMemoryCache(BaseMemoryCache):
 
     def _process_guild_emojis_update(
             self,
-            data: Dict[str, Any]
-    ) -> Tuple[Optional[List[Emoji]], List[Emoji]]:
-        # The reason that the first item is both Optional and a list (which we
-        # might as well make empty) is to follow the same patterns as other
-        # processors. If nothing was found in cache, the first item should be
-        # None so that the code which wraps update() can handle it.
-
-        prev = self._guild_emojis.get(int(data['guild_id']))
-        if prev is not None:
-            prev = [self._emojis[i] for i in prev]
-
-            removed = {e.id for e in prev} - {int(e['id']) for e in data['emojis']}
-            for id_ in removed:
-                self._emojis.pop(id_, None)
+            data: GuildEmojisUpdateData,
+            *,
+            return_old: bool = True
+    ) -> Optional[FrozenSet[Emoji]]:
+        if return_old:
+            prev = frozenset([
+                emoji for emoji in [
+                    self._emojis.pop(i, None) for i in
+                    self._guild_emojis.get(int(data['guild_id']), ())
+                ] if emoji is not None
+            ])
+        else:
+            prev = None
 
         updated = [Emoji.from_data(e) for e in data['emojis']]
         for emoji in updated:
             self._emojis[emoji.id] = emoji
 
         self._guild_emojis[int(data['guild_id'])] = tuple(e.id for e in updated)
-        return (prev, updated)
+
+        return prev
 
     def _process_guild_stickers_update(
             self,
-            data: Dict[str, Any]
-    ) -> Tuple[Optional[List[Sticker]], List[Sticker]]:
-        # See _process_guild_emojis_update() for why the first item is optional
+            data: GuildStickersUpdateData,
+            *,
+            return_old: bool = True
+    ) -> Optional[FrozenSet[Sticker]]:
+        if return_old:
+            prev = frozenset([
+                sticker for sticker in [
+                    self._stickers.pop(i, None) for i in
+                    self._guild_stickers.get(int(data['guild_id']), ())
+                ] if sticker is not None
+            ])
+        else:
+            prev = None
 
-        prev = self._guild_stickers.get(int(data['guild_id']))
-        if prev is not None:
-            prev = [self._stickers[i] for i in prev]
-
-            removed = (
-                {stick.id for stick in prev} - {int(stick['id']) for stick in data['stickers']}
-            )
-            for id_ in removed:
-                self._stickers.pop(id_, None)
-
-        updated = [Sticker.from_data(e) for e in data['emojis']]
+        updated = [Sticker.from_data(e) for e in data['stickers']]
         for sticker in updated:
             self._stickers[sticker.id] = sticker
 
-        self._guild_stickers[int(data['guild_id'])] = tuple(stick.id for stick in updated)
-        return (prev, updated)
+        self._guild_stickers[int(data['guild_id'])] = tuple(s.id for s in updated)
+
+        return prev
 
     async def get_emoji(self, emoji: SupportsInt) -> Optional[Emoji]:
         return self._emojis.get(int(emoji))
