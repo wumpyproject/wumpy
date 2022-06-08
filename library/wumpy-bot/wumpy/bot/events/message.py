@@ -1,51 +1,112 @@
-from typing import Any, ClassVar, Dict, Optional
+import dataclasses
+from typing import ClassVar, FrozenSet, Optional, Sequence
 
-from wumpy.models import Snowflake
+from discord_typings import (
+    MessageCreateData, MessageDeleteBulkData, MessageDeleteData,
+    MessageReactionAddData, MessageReactionRemoveData,
+    MessageReactionRemoveEmojiData, MessageUpdateData
+)
+from typing_extensions import Self
+from wumpy.models import Emoji, Member, Message, Snowflake
 
 from ..dispatch import Event
-from ..utils import _get_as_snowflake
+from ..utils import _get_as_snowflake, backport_slots
 
 __all__ = (
-    'MessageDeleteEvent', 'BulkMessageDeleteEvent',
-    'ReactionAddEvent', 'ReactionRemoveEvent',
+    'MessageDeleteEvent', 'BulkMessageDeleteEvent', 'ReactionAddEvent', 'ReactionRemoveEvent',
     'ReactionClearEvent', 'ReactionEmojiClearEvent'
 )
 
 
-class MessageDeleteEvent(Event):
-    """Dispatched when a message is deleted."""
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class MessageCreateEvent(Event):
+    message: Message
 
+    NAME: ClassVar[str] = 'MESSAGE_CREATE'
+
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageCreateData,
+            cached: None = None
+    ) -> Self:
+        return cls(message=Message.from_data(payload))
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class MessageUpdateEvent(Event):
+    message: Message
+    cached: Optional[Message]
+
+    NAME: ClassVar[str] = 'MESSAGE_UPDATE'
+
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageUpdateData,
+            cached: Optional[Message] = None
+    ) -> Self:
+        return cls(message=Message.from_data(payload), cached=cached)
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class MessageDeleteEvent(Event):
     message_id: Snowflake
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
+    cached: Optional[Message]
+
     NAME: ClassVar[str] = "MESSAGE_DELETE"
 
-    __slots__ = ('message_id', 'channel_id', 'guild_id')
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageDeleteData,
+            cached: Optional[Message] = None
+    ) -> Self:
+        return cls(
+            message_id=Snowflake(payload['id']),
+            channel_id=Snowflake(payload['channel_id']),
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.message_id = Snowflake(data['id'])
-        self.channel_id = Snowflake(data['channel_id'])
-        self.guild_id = _get_as_snowflake(data, 'guild_id')
+            cached=cached
+        )
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class BulkMessageDeleteEvent(Event):
     """Dispatched when multiple messages are deleted at once."""
 
-    message_ids: list[Snowflake]
+    message_ids: FrozenSet[Snowflake]
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
+    cached: Optional[FrozenSet[Message]]
+
     NAME: ClassVar[str] = "MESSAGE_DELETE_BULK"
 
-    __slots__ = ('message_ids', 'channel_id', 'guild_id')
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageDeleteBulkData,
+            cached: Optional[Sequence[Message]] = None
+    ) -> Self:
+        return cls(
+            message_ids=frozenset([Snowflake(id_) for id_ in payload['ids']]),
+            channel_id=Snowflake(payload['channel_id']),
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.message_ids = [Snowflake(id_) for id_ in data['ids']]
-        self.channel_id = Snowflake(data['channel_id'])
-        self.guild_id = _get_as_snowflake(data, 'guild_id')
+            cached=frozenset(cached) if cached is not None else None
+        )
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class ReactionAddEvent(Event):
     """Dispatched when a user adds a reaction to a message."""
 
@@ -54,25 +115,34 @@ class ReactionAddEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    emoji: Dict[str, Any]
-    member: Dict[str, Any]
+    emoji: Emoji
+    member: Optional[Member]
 
     NAME: ClassVar[str] = "MESSAGE_REACTION_ADD"
 
-    __slots__ = ('message_id', 'user_id', 'channel_id', 'guild_id', 'emoji', 'member')
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageReactionAddData,
+            cached: None = None
+    ) -> Self:
+        member = None
+        if 'member' in payload:
+            member = Member.from_data(payload['member'])
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.message_id = Snowflake(data['d']['message_id'])
-        self.user_id = Snowflake(data['d']['user_id'])
-        self.channel_id = Snowflake(data['d']['channel_id'])
+        return cls(
+            message_id=Snowflake(payload['message_id']),
+            user_id=Snowflake(payload['user_id']),
+            channel_id=Snowflake(payload['channel_id']),
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-        guild_id = data['d'].get('guild_id')
-        self.guild_id = Snowflake(guild_id) if guild_id is not None else None
-
-        self.emoji = data['d']['emoji']
-        self.member = data['d'].get('member')
+            emoji=Emoji.from_data(payload['emoji']),
+            member=member,
+        )
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class ReactionRemoveEvent(Event):
     """Dispatched when a reaction is removed from a message."""
 
@@ -81,23 +151,28 @@ class ReactionRemoveEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    emoji: Dict[str, Any]
+    emoji: Emoji
 
     NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE"
 
-    __slots__ = ('message_id', 'user_id', 'channel_id', 'guild_id', 'emoji')
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageReactionRemoveData,
+            cached: None = None
+    ) -> Self:
+        return cls(
+            message_id=Snowflake(payload['message_id']),
+            user_id=Snowflake(payload['user_id']),
+            channel_id=Snowflake(payload['channel_id']),
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.message_id = Snowflake(data['d']['message_id'])
-        self.user_id = Snowflake(data['d']['user_id'])
-        self.channel_id = Snowflake(data['d']['channel_id'])
-
-        guild_id = data['d'].get('guild_id')
-        self.guild_id = Snowflake(guild_id) if guild_id is not None else None
-
-        self.emoji = data['d']['emoji']
+            emoji=Emoji.from_data(payload['emoji'])
+        )
 
 
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class ReactionClearEvent(Event):
     """Dispatched when all reactions is removed from a message."""
 
@@ -107,16 +182,21 @@ class ReactionClearEvent(Event):
 
     NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE_ALL"
 
-    __slots__ = ('message_id', 'channel_id', 'guild_id')
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageDeleteData,
+            cached: None = None
+    ) -> Self:
+        return cls(
+            message_id=Snowflake(payload['id']),
+            channel_id=Snowflake(payload['channel_id']),
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
+        )
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.message_id = Snowflake(data['d']['message_id'])
-        self.channel_id = Snowflake(data['d']['channel_id'])
 
-        guild_id = data['d'].get('guild_id')
-        self.guild_id = Snowflake(guild_id) if guild_id is not None else None
-
-
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
 class ReactionEmojiClearEvent(Event):
     """Dispatched when only a specific emoji's reactions are cleared."""
 
@@ -124,17 +204,20 @@ class ReactionEmojiClearEvent(Event):
     channel_id: Snowflake
     guild_id: Optional[Snowflake]
 
-    emoji: Dict[str, Any]
+    emoji: Emoji
 
     NAME: ClassVar[str] = "MESSAGE_REACTION_REMOVE_EMOJI"
 
-    __slots__ = ('message_id', 'channel_id', 'guild_id', 'emoji')
+    @classmethod
+    def from_payload(
+            cls,
+            payload: MessageReactionRemoveEmojiData,
+            cached: None = None
+    ) -> Self:
+        return cls(
+            message_id=Snowflake(payload['message_id']),
+            channel_id=Snowflake(payload['channel_id']),
+            guild_id=_get_as_snowflake(payload, 'guild_id'),
 
-    def __init__(self, data: Dict[str, Any]) -> None:
-        self.message_id = Snowflake(data['d']['message_id'])
-        self.channel_id = Snowflake(data['d']['channel_id'])
-
-        guild_id = data['d'].get('guild_id')
-        self.guild_id = Snowflake(guild_id) if guild_id is not None else None
-
-        self.emoji = data['d']['emoji']
+            emoji=Emoji.from_data(payload['emoji'])
+        )
