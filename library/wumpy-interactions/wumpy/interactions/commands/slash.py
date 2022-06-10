@@ -82,6 +82,12 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
                 # spaces, and two characters into one.
                 self.description = paragraps[0].replace('\n', ' ')
 
+        # After having updated our description from the docstring, we should
+        # now have a description. There are no other places a description can
+        # be set.
+        if self.description is None:
+            raise ValueError('Command is missing a description; add a docstring or specify one')
+
         if not iscoroutinefunction(callback):
             raise TypeError("'callback' must be an 'async def' function")
 
