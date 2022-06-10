@@ -10,6 +10,7 @@ from wumpy.models import (
 from ..errors import CommandSetupError
 from ..models import CommandInteraction
 from .base import Callback, CommandCallback
+from .middleware import CommandMiddlewareMixin
 
 __all__ = ('ContextMenuCommand', 'MessageCommand', 'UserCommand')
 
@@ -18,7 +19,7 @@ P = ParamSpec('P')
 RT = TypeVar('RT')
 
 
-class ContextMenuCommand(CommandCallback[P, RT]):
+class ContextMenuCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
     """Discord context menu command that gets a user or message.
 
     Attributes:
