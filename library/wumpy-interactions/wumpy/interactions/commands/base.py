@@ -17,7 +17,14 @@ Callback = Callable[P, Awaitable[RT]]
 
 
 class CommandCallback(Generic[P, RT]):
-    """Asynchronous command callback wrapped in middleware."""
+    """Asynchronous callback wrapped with processing.
+
+    This class is used to wrap, store, and process a callback.
+    
+    To use it, subclass and override the methods below. They are marked
+    internal as to not leak out to the user since they are only meant to be
+    called by this class.
+    """
 
     _callback: Callback[P, RT]
 
@@ -31,9 +38,7 @@ class CommandCallback(Generic[P, RT]):
 
     @property
     def callback(self) -> Callback[P, RT]:
-        if self._callback is None:
-            raise AttributeError(f"{self.__class__.__name__!r} has no currently set callback")
-
+        """The callback this object wraps."""
         return self._callback
 
     @callback.setter
