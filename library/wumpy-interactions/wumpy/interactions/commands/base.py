@@ -97,7 +97,9 @@ class CommandCallback(Generic[P, RT]):
     def _process_return_type(self, annotation: Any) -> None:
         """Process the extracted return type of the callback.
 
-        This is only called if the callback is a return type.
+        This is only called if the callback has a return type. Consider
+        overriding `_process_callback()` and processing the callback
+        *after the `super()` call* to do more processing at the end.
 
         Parameters:
             annotation: The annotation of the function's return type.

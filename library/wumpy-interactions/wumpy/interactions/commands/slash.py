@@ -85,7 +85,12 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
         if not iscoroutinefunction(callback):
             raise TypeError("'callback' must be an 'async def' function")
 
-        return super()._process_callback(callback)
+        super()._process_callback(callback)
+
+        # After all introspection and processing is done, patch the defaults.
+        # This cannot run before the introspection because the changes would
+        # reflect in the introspection.
+        self._patch_defaults()
 
     def _process_param(self, index: int, param: inspect.Parameter) -> None:
         if index == 0:
@@ -118,11 +123,7 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
     def _process_no_params(self, signature: inspect.Signature) -> None:
         raise TypeError("'callback' has to have two parameters")
 
-    def _process_return_type(self, annotation: Any) -> None:
-        # We don't actually care about the return type, this is simply the last
-        # method to be called when processing which we take advantage of.
-        super()._process_return_type(annotation)
-
+    def _patch_defaults(self) -> None:
         defaults: List[Any] = []
         kw_defaults: Dict[str, Any] = {}
 
