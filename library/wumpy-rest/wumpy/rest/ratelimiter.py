@@ -448,15 +448,16 @@ class DictRatelimiter:
     """
 
     _global_rl: GlobalRatelimit
+    global_rate: int
 
     buckets: Dict[str, str]
     locks: 'WeakValueDictionary[str, Ratelimit]'
     fallbacks: 'WeakValueDictionary[str, Ratelimit]'
 
-    __slots__ = ('_tasks', '_global_rl', 'buckets', 'locks', 'fallbacks')
+    __slots__ = ('_tasks', '_global_rl', 'global_rate', 'buckets', 'locks', 'fallbacks')
 
     def __init__(self, global_rate: int = 50) -> None:
-        self._global_rl = GlobalRatelimit(global_rate)
+        self.global_rate = global_rate
 
         self.buckets = {}  # Route endpoint to X-RateLimit-Bucket
 
@@ -471,6 +472,11 @@ class DictRatelimiter:
         self.fallbacks = WeakValueDictionary()
 
     async def __aenter__(self) -> Self:
+        # We delay the instantiation of the global ratelimiter because it
+        # will create several Events. Since there might not be any event loop
+        # running at the time, anyio will not know which implementation to use.
+        self._global_rl = GlobalRatelimit(self.global_rate)
+
         self._tasks = await anyio.create_task_group().__aenter__()
         return self
 
