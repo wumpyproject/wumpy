@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import TracebackType
 from typing import (
-    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict, Mapping,
-    Optional, Type
+    Any, AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict,
+    Mapping, Optional, Protocol, Type
 )
 from weakref import WeakValueDictionary
 
@@ -23,12 +23,39 @@ __all__ = ('Ratelimiter', 'DictRatelimiter')
 _log = logging.getLogger(__name__)
 
 
-# The type allows the usage to the right of the code.
-Ratelimiter = AsyncContextManager[  # async with ratelimiter as rl:
-    Callable[[Route], AsyncContextManager[  # async with rl(route) as lock:
-        Callable[[Mapping[str, str]], Awaitable[object]]  # await lock(headers)
-    ]]
-]
+class Ratelimiter(Protocol):
+    """Protocol with the interface for ratelimiters.
+
+    This had to be a protocol because Python's type system does not yet
+    support intersection types.
+
+    The ratelimiter is used similar to the following example:
+    ```python
+    ratelimiter = ...
+    async with ratelimiter:  # Once in the lifetime of the application.
+
+        # The following is done for each request that is made
+        async with ratelimiter(route) as update:
+            res = ...  # Send the request to Discord
+            await update(res.headers)
+    ```
+    """
+
+    async def __aenter__(self) -> object:
+        ...
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]] = None,
+        exc_val: Optional[BaseException] = None,
+        exc_tb: Optional[TracebackType] = None
+    ) -> Optional[bool]:
+        ...
+
+    def __call__(self, route: Route) -> AsyncContextManager[
+        Callable[[Mapping[str, str]], Awaitable[object]]
+    ]:
+        ...
 
 
 class Ratelimit:
@@ -443,24 +470,25 @@ class DictRatelimiter:
         # Fallback locks before buckets get populated
         self.fallbacks = WeakValueDictionary()
 
-    async def __aenter__(self) -> Callable[
-        [Route], AsyncContextManager[
-            Callable[[Mapping[str, str]], Awaitable[object]]
-        ]
-    ]:
+    async def __aenter__(self) -> Self:
         self._tasks = await anyio.create_task_group().__aenter__()
-        return self.get_lock
+        return self
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        traceback: Optional[TracebackType]
+        exc_type: Optional[Type[BaseException]] = None,
+        exc_val: Optional[BaseException] = None,
+        exc_tb: Optional[TracebackType] = None
     ) -> Optional[bool]:
         # Our tasks simply consist of sleeping callbacks, there's no benefit to
         # waiting for them to finish when cleaning up.
         self._tasks.cancel_scope.cancel()
-        return await self._tasks.__aexit__(exc_type, exc_val, traceback)
+        return await self._tasks.__aexit__(exc_type, exc_val, exc_tb)
+
+    def __call__(self, route: Route) -> AsyncContextManager[
+        Callable[[Mapping[str, str]], Awaitable[object]]
+    ]:
+        return self.get_lock(route)
 
     def get_lock(
         self,

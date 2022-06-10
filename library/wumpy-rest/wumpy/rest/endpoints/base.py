@@ -45,9 +45,11 @@ class Requester:
     """
 
     _session: httpx.AsyncClient
+    _ratelimiter: Ratelimiter
+    _stack: contextlib.AsyncExitStack
 
     __slots__ = (
-        '_user_ratelimiter', '_ratelimiter', '_session', '_stack'
+        '_ratelimiter', '_session', '_stack'
     )
 
     def __init__(
@@ -58,6 +60,8 @@ class Requester:
         proxy: Optional[str] = None,
         timeout: Union[httpx.Timeout, float] = 5.0,
     ) -> None:
+        self._stack = contextlib.AsyncExitStack()
+
         self._session = httpx.AsyncClient(
             headers={
                 'User-Agent': self.build_user_agent(),
@@ -65,18 +69,15 @@ class Requester:
             },
             proxies=proxy, follow_redirects=True, timeout=timeout
         )
-
-        self._user_ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
+        self._ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
 
     async def __aenter__(self) -> Self:
         if hasattr(self, '_stack'):
             raise RuntimeError("Cannot enter already opened requester")
 
-        self._stack = contextlib.AsyncExitStack()
-
         try:
             await self._stack.enter_async_context(self._session)
-            self._ratelimiter = await self._stack.enter_async_context(self._user_ratelimiter)
+            await self._stack.enter_async_context(self._ratelimiter)
         except:
             # If any of the __aenter__s fails in the above block the finalizer
             # won't be called correctly. This is important to handle if we get
