@@ -55,13 +55,13 @@ class ApplicationCommandOption(enum.Enum):
 @dataclasses.dataclass(frozen=True)
 class ResolvedInteractionData:
 
-    users: MappingProxyType[int, User]
-    members: MappingProxyType[int, InteractionMember]
+    users: 'MappingProxyType[int, User]'
+    members: 'MappingProxyType[int, InteractionMember]'
 
-    roles: MappingProxyType[int, Role]
-    channels: MappingProxyType[int, InteractionChannel]
+    roles: 'MappingProxyType[int, Role]'
+    channels: 'MappingProxyType[int, InteractionChannel]'
 
-    messages: MappingProxyType[int, Message]
+    messages: 'MappingProxyType[int, Message]'
 
     @classmethod
     def from_data(cls, data: ResolvedInteractionDataData) -> Self:
