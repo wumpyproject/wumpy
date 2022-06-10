@@ -1,7 +1,7 @@
 import time
 from enum import Enum
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Hashable, List, TypeVar
+from typing import Any, Callable, Dict, Hashable, List, Protocol, TypeVar
 from weakref import WeakValueDictionary
 
 import anyio
@@ -18,7 +18,11 @@ __all__ = (
 
 
 CommandT = TypeVar('CommandT', bound=CommandMiddlewareMixin)
-MiddlewareDecorator = Callable[[CommandT], CommandT]
+
+
+class MiddlewareDecorator(Protocol):
+    def __call__(self, command: CommandT) -> CommandT:
+        ...
 
 
 class CheckFailure(Exception):
@@ -57,7 +61,7 @@ class CheckMiddleware:
             raise CheckFailure(f'Check {self.predicate} failed for interaction {interaction}')
 
 
-def check(predicate: MiddlewareCallback) -> MiddlewareDecorator[CommandT]:
+def check(predicate: MiddlewareCallback) -> MiddlewareDecorator:
     """Create a check for an application command.
 
     This is a public wrapper over the middleware API to simplify creating
@@ -171,7 +175,7 @@ class MaxConcurrencyMiddleware:
 def max_concurrency(
     number: int,
     key: Callable[[CommandInteraction], Hashable]
-) -> MiddlewareDecorator[CommandT]:
+) -> MiddlewareDecorator:
     """Create a middleware that limits concurrent uses of a command.
 
     There are utility functions under `wumpy.interactions.BucketType` for the
@@ -356,7 +360,7 @@ def cooldown(
     per: float,
     key: Callable[[CommandInteraction], Hashable],
     wait: bool = False,
-) -> MiddlewareDecorator[CommandT]:
+) -> MiddlewareDecorator:
     """Apply cooldowns to the application command.
 
     The `key` paramater is similar to `max_concurrent`'s `key` parameter.
