@@ -237,5 +237,5 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     async def sync_commands(self) -> None:
         """Synchronize the commands with Discord."""
         await self.api.overwrite_global_commands(
-            self.application_id, [command_payload(c) for c in self.commands.values()]
+            self.application_id, [command_payload(c) for c in self._commands.values()]
         )
