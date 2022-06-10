@@ -17,7 +17,6 @@ MiddlewareCallback = Callable[
     Awaitable[object]
 ]
 MiddlewareCallbackT = TypeVar('MiddlewareCallbackT', bound=MiddlewareCallback)
-Middleware = Callable[[MiddlewareCallback], MiddlewareCallback]
 
 
 class CommandMiddlewareMixin:
