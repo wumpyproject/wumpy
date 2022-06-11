@@ -49,7 +49,7 @@ class Requester:
     _stack: contextlib.AsyncExitStack
 
     __slots__ = (
-        '_ratelimiter', '_session', '_stack'
+        '_ratelimiter', '_session', '_stack', '_opened'
     )
 
     def __init__(
@@ -71,9 +71,13 @@ class Requester:
         )
         self._ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
 
+        self._opened = False
+
     async def __aenter__(self) -> Self:
-        if hasattr(self, '_stack'):
+        if self._opened:
             raise RuntimeError("Cannot enter already opened requester")
+
+        self._opened = True
 
         try:
             await self._stack.enter_async_context(self._session)
@@ -83,6 +87,7 @@ class Requester:
             # won't be called correctly. This is important to handle if we get
             # cancelled for example..
             await self._stack.__aexit__(*sys.exc_info())
+            self._opened = False
             raise
 
         return self
@@ -93,7 +98,10 @@ class Requester:
         exc_val: Optional[BaseException],
         traceback: Optional[TracebackType]
     ) -> None:
-        await self._stack.__aexit__(exc_type, exc_val, traceback)
+        try:
+            await self._stack.__aexit__(exc_type, exc_val, traceback)
+        finally:
+            self._opened = False
 
     @property
     def session(self) -> httpx.AsyncClient:
