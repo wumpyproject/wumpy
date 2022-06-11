@@ -250,7 +250,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
                 f'Subcommand group did not receive a subcommnad option - got: {options}'
             )
 
-        subcommand = self.commands.get(found[0].value)
+        subcommand = self.commands.get(found[0].name)
         if subcommand is None:
             raise LookupError(f'No subcommand found for interaction {interaction}')
 
