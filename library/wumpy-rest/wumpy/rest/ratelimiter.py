@@ -243,7 +243,7 @@ class Ratelimit:
         # information, we should artificially add another token to ensure that
         # at least one request can go through and give us ratelimit information
         # again so that we can lock efficiently.
-        if self._reset_at is not None:
+        if self._reset_at is None:
             self._remaining = 1
 
             # In-case there are requests waiting for a reset_at, we should wake
