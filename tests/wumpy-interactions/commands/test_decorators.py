@@ -61,6 +61,7 @@ def test_option_deco():
     @registrar.command()
     # The first argument will always be the interaction
     async def command(_, arg, other):
+        """Option testing command."""
         ...
 
     assert command.options['arg'].description == 'The only argument'

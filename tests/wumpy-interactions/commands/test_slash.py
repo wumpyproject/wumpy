@@ -51,6 +51,7 @@ class TestSlashcommandInit:
                 required=False, choices=['X', 'Y', 'Z']
             ),
         ) -> None:
+            """Command with an option containing choices."""
             ...
 
         assert command.options['option'].default is None
@@ -63,6 +64,7 @@ class TestSlashcommandInit:
 
         @registrar.command()
         async def command(interaction: CommandInteraction, param: int, other: str):
+            """Multi-parameter command."""
             ...
 
         assert command.options['param'].type == ApplicationCommandOption.integer
@@ -74,6 +76,7 @@ class TestSlashcommandInit:
         with pytest.raises(TypeError):
             @registrar.command()
             async def command(interaction: int):
+                """Wrong interaction annotation."""
                 ...
 
 
