@@ -1,5 +1,6 @@
 from .base import *
 from .channels import *
+from .components import *
 from .emoji import *
 from .flags import *
 from .guild import *
