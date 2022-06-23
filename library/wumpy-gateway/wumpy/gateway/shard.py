@@ -170,7 +170,7 @@ class Shard:
             tg = await self._exit_stack.enter_async_context(anyio.create_task_group())
             tg.start_soon(self._run_heartbeater)
             return self
-        except:
+        except BaseException:
             await self._exit_stack.aclose()
             raise
 

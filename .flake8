@@ -7,8 +7,6 @@ per-file-ignores =
     **/__init__.py: F401, F403, F405
 
 ignore =
-    # Bare except (needed to catch cancellations)
-    E722,
     # Line break before binary operator (Flake8 has one for before- and after
     # linebreaks. From my understanding you're meant to disable one of them).
     W503

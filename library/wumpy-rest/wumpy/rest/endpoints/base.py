@@ -82,7 +82,7 @@ class Requester:
         try:
             await self._stack.enter_async_context(self._session)
             await self._stack.enter_async_context(self._ratelimiter)
-        except:
+        except BaseException:
             # If any of the __aenter__s fails in the above block the finalizer
             # won't be called correctly. This is important to handle if we get
             # cancelled for example..
