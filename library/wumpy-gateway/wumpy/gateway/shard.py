@@ -201,7 +201,7 @@ class Shard:
     def __aiter__(self) -> 'Shard':
         return self
 
-    async def __anext__(self) -> Dict[str, Any]:
+    async def receive_event(self) -> Dict[str, Any]:
         """Receive the next event, waiting if there is none.
 
         This method contains almost all of the active logic that takes care
@@ -307,6 +307,9 @@ class Shard:
 
             for event in self._conn.events():
                 self._events.append(event)
+
+    async def __anext__(self) -> Dict[str, Any]:
+        return await self.receive_event()
 
     async def _receive_hello(self) -> Optional[Dict[str, Any]]:
         if self._sock is None:
