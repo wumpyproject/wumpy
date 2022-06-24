@@ -136,7 +136,13 @@ class Bot(EventDispatcher):
         )
 
         async with anyio.create_task_group() as tasks:
-            async for data in self.gateway:
+            while True:
+                try:
+                    data = await self.gateway.receive_event()
+                except Exception as exc:
+                    tasks.start_soon(self.handle_error, ErrorContext(exc, True))
+                    continue
+
                 try:
                     handlers = self.get_dispatch_handlers(data['t'])
 
