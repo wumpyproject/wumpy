@@ -1,19 +1,17 @@
 import dataclasses
 import inspect
-import sys
-import traceback
 from abc import abstractmethod
 from functools import partial
 from typing import (
-    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, NoReturn,
-    Optional, Tuple, Type, TypeVar, Union, overload
+    Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, Optional, Type,
+    TypeVar, Union, overload
 )
 
 import anyio
 import anyio.abc
 import anyio.lowlevel
 from typing_extensions import Self, TypeAlias
-from wumpy.models.utils import backport_slots
+from wumpy.interactions import ErrorContext, ErrorHandlerMixin
 
 from .utils import _eval_annotations
 
@@ -69,55 +67,6 @@ class Event:
         raise NotImplementedError()
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
-class ErrorEvent(Event):
-    """Event dispatched when an error occured.
-
-    This event only catches subclasses of `Exception`. Other exceptions, such
-    as `KeyboardInterrupt` will not be dispatched with this event.
-
-    If callbacks of this event raises an error, it is printed and ignored.
-
-    Unlike other events, this one is special in its construction and does not
-    corrolate to any given gateway event. Therefore this is instantiated using
-    `__init__()` and subclasses are required to match the same signature.
-
-    Attributes:
-        exception: The exception that was raised.
-        event:
-            The event that was dispatched unless the exception that triggered
-            this event came from the library without a dispatched event.
-        callback:
-            The callback which raised an error trying to handle the event,
-            unless the exception came from the library without a callback.
-    """
-
-    # Note that this is a special event which does not implement the
-    # usual from_payload() method because it does not get dispatched from
-    # gateway events like other events.
-    NAME: ClassVar[str] = '__ERROR'
-
-    exception: Exception
-
-    event: Optional[Event] = None
-
-    # Return type is Any because the user might want to use the return type and
-    # having it be object would not allow any meaningful operations.
-    callback: Optional['CoroFunc[Any]'] = None
-
-    @classmethod
-    @abstractmethod
-    async def from_payload(
-            cls,
-            payload: Mapping[str, Any],
-            cached: Optional[Any] = None
-    ) -> NoReturn:
-        raise RuntimeError(
-            f"{cls.__name__!r} cannot be dispatched using the 'from_payload()' method"
-        )
-
-
 def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
     """Extract the event from the callback.
 
@@ -165,30 +114,7 @@ def _extract_event(callback: 'Callable[..., object]') -> Type[Event]:
     return annotation
 
 
-def _ignore_dispatch_error(
-        exc: Exception,
-        *,
-        event: Union[str, Type[Event], Event, None] = None,
-) -> None:
-    # We can't trust that the user has defined a NAME class variable like they
-    # should have. Maybe that's why we're printing this error...
-    if isinstance(event, (type, Event)) and hasattr(event, 'NAME'):
-        name = event.NAME
-    else:
-        name = event
-
-    print(f'Ignoring exception handling event {name!r}:', file=sys.stderr)
-    traceback.print_exception(type(exc), exc, exc.__traceback__)
-
-
-async def _wrap_error_callback(callback: 'CoroFunc[object]', event: Event) -> None:
-    try:
-        await callback(event)
-    except Exception as exc:
-        _ignore_dispatch_error(exc, event=event)
-
-
-class EventDispatcher:
+class EventDispatcher(ErrorHandlerMixin):
     """Small mixin class adding the ability to dispatch events.
 
     This class can be inherited from to get the `get_dispatch_handlers()` and
@@ -234,55 +160,6 @@ class EventDispatcher:
         """
         return self._listeners.get(event, {})
 
-    async def dispatch_error(
-            self,
-            exc: Exception,
-            *,
-            event: Optional[Event] = None,
-            callback: Optional['CoroFunc[Any]'] = None,
-    ) -> None:
-        """Dispatch an error that happened.
-
-        This is safe to call for errors that happened while dispatching other
-        events (it is not recursive).
-
-        Parameters:
-            exc: Exception instance that was raised.
-            tg: Task group to dispatch callbacks with.
-            event: The event instance that failed to dispatch.
-        """
-        if not isinstance(exc, Exception):
-            if isinstance(exc, BaseException):
-                # If it is a BaseException subclass (but not a subclass of
-                # Exception like normal exceptions) then we want to raise an
-                # error. The issue is that if we raise another type of error
-                # like a TypeError then that may be swallowed somewhere (unlike
-                # these subclasses of BaseException).
-                raise exc  # Re-raise if it is a BaseException subclass
-
-            raise TypeError(f'Expected subclass of Exception but got {type(exc).__name__!r}')
-
-        handlers = self.get_dispatch_handlers(ErrorEvent.NAME)
-        if not handlers:
-            _ignore_dispatch_error(exc, event=event)
-            await anyio.lowlevel.checkpoint()
-            return
-
-        async with anyio.create_task_group() as tg:
-            for subclass, callbacks in handlers.items():
-                try:
-                    instance = subclass(exc, event=event, callback=callback)
-                except Exception as exc:
-                    _ignore_dispatch_error(exc, event=event)
-                    continue
-
-                if not callbacks:
-                    _ignore_dispatch_error(exc, event=event)
-                    continue
-
-                for func in callbacks:
-                    tg.start_soon(_wrap_error_callback, func, instance)
-
     async def _wrap_dispatch_callback(
             self,
             callback: 'CoroFunc[object]',
@@ -291,7 +168,7 @@ class EventDispatcher:
         try:
             await callback(event)
         except Exception as exc:
-            await self.dispatch_error(exc, event=event, callback=callback)
+            await self.handle_error(ErrorContext(exc, False, callback=callback, event=event))
 
     async def dispatch(
             self,
@@ -320,7 +197,7 @@ class EventDispatcher:
                 try:
                     instance = event.from_payload(payload, cached)
                 except Exception as exc:
-                    tg.start_soon(self.dispatch_error, exc)
+                    tg.start_soon(self.handle_error, ErrorContext(exc, False, event=event))
                     continue
 
                 if instance is None:

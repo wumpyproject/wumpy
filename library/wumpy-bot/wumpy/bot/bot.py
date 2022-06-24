@@ -8,6 +8,7 @@ import anyio.abc
 from typing_extensions import Self
 from wumpy.cache import Cache, InMemoryCache
 from wumpy.gateway import Shard
+from wumpy.interactions import ErrorContext
 from wumpy.rest import APIClient
 
 from .dispatch import EventDispatcher
@@ -138,16 +139,15 @@ class Bot(EventDispatcher):
             async for data in self.gateway:
                 try:
                     handlers = self.get_dispatch_handlers(data['t'])
-                except Exception as exc:
-                    tasks.start_soon(self.dispatch_error, exc)
-                    continue
 
-                try:
                     # Called *with* the 't' key in it for the cache to know the
                     # event that was sent from the gateway.
                     cached = await self.cache.update(data, return_old=bool(handlers))
                 except Exception as exc:
-                    tasks.start_soon(self.dispatch_error, exc)
+                    tasks.start_soon(
+                        self.handle_error,
+                        ErrorContext(exc, True, gateway_data=data)
+                    )
                     continue
 
                 tasks.start_soon(self.dispatch, handlers, data['d'], cached)
