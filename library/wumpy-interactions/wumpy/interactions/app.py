@@ -1,5 +1,9 @@
 import json
-from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
+from contextvars import ContextVar
+from typing import (
+    Any, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar, cast,
+    overload
+)
 
 from discord_typings import InteractionData
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
@@ -10,7 +14,15 @@ from .components.handler import ComponentHandler
 from .models import CommandInteraction, ComponentInteraction
 from .utils import DiscordRequestVerifier
 
-__all__ = ('InteractionAppRequester', 'InteractionApp')
+__all__ = ('InteractionAppRequester', 'InteractionApp', 'get_app')
+
+
+AppT = TypeVar('AppT', bound='InteractionApp')
+
+
+# Use for the get_app() function below the class. Similar to the get_bot()
+# function with the same usage.
+_active_app: ContextVar['InteractionApp'] = ContextVar('_active_app')
 
 
 class InteractionAppRequester(ApplicationCommandRequester, InteractionRequester):
@@ -239,3 +251,46 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         await self.api.overwrite_global_commands(
             self.application_id, [command_payload(c) for c in self._commands.values()]
         )
+
+
+@overload
+def get_app(*, verify: bool = False) -> InteractionApp:
+    ...
+
+
+@overload
+def get_app(subclass: Type[AppT], *, verify: bool = False) -> AppT:
+    ...
+
+
+def get_app(subclass: Type[AppT] = InteractionApp, *, verify: bool = False) -> AppT:
+    """Get the currently active interaction application.
+
+    An interaction app is considered active once its' lifespan has been called.
+
+    This allows indepent parts of the code to get access to the active
+    application without imports and passing it around unnecessarily. Similar
+    to `get_bot()` in the `wumpy-bot` subpackage.
+
+    Parameters:
+        subclass: The type of the return type for the type checker.
+        verify: Whether to do an `isinstance()` check on the gotten instance.
+
+    Raises:
+        RuntimeError: There is no currently active app.
+        RuntimeError: If `verify` is True, the `isinstance()` check failed
+
+    Returns:
+        The currently active app.
+    """
+    try:
+        instance = _active_app.get()
+    except LookupError:
+        raise RuntimeError(
+            'There is no currently active app; make sure lifespan is enabled'
+        ) from None
+
+    if verify and not isinstance(instance, subclass):
+        raise RuntimeError(f'Currently active bot is not of type {subclass.__name__!r}')
+
+    return cast(AppT, instance)
