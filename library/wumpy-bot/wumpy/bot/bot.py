@@ -193,12 +193,12 @@ class Bot(EventDispatcher):
 
 
 @overload
-def get_bot() -> Bot:
+def get_bot(*, verify: bool = False) -> Bot:
     ...
 
 
 @overload
-def get_bot(subclass: Type[BotT]) -> BotT:
+def get_bot(subclass: Type[BotT], *, verify: bool = False) -> BotT:
     ...
 
 
