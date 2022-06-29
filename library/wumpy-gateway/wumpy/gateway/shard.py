@@ -198,7 +198,7 @@ class Shard:
         try:
             # If we were cancelled this will raise a CancelledError - but we
             # still need to cleanup the socket.
-            await self._exit_stack.aclose()
+            await self._exit_stack.__aexit__(exc_type, exc_val, traceback)
         finally:
             await self._aclose()
 
