@@ -54,16 +54,18 @@ class DefaultGatewayLimiter:
     __slots__ = ('_lock', '_reset', '_value')
 
     def __init__(self) -> None:
-        self._lock = anyio.Lock()
-
         self._reset = None
         self._value = self.RATE
+
+        # self._lock is set in __aenter__()
 
     def __call__(self, shard: int) -> Self:
         # We don't use the shard ID for anything
         return self
 
     async def __aenter__(self) -> Callable[[Opcode], AsyncContextManager[None]]:
+        self._lock = anyio.Lock()
+
         return self.acquire
 
     async def __aexit__(

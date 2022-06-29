@@ -124,9 +124,8 @@ class Shard:
         self._sock = None
         self._ssl = ssl_context
 
-        self._write_lock = anyio.Lock()
-        self._reconnecting = anyio.Event()
-        self._closed = anyio.Event()
+        # _write_lock, _reconnecting, _closed are all created in __aenter__()
+        # because the event loop needs to be running when they are created
         self._exit_stack = AsyncExitStack()
 
         self.token = token
@@ -159,6 +158,20 @@ class Shard:
 
     async def __aenter__(self) -> Self:
         _log.info('Entered the context manager (connecting to the gateway).')
+
+        if hasattr(self, '_closed') and not self._closed.is_set():
+            raise RuntimeError('Cannot connect shard multiple times')
+
+        self._closed = anyio.Event()
+
+        # Although this isn't meant to be used to wait until the gateway
+        # is entered again, it is a good idea to play nicely and set this
+        # event when we're initially connecting. Therefore, we don't overwrite
+        # this attribute to allow _reconnect() to set the event.
+        if not hasattr(self, '_reconnecting'):
+            self._reconnecting = anyio.Event()
+
+        self._write_lock = anyio.Lock()
 
         try:
             self.ratelimiter = await self._exit_stack.enter_async_context(
