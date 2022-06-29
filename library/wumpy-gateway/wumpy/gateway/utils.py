@@ -9,9 +9,9 @@ from typing import (
 
 import anyio
 from discord_gateway import Opcode
-from typing_extensions import Self
+from typing_extensions import Protocol, Self
 
-__all__ = ('race', 'DefaultGatewayLimiter')
+__all__ = ('race', 'GatewayLimiter', 'DefaultGatewayLimiter')
 
 
 async def _done_callback(
@@ -43,6 +43,35 @@ async def race(*functions: Callable[[], Awaitable[Any]]) -> None:
             tg.start_soon(partial(_done_callback, func, tg.cancel_scope.cancel))
 
 
+class GatewayLimiter(Protocol):
+    """Interface for a gateway ratelimiter.
+
+    This protocol is almost the same as the following:
+
+    ```python
+    AsynContextManager[Callable[
+        [int], AsyncContextManager[object]
+    ]]
+    ```
+
+    The difference is the fact that the async context manager must also be
+    callable (and therefore it should return `self`).
+    """
+    async def __aenter__(self) -> object:
+        ...
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> Optional[bool]:
+        ...
+
+    def __call__(self, __opcode: Opcode) -> AsyncContextManager[object]:
+        ...
+
+
 class DefaultGatewayLimiter:
     _lock: anyio.Lock
     _reset: Optional[float]
@@ -59,26 +88,9 @@ class DefaultGatewayLimiter:
 
         # self._lock is set in __aenter__()
 
-    def __call__(self, shard: int) -> Self:
-        # We don't use the shard ID for anything
-        return self
-
-    async def __aenter__(self) -> Callable[[Opcode], AsyncContextManager[None]]:
-        self._lock = anyio.Lock()
-
-        return self.acquire
-
-    async def __aexit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        traceback: Optional[TracebackType]
-    ) -> None:
-        pass
-
     @asynccontextmanager
-    async def acquire(self, opcode: Opcode) -> AsyncGenerator[None, None]:
-        # Heartbeats are not
+    async def __call__(self, opcode: Opcode) -> AsyncGenerator[None, None]:
+        # Heartbeats are not ratelimited and we have left a margin for them.
         if opcode is not Opcode.HEARTBEAT:
             async with self._lock:
                 if self._reset is None or self._reset < time.perf_counter():
@@ -96,3 +108,16 @@ class DefaultGatewayLimiter:
         # case that we're sleeping, because if one tasks sleep then all
         # following tasks will also need to sleep.
         yield
+
+    async def __aenter__(self) -> Self:
+        self._lock = anyio.Lock()
+
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
+        pass

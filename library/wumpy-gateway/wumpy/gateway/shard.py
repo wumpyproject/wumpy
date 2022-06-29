@@ -20,7 +20,7 @@ from discord_gateway import (
 from typing_extensions import Literal, Self
 
 from .errors import ConnectionClosed
-from .utils import DefaultGatewayLimiter, race
+from .utils import DefaultGatewayLimiter, GatewayLimiter, race
 
 __all__ = ('Shard',)
 
@@ -29,9 +29,6 @@ _log = logging.getLogger(__name__)
 
 
 _DISCONNECT_ERRS = (OSError, anyio.BrokenResourceError)
-
-
-GatewayLimiter = Callable[[Opcode], AsyncContextManager[None]]
 
 
 class Shard:
@@ -99,13 +96,11 @@ class Shard:
     shard_id: Optional[Tuple[int, int]]
     max_concurrency: int
 
-    _ratelimiter_manager: AsyncContextManager[GatewayLimiter]
-    ratelimiter: Optional[GatewayLimiter]
+    _ratelimiter: GatewayLimiter
 
     __slots__ = (
         '_conn', '_sock', '_ssl', '_write_lock', '_reconnecting', '_closed', '_exit_stack',
-        'token', 'intents', '_events', 'shard_id', 'max_concurrency', '_ratelimiter_manager',
-        'ratelimiter'
+        'token', 'intents', '_events', 'shard_id', 'max_concurrency', '_ratelimiter'
     )
 
     def __init__(
@@ -117,7 +112,7 @@ class Shard:
         *,
         max_concurrency: int = 1,
         encoding: Literal['json', 'etf'] = 'json',
-        ratelimiter: Optional[Callable[[int], AsyncContextManager[GatewayLimiter]]] = None,
+        ratelimiter: Optional[GatewayLimiter] = None,
         ssl_context: Optional[ssl.SSLContext] = None
     ) -> None:
         self._conn = DiscordConnection(uri, encoding=encoding, compress='zlib-stream')
@@ -136,9 +131,7 @@ class Shard:
         self.shard_id = shard_id
         self.max_concurrency = max_concurrency
 
-        defaulted = ratelimiter or DefaultGatewayLimiter()
-        self._ratelimiter_manager = defaulted((shard_id[0] if shard_id else 0) % max_concurrency)
-        self.ratelimiter = None
+        self._ratelimiter = ratelimiter or DefaultGatewayLimiter()
 
     @property
     def session_id(self) -> str:
@@ -174,9 +167,7 @@ class Shard:
         self._write_lock = anyio.Lock()
 
         try:
-            self.ratelimiter = await self._exit_stack.enter_async_context(
-                self._ratelimiter_manager
-            )
+            await self._exit_stack.enter_async_context(self._ratelimiter)
 
             await self._reconnect(reset=False)
 
@@ -379,9 +370,6 @@ class Shard:
         return event
 
     async def _reconnect(self, *, reset: bool = True) -> None:
-        if self.ratelimiter is None:
-            raise RuntimeError('Cannot (re)connect without a initialized ratelimiter')
-
         while True:
             # If there is an existing socket, or we are making another attempt
             # from below, close it.
@@ -438,10 +426,10 @@ class Shard:
 
             try:
                 if self._conn.should_resume:
-                    async with self.ratelimiter(Opcode.RESUME):
+                    async with self._ratelimiter(Opcode.RESUME):
                         await self._sock.send(self._conn.resume(self.token))
                 else:
-                    async with self.ratelimiter(Opcode.IDENTIFY):
+                    async with self._ratelimiter(Opcode.IDENTIFY):
                         await self._sock.send(self._conn.identify(
                             token=self.token,
                             intents=self.intents,
@@ -525,8 +513,6 @@ class Shard:
     async def _run_heartbeater(self) -> None:
         if self._sock is None:
             raise RuntimeError('Cannot run heartbeater before connecting')
-        if self.ratelimiter is None:
-            raise RuntimeError('Cannot run heartbeater before initializing a ratelimiter')
         if self._conn.heartbeat_interval is None:
             raise RuntimeError('Heartbeater started before connected')
 
@@ -546,7 +532,7 @@ class Shard:
                     await self._reconnecting.wait()
 
                 _log.debug('Sending HEARTBEAT command over gateway.')
-                async with self.ratelimiter(Opcode.HEARTBEAT):
+                async with self._ratelimiter(Opcode.HEARTBEAT):
                     await self._sock.send(self._conn.heartbeat())
 
             # Wait for the first one to complete - either the expected sleeping
