@@ -1,5 +1,5 @@
 from contextlib import AsyncExitStack
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from types import TracebackType
 from typing import NoReturn, Optional, Type, TypeVar, cast, overload
 
@@ -9,6 +9,8 @@ from typing_extensions import Self
 from wumpy.cache import Cache, InMemoryCache
 from wumpy.gateway import Shard
 from wumpy.interactions import ErrorContext
+from wumpy.interactions.utils import State
+from wumpy.models import Intents
 from wumpy.rest import APIClient
 
 from .dispatch import EventDispatcher
@@ -66,17 +68,41 @@ class Bot(EventDispatcher):
     ```
     """
 
-    api: RuntimeVar[APIClient] = RuntimeVar()
-    gateway: RuntimeVar[Shard] = RuntimeVar()
-    cache: RuntimeVar[Cache] = RuntimeVar()
+    api: APIClient
+    gateway: Shard
+    cache: Cache
 
-    def __init__(self, token: str, *, intents: int) -> None:
+    state: State
+
+    intents: Intents
+
+    _started: bool
+    _stack: AsyncExitStack
+    _old_token: Optional[Token]
+
+    __slots__ = (
+        'api', 'gateway', 'cache', 'state', 'intents', '_started', '_stack',
+        '_old_token',
+    )
+
+    def __init__(self, token: str, *, intents: Intents) -> None:
         super().__init__()
-        self.token = token
+
+        # Unfortunately, the type checker does not understand how we use
+        # RuntimeVar and that this will actually what the attribute is typed as
+        self.api = RuntimeVar()  # type: ignore
+        self.gateway = RuntimeVar()  # type: ignore
+        self.cache = RuntimeVar()  # type: ignore
+
+        self.state = State()
+
         self.intents = intents
+
+        self._token = token
 
         self._started = False
         self._stack = AsyncExitStack()
+        self._old_token = None
 
     async def __aenter__(self) -> Self:
         if self._started:
@@ -95,7 +121,13 @@ class Bot(EventDispatcher):
         traceback: Optional[TracebackType]
     ) -> Optional[bool]:
         self._started = False
-        _running_bot.reset(self._old_token)
+
+        # We'd want to complain, because there *should* be a token to reset to,
+        # but this is not a good place to do that.
+        if self._old_token is not None:
+            _running_bot.reset(self._old_token)
+
+        self._old_token = None
 
         return await self._stack.__aexit__(exc_type, exc_val, traceback)
 
@@ -132,7 +164,7 @@ class Bot(EventDispatcher):
 
         link = await self.api.fetch_gateway()
         self.gateway = await self._stack.enter_async_context(
-            Shard(link, self.token, self.intents)
+            Shard(link, self._token, int(self.intents))
         )
 
         async with anyio.create_task_group() as tasks:
