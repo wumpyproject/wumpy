@@ -1,4 +1,5 @@
 import json
+import traceback
 from contextvars import ContextVar
 from contextlib import AsyncExitStack
 from typing import (
@@ -158,13 +159,18 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     ) -> None:
         event = await receive()
         if event['type'] == 'lifespan.startup':
-            await self._stack.enter_async_context(self.api)
+            try:
+                await self._stack.enter_async_context(self.api)
 
-            if self.register_commands:
-                await self.sync_commands()
+                if self.register_commands:
+                    await self.sync_commands()
 
-            if self._user_lifespan is not None:
-                await self._stack.enter_async_context(self._user_lifespan(self))
+                if self._user_lifespan is not None:
+                    await self._stack.enter_async_context(self._user_lifespan(self))
+            except Exception as exc:
+                traceback.print_exception(type(exc), exc, exc.__traceback__)
+                await send({'type': 'lifespan.startup.failed'})
+                return
 
             await send({'type': 'lifespan.startup.complete'})
         else:
