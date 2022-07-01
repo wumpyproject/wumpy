@@ -15,7 +15,7 @@ from .commands import CommandRegistrar, command_payload
 from .compat import ASGIRequest, Request
 from .components.handler import ComponentHandler
 from .models import CommandInteraction, ComponentInteraction
-from .utils import DiscordRequestVerifier
+from .utils import DiscordRequestVerifier, State
 
 __all__ = ('InteractionAppRequester', 'InteractionApp', 'get_app')
 
@@ -43,7 +43,22 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
     api: InteractionAppRequester
 
+    register_commands: bool
+    application_id: int
     path: str
+
+    state: State
+
+    _token: Optional[str]
+    _verification: DiscordRequestVerifier
+    _user_lifespan: Optional[Callable[[Self], AsyncContextManager[object]]]
+
+    _stack: AsyncExitStack
+
+    __slots__ = (
+        'api', 'register_commands', 'application_id', 'path', 'state',
+        '_token', '_verification', '_user_lifespan', '_stack'
+    )
 
     def __init__(
         self,

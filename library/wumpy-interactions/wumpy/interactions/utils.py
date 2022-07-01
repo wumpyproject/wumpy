@@ -1,5 +1,5 @@
 import functools
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
@@ -91,3 +91,31 @@ def _eval_annotations(obj: Callable) -> Dict[str, Any]:
         }
     except (NameError, SyntaxError) as e:
         raise ValueError(f'Could not evaluate the annotations of {unwrapped!r}') from e
+
+
+class State:
+    """An object which allows setting arbitrary attributes."""
+
+    __state: Dict[str, Any]
+
+    __slots__ = ('__state',)
+
+    def __init__(self, state: Optional[Dict[str, Any]] = None) -> None:
+        super().__setattr__('__state', state.copy() if state is not None else {})
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        self.__state[key] = value
+
+    def __getattr__(self, key: str) -> Any:
+        try:
+            return self.__state[key]
+        except KeyError:
+            raise AttributeError(
+                f'{self.__class__.__name__!r} object has no attribute {key!r}'
+            ) from None
+
+    def __delattr__(self, key: str) -> None:
+        try:
+            del self.__state[key]
+        except KeyError:
+            raise AttributeError(key) from None
