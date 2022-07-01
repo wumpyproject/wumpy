@@ -1,5 +1,6 @@
 import json
 from contextvars import ContextVar
+from contextlib import AsyncExitStack
 from typing import (
     Any, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar, cast,
     overload
@@ -53,7 +54,12 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     ) -> None:
         super().__init__()
 
+        self.api = InteractionAppRequester(
+            headers={'Authorization': f'Bot {self._token}'}
+        )
+
         self._verification = DiscordRequestVerifier(public_key)
+        self._stack = AsyncExitStack()
         self._token = token
 
         self.application_id = application_id
@@ -149,17 +155,14 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
     ) -> None:
         event = await receive()
         if event['type'] == 'lifespan.startup':
-            self.api = await InteractionAppRequester(
-                headers={'Authorization': f'Bot {self._token}'}
-            ).__aenter__()
+            await self._stack.enter_async_context(self.api)
 
             if self.register_commands:
                 await self.sync_commands()
 
             await send({'type': 'lifespan.startup.complete'})
         else:
-            await self.api.__aexit__(None, None, None)
-            del self.api
+            await self._stack.aclose()
 
             await send({'type': 'lifespan.shutdown.complete'})
 
