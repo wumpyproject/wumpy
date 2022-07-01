@@ -222,6 +222,42 @@ class Intents(DiscordFlags):
         ```
     """
 
+    @overload
+    def replace(  # type: ignore  # @overload doesn't have multiple signatures
+        self,
+        *,
+        guilds: bool = ...,
+        guild_members: bool = ...,
+        guild_bans: bool = ...,
+        guild_emojis_and_stickers: bool = ...,
+        guild_integrations: bool = ...,
+        guild_webhooks: bool = ...,
+        guild_invites: bool = ...,
+        guild_voice_states: bool = ...,
+        guild_presences: bool = ...,
+        guild_messages: bool = ...,
+        guild_message_reactions: bool = ...,
+        guild_message_typing: bool = ...,
+        direct_messages: bool = ...,
+        direct_message_reactions: bool = ...,
+        direct_message_typing: bool = ...,
+        messages: bool = ...,
+        guild_scheduled_events: bool = ...,
+    ) -> Self:
+        ...
+
+    def replace(self, **kwargs: bool) -> Self:
+        cls, value = self.__class__, self.value
+
+        for intent, new in kwargs.items():
+            flag = getattr(cls, intent)
+            if new:
+                value |= flag
+            else:
+                value &= ~flag
+
+        return cls(value)
+
     @flag
     def guilds() -> int:
         return 1 << 0
@@ -297,6 +333,40 @@ class Intents(DiscordFlags):
     @classmethod
     def default(cls) -> Self:
         return cls.all() ^ cls.guild_presences ^ cls.guild_members ^ cls.messages
+
+    @overload
+    @classmethod
+    def build(  # type: ignore  # @overload doesn't have multiple signatures
+        cls,
+        *,
+        guilds: bool = False,
+        guild_members: bool = False,
+        guild_bans: bool = False,
+        guild_emojis_and_stickers: bool = False,
+        guild_integrations: bool = False,
+        guild_webhooks: bool = False,
+        guild_invites: bool = False,
+        guild_voice_states: bool = False,
+        guild_presences: bool = False,
+        guild_messages: bool = False,
+        guild_message_reactions: bool = False,
+        guild_message_typing: bool = False,
+        direct_messages: bool = False,
+        direct_message_reactions: bool = False,
+        direct_message_typing: bool = False,
+        messages: bool = False,
+        guild_scheduled_events: bool = False,
+    ) -> Self:
+        ...
+
+    @classmethod
+    def build(cls, **kwargs: bool) -> Self:
+        value = 0
+
+        for intent in [k for (k, v) in kwargs.items() if v is True]:
+            value |= getattr(cls, intent)
+
+        return cls(value)
 
 
 @backport_slots()
