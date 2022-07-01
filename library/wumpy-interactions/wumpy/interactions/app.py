@@ -1,14 +1,14 @@
 import json
 import traceback
-from contextvars import ContextVar
 from contextlib import AsyncExitStack
+from contextvars import ContextVar
 from typing import (
-    Any, AsyncContextManager, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar, cast,
-    overload
+    Any, AsyncContextManager, Awaitable, Callable, Dict, Optional, Tuple, Type,
+    TypeVar, cast, overload
 )
-from typing_extensions import Self
 
 from discord_typings import InteractionData
+from typing_extensions import Self
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
 
 from .commands import CommandRegistrar, command_payload
