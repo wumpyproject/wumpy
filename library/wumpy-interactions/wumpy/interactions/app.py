@@ -2,9 +2,10 @@ import json
 from contextvars import ContextVar
 from contextlib import AsyncExitStack
 from typing import (
-    Any, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar, cast,
+    Any, AsyncContextManager, Awaitable, Callable, Dict, Optional, Tuple, Type, TypeVar, cast,
     overload
 )
+from typing_extensions import Self
 
 from discord_typings import InteractionData
 from wumpy.rest import ApplicationCommandRequester, InteractionRequester
@@ -49,6 +50,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         public_key: str,
         *,
         path: str = '/',
+        lifespan: Optional[Callable[[Self], AsyncContextManager[object]]] = None,
         token: Optional[str] = None,
         register_commands: bool = True,
     ) -> None:
@@ -62,6 +64,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         self._stack = AsyncExitStack()
         self._token = token
 
+        self._user_lifespan = lifespan
         self.application_id = application_id
         self.register_commands = register_commands
         self.path = path
@@ -159,6 +162,9 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
             if self.register_commands:
                 await self.sync_commands()
+
+            if self._user_lifespan is not None:
+                await self._stack.enter_async_context(self._user_lifespan(self))
 
             await send({'type': 'lifespan.startup.complete'})
         else:
