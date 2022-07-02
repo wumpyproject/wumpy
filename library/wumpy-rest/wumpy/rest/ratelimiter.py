@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import TracebackType
 from typing import (
-    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict,
-    Mapping, Optional, Type
+    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict, Mapping,
+    Optional, Type
 )
 from weakref import WeakValueDictionary
 

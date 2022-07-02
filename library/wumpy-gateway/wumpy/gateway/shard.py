@@ -5,9 +5,7 @@ from contextlib import AsyncExitStack
 from functools import partial
 from sys import platform
 from types import TracebackType
-from typing import (
-    Any, AsyncContextManager, Callable, Deque, Dict, Optional, Tuple, Type
-)
+from typing import Any, Deque, Dict, Optional, Tuple, Type
 
 import anyio
 import anyio.abc
