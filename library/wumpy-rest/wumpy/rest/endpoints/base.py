@@ -54,19 +54,21 @@ class Requester:
 
     def __init__(
         self,
-        ratelimiter: Optional[Ratelimiter] = None,
+        token: str,
         *,
         headers: Dict[str, str] = {},
+        ratelimiter: Optional[Ratelimiter] = None,
         proxy: Optional[str] = None,
         timeout: Union[httpx.Timeout, float] = 5.0,
     ) -> None:
         self._stack = contextlib.AsyncExitStack()
 
+        default_headers = {'User-Agent': self.build_user_agent()}
+        if token is not None:
+            default_headers['Authorizaton'] = f'Bot {token}'
+
         self._session = httpx.AsyncClient(
-            headers={
-                'User-Agent': self.build_user_agent(),
-                **headers
-            },
+            headers={**default_headers, **headers},
             proxies=proxy, follow_redirects=True, timeout=timeout
         )
         self._ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
