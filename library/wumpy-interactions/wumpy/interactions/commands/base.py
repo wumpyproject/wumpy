@@ -20,7 +20,7 @@ class CommandCallback(Generic[P, RT]):
     """Asynchronous callback wrapped with processing.
 
     This class is used to wrap, store, and process a callback.
-    
+
     To use it, subclass and override the methods below. They are marked
     internal as to not leak out to the user since they are only meant to be
     called by this class.
