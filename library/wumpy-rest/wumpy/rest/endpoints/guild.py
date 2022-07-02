@@ -1,11 +1,13 @@
 from typing import Any, List, Optional, Sequence, SupportsInt, Union, overload
 
 from discord_typings import (
-    AuditLogData, BanData, ChannelData, ChannelPositionData, EmojiData,
-    GuildData, GuildMemberData, GuildPreviewData, GuildWidgetData,
-    GuildWidgetSettingsData, IntegrationData, InviteData, ListThreadsData,
-    PermissionOverwriteData, RoleData, RolePositionData, StageInstanceData,
-    VoiceRegionData, WelcomeChannelData, WelcomeScreenData
+    AuditLogData, AutoModerationActionData, AutoModerationRuleData,
+    AutoModerationTriggerMetadataData, BanData, ChannelData,
+    ChannelPositionData, EmojiData, GuildData, GuildMemberData,
+    GuildPreviewData, GuildWidgetData, GuildWidgetSettingsData,
+    IntegrationData, InviteData, ListThreadsData, PermissionOverwriteData,
+    RoleData, RolePositionData, StageInstanceData, VoiceRegionData,
+    WelcomeChannelData, WelcomeScreenData
 )
 from typing_extensions import Literal
 
@@ -52,6 +54,158 @@ class GuildRequester(Requester):
                 'before': int(before), 'limit': limit
             }
         )
+
+    # Auto Moderation endpoints
+
+    async def fetch_automod_rules(self, guild: SupportsInt) -> List[AutoModerationRuleData]:
+        """Fetch all rules configured in a guild by its ID.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch rules from.
+
+        Returns:
+            A list of automod rules.
+        """
+        return await self.request(Route(
+            'GET', '/guilds/{guild_id}/auto-moderation/rules', guild_id=int(guild)
+        ))
+
+    async def fetch_automod_rule(
+            self,
+            guild: SupportsInt,
+            rule: SupportsInt
+    ) -> AutoModerationRuleData:
+        """Fetch a specific automod rule in a guild.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild the rule is in,
+            rule: The ID of the automod rule to fetch.
+
+        Returns:
+            The automod rule object.
+        """
+        return await self.request(Route(
+            'GET', '/guilds/{guild_id}/auto-moderation/rules/{automod_rule}',
+            guild_id=int(guild), automod_rule=int(rule)
+        ))
+
+    async def create_automod_rule(
+            self,
+            guild: SupportsInt,
+            *,
+            name: str,
+            event_type: int,
+            trigger_type: int,
+            actions: List[AutoModerationActionData],
+            trigger_metadata: AutoModerationTriggerMetadataData = MISSING,
+            enabled: bool = MISSING,
+            exempt_roles: List[SupportsInt] = MISSING,
+            exempt_channels: List[SupportsInt] = MISSING
+    ) -> AutoModerationRuleData:
+        """Create a new automoderation rule.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to create the automod rule in.
+            name: The name of the rule.
+            event_type: The type of event to check the rule for.
+            trigger_type: The type of trigger the rule checks.
+            trigger_metadata: Additional metadata when checking the trigger.
+            actions: A list of actions to execute when the rule is triggered.
+            enabled: Whether the rule is enabled.
+            exempt_roles: Role IDs which should not be affected by the rule.
+            exempt_channels: Channel IDs which should not be affected.
+
+        Returns:
+            The newly created automod rule object.
+        """
+        payload = {
+            'name': name,
+            'event_type': event_type,
+            'trigger_type': trigger_type,
+            'trigger_metadata': trigger_metadata,
+            'actions': actions,
+            'enabled': enabled,
+            'exempt_roles': [int(r) for r in exempt_roles] if exempt_roles else MISSING,
+            'exempt_channels': [
+                int(c) for c in exempt_channels
+            ] if exempt_channels else MISSING,
+        }
+        return await self.request(
+            Route('POST', '/guilds/{guild_id}/auto-moderation/rules', guild_id=int(guild)),
+            json=payload
+        )
+
+    async def edit_automod_rule(
+            self,
+            guild: SupportsInt,
+            rule: SupportsInt,
+            *,
+            name: str = MISSING,
+            event_type: int = MISSING,
+            trigger_type: int = MISSING,
+            actions: List[AutoModerationActionData] = MISSING,
+            trigger_metadata: AutoModerationTriggerMetadataData = MISSING,
+            enabled: bool = MISSING,
+            exempt_roles: List[SupportsInt] = MISSING,
+            exempt_channels: List[SupportsInt] = MISSING
+    ) -> AutoModerationRuleData:
+        """Create a new automoderation rule.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild to create the automod rule in.
+            name: The name of the rule.
+            event_type: The type of event to check the rule for.
+            trigger_type: The type of trigger the rule checks.
+            trigger_metadata: Additional metadata when checking the trigger.
+            actions: A list of actions to execute when the rule is triggered.
+            enabled: Whether the rule is enabled.
+            exempt_roles: Role IDs which should not be affected by the rule.
+            exempt_channels: Channel IDs which should not be affected.
+
+        Returns:
+            The newly created automod rule object.
+        """
+        payload = {
+            'name': name,
+            'event_type': event_type,
+            'trigger_type': trigger_type,
+            'trigger_metadata': trigger_metadata,
+            'actions': actions,
+            'enabled': enabled,
+            'exempt_roles': [int(r) for r in exempt_roles] if exempt_roles else MISSING,
+            'exempt_channels': [
+                int(c) for c in exempt_channels
+            ] if exempt_channels else MISSING,
+        }
+        return await self.request(
+            Route(
+                'PATCH', '/guilds/{guild_id}/auto-moderation/rules/{automod_rule}',
+                guild_id=int(guild), automod_rule=int(rule)
+            ),
+            json=payload
+        )
+
+    async def delete_automod_rule(self, guild: SupportsInt, rule: SupportsInt) -> None:
+        """Delete an automod rule by its ID.
+
+        This method requires the `MANAGE_GUILD` permission.
+
+        Parameters:
+            guild: The ID of the guild the automod rule is in.
+            rule: The ID of the automod rule to delete.
+        """
+        return await self.request(Route(
+            'DELETE', '/guilds/{guild_id}/auto-moderation/{automod_rule}',
+            guild_id=int(guild), automod_rule=int(rule)
+        ))
 
     # Emoji endpoints
 
