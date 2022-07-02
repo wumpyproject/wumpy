@@ -41,7 +41,7 @@ classifiers = [
 dependencies = [
     "anyio >= 3.3.4, <4",
     "httpx[http2] >= 0.22, < 1",
-    "discord-typings >= 0.2.2, < 2"
+    "discord-typings >= 0.5.0, < 1"
 ]
 
 [project.urls]
