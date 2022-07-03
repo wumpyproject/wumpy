@@ -2,7 +2,9 @@ import dataclasses
 import inspect
 from abc import abstractmethod
 from functools import partial
-from typing import (
+# Coroutine is used inside of a string TypeAlias, which flake8 doesn't
+# understand at the moment so we need to silence it
+from typing import (  # noqa: F401
     Any, Callable, ClassVar, Coroutine, Dict, List, Mapping, Optional, Type,
     TypeVar, Union, overload
 )

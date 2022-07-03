@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import Any, Dict, Optional, SupportsInt, Tuple, Type, Union
+from typing import Any, Dict, Optional, SupportsInt, Type, Union
 
 from typing_extensions import Protocol, Self
 from wumpy.models import (

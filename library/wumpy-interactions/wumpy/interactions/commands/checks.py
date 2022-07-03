@@ -1,11 +1,12 @@
 import time
 from enum import Enum
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Hashable, List, Protocol, TypeVar
+from typing import Any, Callable, Dict, Hashable, List, TypeVar
 from weakref import WeakValueDictionary
 
 import anyio
 import anyio.lowlevel
+from typing_extensions import Protocol
 from wumpy.models import CommandInteractionOption
 
 from ..models import CommandInteraction

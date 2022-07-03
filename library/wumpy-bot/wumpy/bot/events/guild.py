@@ -5,13 +5,13 @@ from discord_typings import (
     GuildBanAddData, GuildBanRemoveData, GuildDeleteData,
     GuildEmojisUpdateData, GuildMemberAddData, GuildMemberRemoveData,
     GuildMemberUpdateData, GuildRoleCreateData, GuildRoleDeleteData,
-    GuildRoleUpdateData, GuildStickersUpdateData
+    GuildStickersUpdateData
 )
 from typing_extensions import Self
 from wumpy.models import Emoji, Guild, Member, Role, Snowflake, Sticker, User
 
 from ..dispatch import Event
-from ..utils import _get_as_snowflake, backport_slots
+from ..utils import backport_slots
 
 
 @backport_slots()

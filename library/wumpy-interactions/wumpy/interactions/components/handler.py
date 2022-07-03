@@ -10,7 +10,7 @@ __all__ = ['ComponentHandler']
 
 
 ComponentCallback = Callable[
-    [ComponentInteraction, re.Match],
+    [ComponentInteraction, 're.Match[str]'],
     Coroutine[Any, Any, object]
 ]
 
@@ -21,7 +21,7 @@ class ComponentHandler(ErrorHandlerMixin):
     This is a mixin class keeping track of handlers for components setup.
     """
 
-    _components: List[Tuple[re.Pattern, ComponentCallback]]
+    _components: List[Tuple['re.Pattern[str]', ComponentCallback]]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -32,7 +32,7 @@ class ComponentHandler(ErrorHandlerMixin):
             self,
             callback: ComponentCallback,
             interaction: ComponentInteraction,
-            match: re.Match
+            match: 're.Match[str]'
     ) -> None:
         try:
             await callback(interaction, match)
@@ -49,7 +49,7 @@ class ComponentHandler(ErrorHandlerMixin):
                 if match:
                     tg.start_soon(self._wrap_regex_callback, callback, interaction, match)
 
-    def add_component(self, pattern: re.Pattern, func: ComponentCallback) -> None:
+    def add_component(self, pattern: 're.Pattern[str]', func: ComponentCallback) -> None:
         """Add a callback to be dispatched when the pattern is matched.
 
         Parameters:
@@ -58,7 +58,7 @@ class ComponentHandler(ErrorHandlerMixin):
         """
         self._components.append((pattern, func))
 
-    def remove_component(self, pattern: re.Pattern, func: ComponentCallback) -> None:
+    def remove_component(self, pattern: 're.Pattern[str]', func: ComponentCallback) -> None:
         """Remove a callback from the list of components.
 
         Parameters:
@@ -75,7 +75,7 @@ class ComponentHandler(ErrorHandlerMixin):
 
     def component(
             self,
-            pattern: Union[str, re.Pattern]
+            pattern: Union[str, 're.Pattern[str]']
     ) -> Callable[[ComponentCallback], ComponentCallback]:
         """Add a callback to be dispatched when the custom ID is matched.
 

@@ -4,14 +4,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from types import TracebackType
 from typing import (
-    Any, AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict,
-    Mapping, Optional, Protocol, Type
+    AsyncContextManager, AsyncGenerator, Awaitable, Callable, Dict, Mapping,
+    Optional, Type
 )
 from weakref import WeakValueDictionary
 
 import anyio
 import anyio.lowlevel
-from typing_extensions import Self
+from typing_extensions import Protocol, Self
 
 from .config import RatelimiterContext
 from .errors import RateLimited, ServerException
