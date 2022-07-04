@@ -14,6 +14,7 @@ from .base import Model, Snowflake
 from .channels import InteractionChannel
 from .member import InteractionMember, Member
 from .message import Message
+from .permissions import Permissions
 from .role import Role
 from .user import User
 from .utils import _get_as_snowflake, backport_slots
@@ -150,6 +151,7 @@ class Interaction(Model):
 
     application_id: Snowflake
     type: InteractionType
+    app_permissions: Permissions
 
     guild_id: Optional[Snowflake]
     channel_id: Optional[Snowflake]
@@ -196,6 +198,7 @@ class CommandInteraction(Interaction):
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
             type=InteractionType(data['type']),
+            app_permissions=Permissions(int(data['app_permissions'])),
 
             channel_id=_get_as_snowflake(data, 'channel_id'),
             guild_id=_get_as_snowflake(data, 'guild_id'),
@@ -249,6 +252,7 @@ class ComponentInteraction(Interaction):
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
             type=InteractionType(data['type']),
+            app_permissions=Permissions(int(data['app_permissions'])),
 
             channel_id=_get_as_snowflake(data, 'channel_id'),
             guild_id=_get_as_snowflake(data, 'guild_id'),
