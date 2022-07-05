@@ -243,6 +243,8 @@ class Intents(DiscordFlags):
         direct_message_typing: bool = ...,
         messages: bool = ...,
         guild_scheduled_events: bool = ...,
+        automod_configuration: bool = ...,
+        automod_execution: bool = ...,
     ) -> Self:
         ...
 
@@ -326,9 +328,17 @@ class Intents(DiscordFlags):
     def guild_scheduled_events() -> int:
         return 1 << 16
 
+    @flag
+    def automod_configuration() -> int:
+        return 1 << 20
+
+    @flag
+    def automod_execution() -> int:
+        return 1 << 21
+
     @classmethod
     def all(cls) -> Self:
-        return cls(0b1111111111111111)  # 65355
+        return cls(0b111111111111111100011)
 
     @classmethod
     def default(cls) -> Self:
@@ -356,6 +366,8 @@ class Intents(DiscordFlags):
         direct_message_typing: bool = False,
         messages: bool = False,
         guild_scheduled_events: bool = False,
+        automod_configuration: bool = False,
+        automod_execution: bool = False,
     ) -> Self:
         ...
 
