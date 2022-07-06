@@ -11,7 +11,7 @@ from wumpy.models import ComponentInteraction as ComponentInteractionModel
 from wumpy.models import ComponentType
 from wumpy.models import Interaction as InteractionModel
 from wumpy.models import (
-    InteractionType, Member, Message, ResolvedInteractionData,
+    InteractionType, Member, Message, Permissions, ResolvedInteractionData,
     SelectInteractionValue, Snowflake, User
 )
 
@@ -76,6 +76,7 @@ class CommandInteraction(CommandInteractionModel, Interaction):
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
             type=InteractionType(data['type']),
+            app_permissions=Permissions(int(data['app_permissions'])),
 
             channel_id=channel_id,
             guild_id=guild_id,
@@ -131,6 +132,7 @@ class ComponentInteraction(ComponentInteractionModel, Interaction):
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
             type=InteractionType(data['type']),
+            app_permissions=Permissions(int(data['app_permissions'])),
 
             channel_id=channel_id,
             guild_id=guild_id,
