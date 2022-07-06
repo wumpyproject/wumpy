@@ -2,9 +2,9 @@ from typing import Any, Dict, List, SupportsInt
 
 from discord_typings import StickerData, StickerPackData
 
+from ..requester import FileContent, Requester
 from ..route import Route
 from ..utils import MISSING
-from .base import FileContent, Requester
 
 __all__ = ('StickerRequester',)
 

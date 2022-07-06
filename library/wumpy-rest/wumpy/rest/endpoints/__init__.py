@@ -1,4 +1,3 @@
-from .base import *
 from .channel import *
 from .commands import *
 from .gateway import *

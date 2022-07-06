@@ -9,9 +9,9 @@ from discord_typings import (
 )
 from typing_extensions import Literal
 
+from ..requester import Requester, RequestFiles
 from ..route import Route
 from ..utils import MISSING, dump_json
-from .base import Requester, RequestFiles
 
 __all__ = ('ChannelRequester',)
 

@@ -2,9 +2,9 @@ from typing import Any, Dict, List, Optional, SupportsInt
 
 from discord_typings import GuildData, GuildTemplateData
 
+from ..requester import Requester
 from ..route import Route
 from ..utils import MISSING
-from .base import Requester
 
 
 class GuildTemplateRequester(Requester):

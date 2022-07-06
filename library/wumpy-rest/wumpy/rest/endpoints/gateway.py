@@ -1,7 +1,7 @@
 from discord_typings import GetGatewayBotData
 
+from ..requester import Requester
 from ..route import Route
-from .base import Requester
 
 
 class GatewayRequester(Requester):

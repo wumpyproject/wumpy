@@ -2,9 +2,9 @@ from typing import List, Optional, SupportsInt
 
 from discord_typings import DMChannelData, GuildData, UserData
 
+from ..requester import Requester
 from ..route import Route
 from ..utils import MISSING
-from .base import Requester
 
 __all__ = ('UserRequester',)
 

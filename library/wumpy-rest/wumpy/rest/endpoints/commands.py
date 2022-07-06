@@ -5,8 +5,8 @@ from discord_typings import (
     ApplicationCommandPermissionsData, GuildApplicationCommandPermissionData
 )
 
+from ..requester import Requester
 from ..route import Route
-from .base import Requester
 
 __all__ = ('ApplicationCommandRequester',)
 

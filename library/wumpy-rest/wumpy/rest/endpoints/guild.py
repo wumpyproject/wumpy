@@ -11,9 +11,9 @@ from discord_typings import (
 )
 from typing_extensions import Literal
 
+from ..requester import Requester
 from ..route import Route
 from ..utils import MISSING
-from .base import Requester
 
 
 class GuildRequester(Requester):

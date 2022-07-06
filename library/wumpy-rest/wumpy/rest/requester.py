@@ -13,13 +13,13 @@ import anyio.abc
 import httpx
 from typing_extensions import Self
 
-from ..errors import (
+from .errors import (
     Forbidden, HTTPException, NotFound, RateLimited, RequestException,
     ServerException
 )
-from ..ratelimiter import DictRatelimiter, Ratelimiter
-from ..route import Route
-from ..utils import MISSING, dump_json, load_json
+from .ratelimiter import DictRatelimiter, Ratelimiter
+from .route import Route
+from .utils import MISSING, dump_json, load_json
 
 __all__ = ('Requester',)
 
