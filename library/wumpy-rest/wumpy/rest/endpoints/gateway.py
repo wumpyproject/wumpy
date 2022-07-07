@@ -3,8 +3,10 @@ from discord_typings import GetGatewayBotData
 from ..requester import Requester
 from ..route import Route
 
+__all__ = ('GatewayEndpoints',)
 
-class GatewayRequester(Requester):
+
+class GatewayEndpoints(Requester):
     """Endpoints for getting Discord gateway information."""
 
     __slots__ = ()

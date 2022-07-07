@@ -10,10 +10,10 @@ from ..requester import Requester, RequestFiles
 from ..route import Route
 from ..utils import MISSING, dump_json
 
-__all__ = ('InteractionRequester',)
+__all__ = ('InteractionEndpoints',)
 
 
-class InteractionRequester(Requester):
+class InteractionEndpoints(Requester):
     """Endpoints for responding to interactions."""
 
     __slots__ = ()

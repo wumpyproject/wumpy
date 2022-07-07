@@ -10,10 +10,10 @@ from ..requester import Requester, RequestFiles
 from ..route import Route
 from ..utils import MISSING, dump_json
 
-__all__ = ('WebhookRequester',)
+__all__ = ('WebhookEndpoints',)
 
 
-class WebhookRequester(Requester):
+class WebhookEndpoints(Requester):
     """Endpoints for using and managing webhooks."""
 
     __slots__ = ()

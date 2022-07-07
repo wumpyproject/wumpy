@@ -8,10 +8,10 @@ from discord_typings import (
 from ..requester import Requester
 from ..route import Route
 
-__all__ = ('ApplicationCommandRequester',)
+__all__ = ('ApplicationCommandEndpoints',)
 
 
-class ApplicationCommandRequester(Requester):
+class ApplicationCommandEndpoints(Requester):
     """Endpoints for managing application commands."""
 
     __slots__ = ()

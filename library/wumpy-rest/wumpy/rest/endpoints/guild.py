@@ -15,8 +15,10 @@ from ..requester import Requester
 from ..route import Route
 from ..utils import MISSING
 
+__all__ = ('GuildEndpoints',)
 
-class GuildRequester(Requester):
+
+class GuildEndpoints(Requester):
     """Guild-related endpoints under `/guilds/`."""
 
     __slots__ = ()

@@ -6,10 +6,10 @@ from ..requester import FileContent, Requester
 from ..route import Route
 from ..utils import MISSING
 
-__all__ = ('StickerRequester',)
+__all__ = ('StickerEndpoints',)
 
 
-class StickerRequester(Requester):
+class StickerEndpoints(Requester):
     """Endpoints for managing stickers."""
 
     __slots__ = ()

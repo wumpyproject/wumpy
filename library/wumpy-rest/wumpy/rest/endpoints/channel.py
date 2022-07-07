@@ -13,10 +13,10 @@ from ..requester import Requester, RequestFiles
 from ..route import Route
 from ..utils import MISSING, dump_json
 
-__all__ = ('ChannelRequester',)
+__all__ = ('ChannelEndpoints',)
 
 
-class ChannelRequester(Requester):
+class ChannelEndpoints(Requester):
     """Channel-related endpoints under `/channels/`."""
 
     __slots__ = ()

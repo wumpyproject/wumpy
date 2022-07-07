@@ -6,10 +6,10 @@ from ..requester import Requester
 from ..route import Route
 from ..utils import MISSING
 
-__all__ = ('UserRequester',)
+__all__ = ('UserEndpoints',)
 
 
-class UserRequester(Requester):
+class UserEndpoints(Requester):
     """Endpoints for interacting with user data."""
 
     __slots__ = ()
