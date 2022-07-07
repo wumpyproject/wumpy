@@ -2,7 +2,7 @@ from typing import Any, Callable
 
 from typing_extensions import Final, final
 
-__all__ = ('MISSING', 'dump_json', 'load_json')
+__all__ = ('MISSING',)
 
 
 dump_json: Callable[[Any], str]
@@ -38,4 +38,4 @@ class MissingType(object):
         return '<MISSING>'
 
 
-MISSING: Final[Any] = MissingType()
+MISSING: Final[object] = MissingType()

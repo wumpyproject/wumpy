@@ -4,6 +4,7 @@ from .errors import *
 from .ratelimiter import *
 from .requester import *
 from .route import *
+from .utils import *
 
 
 class APIClient(endpoints.ApplicationCommandEndpoints, endpoints.ChannelEndpoints,
