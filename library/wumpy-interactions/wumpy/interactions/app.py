@@ -9,7 +9,9 @@ from typing import (
 
 from discord_typings import InteractionData
 from typing_extensions import Self
-from wumpy.rest import ApplicationCommandRequester, InteractionRequester
+from wumpy.rest import (
+    ApplicationCommandRequester, HTTPXRequester, InteractionRequester
+)
 
 from .commands import CommandRegistrar, command_payload
 from .compat import ASGIRequest, Request
@@ -28,7 +30,7 @@ AppT = TypeVar('AppT', bound='InteractionApp')
 _active_app: ContextVar['InteractionApp'] = ContextVar('_active_app')
 
 
-class InteractionAppRequester(ApplicationCommandRequester, InteractionRequester):
+class InteractionAppRequester(ApplicationCommandRequester, InteractionRequester, HTTPXRequester):
     """Requester with endpoints used by InteractionApp."""
 
     __slots__ = ()

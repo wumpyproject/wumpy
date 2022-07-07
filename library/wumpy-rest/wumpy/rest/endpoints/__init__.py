@@ -1,3 +1,4 @@
+from ..requester import HTTPXRequester
 from .channel import *
 from .commands import *
 from .gateway import *
@@ -11,7 +12,7 @@ from .webhook import *
 
 class APIClient(ApplicationCommandRequester, ChannelRequester, GatewayRequester,
                 GuildRequester, GuildTemplateRequester, InteractionRequester, StickerRequester,
-                UserRequester, WebhookRequester):
+                UserRequester, WebhookRequester, HTTPXRequester):
     """Requester class with all endpoints inherited."""
 
     __slots__ = ()

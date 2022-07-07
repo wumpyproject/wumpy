@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import sys
+from abc import ABC, abstractmethod
 from types import TracebackType
 from typing import (
     IO, Any, Awaitable, Callable, Dict, Mapping, Optional, Sequence, Tuple,
@@ -21,7 +22,7 @@ from .ratelimiter import DictRatelimiter, Ratelimiter
 from .route import Route
 from .utils import MISSING, dump_json, load_json
 
-__all__ = ('Requester',)
+__all__ = ('Requester', 'HTTPXRequester')
 
 
 _log = logging.getLogger(__name__)
@@ -34,15 +35,78 @@ RequestFiles = Sequence[FileContent]
 HTTPXFiles = Union[Mapping[str, FileContent], Sequence[Tuple[str, FileContent]]]
 
 
-class Requester:
+class Requester(ABC):
     """Base for making requests to Discord's API, respecting ratelimits.
 
     This is meant to be re-used for many different purposes and as such does
-    not contain any actual routes.
+    not contain any actual routes or implementation. An actual implementation
+    of `Requester` *must* provide a `request()` method.
 
     Use it as an asynchronous context manager to ensure that sockets and tasks
     are properly cleaned up.
     """
+
+    __slots__ = ()
+
+    @abstractmethod
+    async def request(
+        self,
+        route: Route,
+        *,
+        reason: str = MISSING,
+        json: Optional[Any] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        files: Optional[HTTPXFiles] = None,
+        params: Optional[Dict[str, Any]] = None,
+        auth: Optional[Tuple[Union[str, bytes], Union[str, bytes]]] = None,
+        headers: Optional[Mapping[str, str]] = None
+    ) -> Any:
+        """Send a request to the Discord API, respecting rate limits.
+
+        If the `json`, `data` or `params` keyword-arguments contains values
+        that are MISSING, they will be removed before being passed to HTTPX.
+
+        This function returns a deserialized JSON object if Content-Type is
+        `application/json`, otherwise a string. Commonly it is known by the
+        caller itself what the response will be, in which case it will be
+        a burden to narrow down the type unneccesarily. For that reason this
+        function is annotated as returning `Any`.
+
+        Parameters:
+            route: The route to make the request to.
+            reason:
+                The reason to insert into the Audit Log for this change, not
+                supported by all endpoints.
+            json: Dictionary to serialize to JSON and send as the request body.
+            data: Dictionary to send as a multipart form-data request body.
+            files: Additional files to include in the request.
+            params: Query string parameters for the request.
+            headers: Headers to use when making the request.
+            auth:
+                Tuple with two items: (username, password) to authorize with
+                using BASIC. This parameter is not used, as Discord primarily
+                authenticates using the Authorization header.
+            headers: Headers to send in the request.
+
+        Raises:
+            Forbidden: The request received a 403 Forbidden response.
+            NotFound: The request received a 404 Not Found response.
+            ServerException:
+                The request received a 503 Service Unavailable response, this
+                is different from 500, 502 or 504 responses as they are
+                gracefully retried.
+            HTTPException:
+                The request received a non-successful unknown response. Simply
+                indicates a general failure, can also be raised if no attempt
+                at the request was successful.
+
+        Returns:
+            The JSON deserialized body of the response.
+        """
+        ...
+
+
+class HTTPXRequester(Requester):
 
     _session: httpx.AsyncClient
     _ratelimiter: Ratelimiter
@@ -54,12 +118,12 @@ class Requester:
 
     def __init__(
         self,
-        token: str,
+        token: Optional[str] = None,
         *,
         headers: Dict[str, str] = {},
         ratelimiter: Optional[Ratelimiter] = None,
         proxy: Optional[str] = None,
-        timeout: Union[httpx.Timeout, float] = 5.0,
+        timeout: float = 5.0,
     ) -> None:
         self._stack = contextlib.AsyncExitStack()
 
@@ -72,8 +136,6 @@ class Requester:
             proxies=proxy, follow_redirects=True, timeout=timeout
         )
         self._ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
-
-        self._opened = False
 
     async def __aenter__(self) -> Self:
         if self._opened:
