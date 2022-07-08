@@ -38,4 +38,4 @@ class MissingType(object):
         return '<MISSING>'
 
 
-MISSING: Final[object] = MissingType()
+MISSING: Final[Any] = MissingType()
