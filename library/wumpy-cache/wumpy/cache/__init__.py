@@ -1,2 +1,7 @@
-from .in_memory import *
-from .protocol import *
+from ._protocol import (
+    Cache,
+)
+
+__all__ = (
+    'Cache',
+)

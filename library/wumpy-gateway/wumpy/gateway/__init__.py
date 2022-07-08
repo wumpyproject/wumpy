@@ -20,6 +20,20 @@ async def main():
 ```
 """
 
-from .errors import *
-from .shard import *
-from .utils import DefaultGatewayLimiter
+from ._errors import (
+    ConnectionClosed,
+)
+from ._shard import (
+    Shard,
+)
+from ._utils import (
+    GatewayLimiter,
+    DefaultGatewayLimiter,
+)
+
+__all__ = (
+    'ConnectionClosed',
+    'Shard',
+    'GatewayLimiter',
+    'DefaultGatewayLimiter',
+)

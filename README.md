@@ -78,11 +78,4 @@ example versions):
 ## Public API
 
 The public API is documented in the API reference hosted on Read the docs,
-which can be found [here](https://wumpy.rtfd.io/). Unless otherwise noted
-through examples **no files in the library are part of the public API.** This
-means that all imports should go through the subpackages, for example
-`from wumpy.gateway.shard import Shard` is not part of the public API - but
-`from wumpy.gateway import Shard` is.
-
-Since files are not part of the public API, they are considered internal, and
-can be renamed on any version bump without breaking the public API.
+which can be found [here](https://wumpy.rtfd.io/).
