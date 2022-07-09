@@ -12,7 +12,7 @@ from wumpy.models import (
 )
 
 from .._errors import CommandSetupError
-from . import _slash
+from . import _slash  # Circular dependency
 
 __all__ = (
     'CommandType',

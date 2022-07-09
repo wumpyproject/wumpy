@@ -11,9 +11,9 @@ from typing_extensions import ParamSpec
 from wumpy.models import ApplicationCommandOption, CommandInteractionOption
 
 from .._models import CommandInteraction
+from . import _option
 from ._base import Callback, CommandCallback
 from ._middleware import CommandMiddlewareMixin
-from ._option import OptionClass
 
 __all__ = (
     'Command',
@@ -35,7 +35,7 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
 
     name: Optional[str]
     description: Optional[str]
-    options: 'OrderedDict[str, OptionClass]'
+    options: 'OrderedDict[str, _option.OptionClass]'
 
     def __init__(
         self,
@@ -43,7 +43,7 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        options: Optional['OrderedDict[str, OptionClass]'] = None
+        options: Optional['OrderedDict[str, _option.OptionClass]'] = None
     ) -> None:
         self.name = name
         self.description = description
@@ -118,10 +118,10 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
 
             return  # The interaction shouldn't be added to self.options
 
-        if isinstance(param.default, OptionClass):
+        if isinstance(param.default, _option.OptionClass):
             option = param.default
         else:
-            option = OptionClass(param.default)
+            option = _option.OptionClass(param.default)
 
         option.update(param)
 
@@ -382,7 +382,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
         return decorator
 
 
-def _option_payload(option: OptionClass) -> ApplicationCommandOptionData:
+def _option_payload(option: '_option.OptionClass') -> ApplicationCommandOptionData:
     if option.name is None or option.type is None or option.description is None:
         raise ValueError('Missing required option values')
 
