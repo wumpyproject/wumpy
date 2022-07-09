@@ -2,7 +2,7 @@ import pytest
 from wumpy.bot import (
     EventDispatcher, Extension, ExtensionFailure, ExtensionLoader
 )
-from wumpy.bot.extension import _is_submodule
+from wumpy.bot._extension import _is_submodule
 
 
 def test_is_submodule():

@@ -1,8 +1,8 @@
 import pytest
 from wumpy.interactions import (
-    ApplicationCommandOption, CommandInteraction, CommandRegistrar, Option,
-    command_payload
+    CommandInteraction, CommandRegistrar, Option, command_payload
 )
+from wumpy.models import ApplicationCommandOption
 
 
 class TestSlashcommandInit:

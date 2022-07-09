@@ -1,7 +1,7 @@
 import pytest
-from wumpy.interactions import ApplicationCommandOption, Option, option
-from wumpy.interactions.commands.option import OptionClass
-from wumpy.interactions.commands.registrar import CommandRegistrar
+from wumpy.interactions import CommandRegistrar, Option, option
+from wumpy.interactions.commands._option import OptionClass
+from wumpy.models import ApplicationCommandOption
 
 
 def test_option_func():

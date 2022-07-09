@@ -4,9 +4,8 @@ from typing import AnyStr, Optional, Union
 
 import pytest
 from typing_extensions import Annotated, Literal
-from wumpy.interactions import ApplicationCommandOption
-from wumpy.interactions.commands.option import OptionClass, OptionType
-from wumpy.models import InteractionMember, User
+from wumpy.interactions.commands._option import OptionClass, OptionType
+from wumpy.models import ApplicationCommandOption, InteractionMember, User
 
 
 def test_implicit_required():

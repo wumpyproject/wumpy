@@ -1,6 +1,6 @@
 import pytest
-from wumpy.models.flags import BitMask, DiscordFlags
-from wumpy.models.permissions import TriBitMask
+from wumpy.models._flags import BitMask, DiscordFlags
+from wumpy.models._permissions import TriBitMask
 
 
 class TestMagicMethods:

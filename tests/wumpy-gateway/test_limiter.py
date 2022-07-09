@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from discord_gateway import Opcode
-from wumpy.gateway.utils import DefaultGatewayLimiter
+from wumpy.gateway import DefaultGatewayLimiter
 
 
 class SimplerGatewayLimiter(DefaultGatewayLimiter):
