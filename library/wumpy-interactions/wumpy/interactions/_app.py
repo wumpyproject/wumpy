@@ -14,11 +14,11 @@ from wumpy.rest.endpoints import (
     ApplicationCommandEndpoints, InteractionEndpoints
 )
 
-from .commands import CommandRegistrar, command_payload
 from ._compat import ASGIRequest, Request
-from .components import ComponentHandler
 from ._models import CommandInteraction, ComponentInteraction
 from ._utils import DiscordRequestVerifier, State
+from .commands import CommandRegistrar, command_payload
+from .components import ComponentHandler
 
 __all__ = (
     'InteractionAppRequester',

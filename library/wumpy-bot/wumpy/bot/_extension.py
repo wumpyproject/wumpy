@@ -3,8 +3,7 @@ import importlib.util
 import sys
 from typing import Any, Callable, Dict, Optional, Union
 
-from wumpy.interactions import CommandRegistrar
-from wumpy.interactions import SubcommandGroup
+from wumpy.interactions import CommandRegistrar, SubcommandGroup
 
 from ._dispatch import EventDispatcher
 from ._errors import ExtensionFailure

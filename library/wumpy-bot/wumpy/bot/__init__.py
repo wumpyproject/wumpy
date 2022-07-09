@@ -14,6 +14,10 @@ from ._errors import (
     CommandException,
     ExtensionFailure,
 )
+from ._extension import (
+    Extension,
+    ExtensionLoader,
+)
 
 __all__ = (
     'Bot',

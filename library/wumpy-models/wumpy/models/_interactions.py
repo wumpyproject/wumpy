@@ -9,9 +9,9 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
-from ._emoji import Emoji
 from ._base import Model, Snowflake
 from ._channels import InteractionChannel
+from ._emoji import Emoji
 from ._member import InteractionMember, Member
 from ._message import Message
 from ._permissions import Permissions
