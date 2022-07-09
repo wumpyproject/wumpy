@@ -145,7 +145,7 @@ def Option(
         `typing.Any`. This way this function can be used as a default without
         violating static type checkers.
     """
-    return (cls or Option)(
+    return (cls or OptionClass)(
         default, name=name, description=description,
         required=required, choices=choices,
         min=min, max=max, type=type
