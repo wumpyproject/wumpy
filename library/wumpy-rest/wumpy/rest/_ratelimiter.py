@@ -219,17 +219,24 @@ class Ratelimit:
                         'Ratelimit was notified of a new reset, but no reset time was set.'
                     )
 
+                # We account for currently in-progress requests (which
+                # includes the current request, otherwise there'd be an extra
+                # subtraction of 1 at the end) because if there are requests
+                # in-progress as we reset the window there is a possibility
+                # that they take long enough to send that they fall over into
+                # the window we just waited on.
+
                 if self._reset_at < time.perf_counter():
-                    self._remaining = self._limit - 1
-                    self._reset_at = None
                     self._in_progress += 1
+                    self._remaining = self._limit - self._in_progress
+                    self._reset_at = None
                     return
 
                 else:
                     await anyio.sleep(self._reset_at - time.perf_counter())
-                    self._remaining = self._limit - 1
-                    self._reset_at = None
                     self._in_progress += 1
+                    self._remaining = self._limit - self._in_progress
+                    self._reset_at = None
         else:
             await anyio.lowlevel.cancel_shielded_checkpoint()
 
