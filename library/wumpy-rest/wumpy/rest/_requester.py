@@ -156,7 +156,7 @@ class HTTPXRequester(Requester):
 
         default_headers = {'User-Agent': self.build_user_agent()}
         if token is not None:
-            default_headers['Authorizaton'] = f'Bot {token}'
+            default_headers['Authorization'] = f'Bot {token}'
 
         self._session = httpx.AsyncClient(
             headers={**default_headers, **headers},
