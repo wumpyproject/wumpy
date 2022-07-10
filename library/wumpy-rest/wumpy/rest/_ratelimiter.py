@@ -206,6 +206,9 @@ class Ratelimit:
                     _log.debug('Waiting for reset_at timestamp to be updated for lock')
 
                     await self._event.wait()
+                    # Another request may have been ratelimited while we were
+                    # waiting for the above event.
+                    await self._ratelimited.wait()
 
                     # Another task may have updated the remaining tokens when
                     # it got ratelimit information (or released the lock).
@@ -224,7 +227,7 @@ class Ratelimit:
                 # subtraction of 1 at the end) because if there are requests
                 # in-progress as we reset the window there is a possibility
                 # that they take long enough to send that they fall over into
-                # the window we just waited on.
+                # the window we just waited for.
 
                 if self._reset_at < time.perf_counter():
                     self._in_progress += 1
@@ -234,6 +237,8 @@ class Ratelimit:
 
                 else:
                     await anyio.sleep(self._reset_at - time.perf_counter())
+                    await self._ratelimited.wait()
+
                     self._in_progress += 1
                     self._remaining = self._limit - self._in_progress
                     self._reset_at = None
@@ -284,8 +289,6 @@ class _RouteRatelimit:
     async def acquire(self) -> AsyncGenerator[
         Callable[[Mapping[str, str]], Awaitable[object]], None
     ]:
-        await self._parent.wait()
-
         if RatelimiterContext.abort_if_ratelimited():
             try:
                 self._lock.acquire_nowait()
@@ -293,6 +296,8 @@ class _RouteRatelimit:
                 raise RateLimited(429, {})
         else:
             await self._lock.acquire()
+
+        await self._parent.wait()
 
         try:
             yield self.update
