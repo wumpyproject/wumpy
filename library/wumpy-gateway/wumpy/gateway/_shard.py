@@ -3,6 +3,7 @@ import ssl
 from collections import deque
 from contextlib import AsyncExitStack
 from functools import partial
+from random import random
 from sys import platform
 from types import TracebackType
 from typing import Any, Deque, Dict, Optional, Tuple, Type
@@ -516,6 +517,8 @@ class Shard:
         if self._conn.heartbeat_interval is None:
             raise RuntimeError('Heartbeater started before connected')
 
+        interval = self._conn.heartbeat_interval
+
         while True:
             # Attempt to acquire the write lock, this is held when reconnecting
             # so that there are no race conditions
@@ -531,13 +534,21 @@ class Shard:
                     )
                     await self._reconnecting.wait()
 
+                    # Since we have reconnected, we should apply some jitter
+                    # to the next sleep so that not all bots which reconnect
+                    # send their heartbeats at the same time (causing strain
+                    # and worsens downtimes).
+                    interval = self._conn.heartbeat_interval * random()
+
                 _log.debug('Sending HEARTBEAT command over gateway.')
                 async with self._ratelimiter(Opcode.HEARTBEAT):
                     await self._sock.send(self._conn.heartbeat())
 
             # Wait for the first one to complete - either the expected sleeping
             # or during shutdown the _closed event.
-            await race(partial(anyio.sleep, self._conn.heartbeat_interval), self._closed.wait)
+            await race(partial(anyio.sleep, interval), self._closed.wait)
+
+            interval = self._conn.heartbeat_interval  # Reset value after sleep
 
             if self._closed.is_set():
                 _log.info('Close event is set - exiting heartbeater.')
