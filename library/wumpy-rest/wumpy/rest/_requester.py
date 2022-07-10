@@ -49,7 +49,29 @@ class Requester(ABC):
     are properly cleaned up.
     """
 
-    __slots__ = ()
+    __slots__ = ('_opened',)
+
+    # If this method would not take arbitrary args and kwargs, then subclasses
+    # would technically violate the signature
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._opened = False
+
+    async def __aenter__(self) -> Self:
+        if self._opened:
+            raise RuntimeError("Cannot enter already opened requester")
+
+        self._opened = True
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]] = None,
+        exc_val: Optional[BaseException] = None,
+        exc_tb: Optional[TracebackType] = None
+    ) -> None:
+        self._opened = False
 
     @abstractmethod
     async def request(
@@ -116,7 +138,7 @@ class HTTPXRequester(Requester):
     _stack: contextlib.AsyncExitStack
 
     __slots__ = (
-        '_ratelimiter', '_session', '_stack', '_opened'
+        '_ratelimiter', '_session', '_stack',
     )
 
     def __init__(
@@ -128,6 +150,8 @@ class HTTPXRequester(Requester):
         proxy: Optional[str] = None,
         timeout: float = 5.0,
     ) -> None:
+        super().__init__()
+
         self._stack = contextlib.AsyncExitStack()
 
         default_headers = {'User-Agent': self.build_user_agent()}
@@ -141,10 +165,7 @@ class HTTPXRequester(Requester):
         self._ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
 
     async def __aenter__(self) -> Self:
-        if self._opened:
-            raise RuntimeError("Cannot enter already opened requester")
-
-        self._opened = True
+        await super().__aenter__()
 
         try:
             await self._stack.enter_async_context(self._session)
@@ -168,7 +189,7 @@ class HTTPXRequester(Requester):
         try:
             await self._stack.__aexit__(exc_type, exc_val, traceback)
         finally:
-            self._opened = False
+            await super().__aexit__(exc_type, exc_val, traceback)
 
     @property
     def session(self) -> httpx.AsyncClient:
