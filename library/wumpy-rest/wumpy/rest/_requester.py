@@ -73,6 +73,15 @@ class Requester(ABC):
     ) -> None:
         self._opened = False
 
+    @staticmethod
+    def _clean_dict(mapping: Dict[Any, Any]) -> Dict[Any, Any]:
+        """Clean a dictionary from MISSING values.
+
+        Returned is a new dictionary with only the keys not having a
+        MISSING value left.
+        """
+        return {k: v for k, v in mapping.items() if v is not MISSING}
+
     @abstractmethod
     async def request(
         self,
@@ -197,15 +206,6 @@ class HTTPXRequester(Requester):
             raise RuntimeError("'session' attribute accessed before connection opened")
 
         return self._session
-
-    @staticmethod
-    def _clean_dict(mapping: Dict[Any, Any]) -> Dict[Any, Any]:
-        """Clean a dictionary from MISSING values.
-
-        Returned is a new dictionary with only the keys not having a
-        MISSING value left.
-        """
-        return {k: v for k, v in mapping.items() if v is not MISSING}
 
     @staticmethod
     def build_user_agent() -> str:
