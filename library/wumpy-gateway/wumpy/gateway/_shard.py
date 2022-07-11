@@ -134,22 +134,6 @@ class Shard:
 
         self._ratelimiter = ratelimiter or DefaultGatewayLimiter()
 
-    @property
-    def session_id(self) -> str:
-        """Session ID used to `RESUME` the connection."""
-        if self._conn.session_id is None:
-            raise RuntimeError('Cannot retrieve session ID without being connected')
-
-        return self._conn.session_id
-
-    @property
-    async def sequence(self) -> int:
-        """Heartbeat sequnce used together with the session ID."""
-        if self._conn.sequence is None:
-            raise RuntimeError('Cannot retrieve sequence without being connected')
-
-        return self._conn.sequence
-
     async def __aenter__(self) -> Self:
         _log.info('Entered the context manager (connecting to the gateway).')
 
@@ -205,6 +189,25 @@ class Shard:
 
     def __aiter__(self) -> 'Shard':
         return self
+
+    async def __anext__(self) -> Dict[str, Any]:
+        return await self.receive_event()
+
+    @property
+    def session_id(self) -> str:
+        """Session ID used to `RESUME` the connection."""
+        if self._conn.session_id is None:
+            raise RuntimeError('Cannot retrieve session ID without being connected')
+
+        return self._conn.session_id
+
+    @property
+    async def sequence(self) -> int:
+        """Heartbeat sequnce used together with the session ID."""
+        if self._conn.sequence is None:
+            raise RuntimeError('Cannot retrieve sequence without being connected')
+
+        return self._conn.sequence
 
     async def receive_event(self) -> Dict[str, Any]:
         """Receive the next event, waiting if there is none.
@@ -312,9 +315,6 @@ class Shard:
 
             for event in self._conn.events():
                 self._events.append(event)
-
-    async def __anext__(self) -> Dict[str, Any]:
-        return await self.receive_event()
 
     async def _receive_hello(self) -> Optional[Dict[str, Any]]:
         if self._sock is None:
