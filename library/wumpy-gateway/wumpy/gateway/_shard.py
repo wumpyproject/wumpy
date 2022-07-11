@@ -2,11 +2,14 @@ import logging
 import ssl
 from collections import deque
 from contextlib import AsyncExitStack
+from datetime import datetime
 from functools import partial
 from random import random
 from sys import platform
 from types import TracebackType
-from typing import Any, Deque, Dict, Optional, Tuple, Type
+from typing import (
+    Any, Deque, Dict, List, Mapping, Optional, Tuple, Type, Union
+)
 
 import anyio
 import anyio.abc
@@ -553,3 +556,64 @@ class Shard:
             if self._closed.is_set():
                 _log.info('Close event is set - exiting heartbeater.')
                 return
+
+    async def request_guild_members(
+        self,
+        guild: Union[str, int],
+        *,
+        limit: Optional[int] = None,
+        query: Optional[str] = None,
+        presences: Optional[bool] = None,
+        users: Optional[Union[List[Union[str, int]], Union[str, int]]] = None,
+        nonce: Optional[str] = None
+    ) -> None:
+        """Request guild member information from Discord.
+
+        The response to this command will be received by a DISPATCH event
+        asynchronously. Use `nonce` to keep track of which call corresponds
+        to which response.
+
+        Parameters:
+            guild: The guild to get the information from.
+            limit: The maximum amount of members to send.
+            presences: Whether to send presences for the members.
+            users: List of specific users to request member data for.
+            nonce: A helpful nonce value to identify a specific response.
+        """
+        if self._sock is None:
+            raise RuntimeError('Cannot request guild members before connecting')
+
+        async with self._write_lock:
+            async with self._ratelimiter(Opcode.REQUEST_GUILD_MEMBERS):
+                await self._sock.send(self._conn.request_guild_members(
+                    guild=guild, limit=limit, query=query, presences=presences,
+                    users=users, nonce=nonce
+                ))
+
+    async def update_presence(
+        self,
+        *,
+        activities: List[Mapping[str, Any]],
+        status: Literal['online', 'dnd', 'idle', 'offline'] = 'online',
+        afk: bool = False,
+        since: Optional[Union[int, datetime]] = None,
+    ) -> None:
+        """Update the presence of the bot in the guilds this shard handles.
+
+        Parameters:
+            activities: A list of activities the bot is doing.
+            status: The new status icon of the bot.
+            afk: Whether or not the bot should be treated as AFK.
+            since: The time that the bot went idle (in milliseconds).
+        """
+        if self._sock is None:
+            raise RuntimeError('Cannot update presence before connecting')
+
+        if isinstance(since, datetime):
+            since = int(since.timestamp() * 1000)
+
+        async with self._write_lock:
+            async with self._ratelimiter(Opcode.PRESENCE_UPDATE):
+                await self._sock.send(self._conn.update_presence(
+                    activities=activities, status=status, afk=afk, since=since
+                ))
