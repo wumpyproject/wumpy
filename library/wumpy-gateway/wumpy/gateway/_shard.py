@@ -617,3 +617,31 @@ class Shard:
                 await self._sock.send(self._conn.update_presence(
                     activities=activities, status=status, afk=afk, since=since
                 ))
+
+    async def update_voice_state(
+        self,
+        guild: Union[str, int],
+        channel: Optional[Union[str, int]],
+        *,
+        mute: bool = False,
+        deafen: bool = False
+    ) -> None:
+        """Update the voice state of a specific guild.
+
+        `wumpy-gateway` does not currently support voice connections. This is
+        implemented so that you can build voice-support off of this.
+
+        Parameters:
+            guild: The guild to update the voice state for.
+            channel: The voice channel to move the bot to.
+            mute: Whether or not the bot should be muted.
+            deafen: Whether or not the bot should be deafened.
+        """
+        if self._sock is None:
+            raise RuntimeError('Cannot update voice state before connecting')
+
+        async with self._write_lock:
+            async with self._ratelimiter(Opcode.VOICE_STATE_UPDATE):
+                await self._sock.send(self._conn.update_voice_state(
+                    guild, channel, mute=mute, deafen=deafen
+                ))
