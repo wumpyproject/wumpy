@@ -528,28 +528,34 @@ class Shard:
         interval = self._conn.heartbeat_interval
 
         while True:
+            if self._conn.closing:
+                _log.debug(
+                    'WebSocket in the middle of closing when attempting to heartbeat,'
+                    ' waiting for reconnection event to be set.'
+                )
+                await self._reconnecting.wait()
+
+                # Since we have reconnected, we should apply some jitter
+                # to the next sleep so that not all bots which reconnect
+                # send their heartbeats at the same time (causing strain
+                # and worsens downtimes).
+                interval = self._conn.heartbeat_interval * random()
+
             # Attempt to acquire the write lock, this is held when reconnecting
             # so that there are no race conditions
             async with self._write_lock:
-
-                # Even though we may not be reconnecting or sending anything
-                # over the socket, a closure may have started that we haven't
-                # completed yet. Just skip sending heartbeats in that case.
-                if self._conn.closing:
-                    _log.debug(
-                        'WebSocket in the middle of closing when attempting to heartbeat,'
-                        ' waiting for reconnection event to be set.'
-                    )
-                    await self._reconnecting.wait()
-
-                    # Since we have reconnected, we should apply some jitter
-                    # to the next sleep so that not all bots which reconnect
-                    # send their heartbeats at the same time (causing strain
-                    # and worsens downtimes).
-                    interval = self._conn.heartbeat_interval * random()
-
-                _log.debug('Sending HEARTBEAT command over gateway.')
                 async with self._ratelimiter(Opcode.HEARTBEAT):
+                    if self._conn.closing:
+                        # Even though we may not be reconnecting or sending
+                        # anything over the socket, a closure could have
+                        # started while we were acquiring the lock or waiting
+                        # on the ratelimiter. We cannot hold the lock while
+                        # waiting on self._reconnecting because that would
+                        # result in a dead-lock (since the lock is acquired
+                        # to reconnect and set the event).
+                        continue
+
+                    _log.debug('Sending HEARTBEAT command over gateway.')
                     await self._sock.send(self._conn.heartbeat())
 
             # Wait for the first one to complete - either the expected sleeping
