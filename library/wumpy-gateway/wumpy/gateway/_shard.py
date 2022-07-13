@@ -212,6 +212,11 @@ class Shard:
 
         return self._conn.sequence
 
+    @property
+    def latency(self) -> float:
+        """Rolling average latency to receiving an heartbeat ACK."""
+        return self._conn.latency
+
     async def receive_event(self) -> Dict[str, Any]:
         """Receive the next event, waiting if there is none.
 
