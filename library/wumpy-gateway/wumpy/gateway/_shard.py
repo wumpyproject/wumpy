@@ -437,6 +437,13 @@ class Shard:
                 if self._conn.should_resume:
                     async with self._ratelimiter(Opcode.RESUME):
                         await self._sock.send(self._conn.resume(self.token))
+
+                    # If we RESUME, we should reset the cache of events because
+                    # they will be sent again - although a reconnection should
+                    # only really trigger within receive_event() when the
+                    # events cache is already empty.
+                    self._events = deque()
+
                 else:
                     async with self._ratelimiter(Opcode.IDENTIFY):
                         await self._sock.send(self._conn.identify(
