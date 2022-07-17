@@ -114,12 +114,18 @@ class Shard:
         intents: int,
         shard_id: Optional[Tuple[int, int]] = None,
         *,
+        session_id: Optional[str] = None,
+        sequence: Optional[int] = None,
         max_concurrency: int = 1,
         encoding: Literal['json', 'etf'] = 'json',
         ratelimiter: Optional[GatewayLimiter] = None,
         ssl_context: Optional[ssl.SSLContext] = None
     ) -> None:
-        self._conn = DiscordConnection(uri, encoding=encoding, compress='zlib-stream')
+        self._conn = DiscordConnection(
+            uri, session_id=session_id, sequence=sequence,
+            encoding=encoding, compress='zlib-stream'
+        )
+
         self._sock = None
         self._ssl = ssl_context
 
