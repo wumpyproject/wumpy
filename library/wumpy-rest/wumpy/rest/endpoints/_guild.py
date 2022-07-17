@@ -108,7 +108,8 @@ class GuildEndpoints(Requester):
             trigger_metadata: AutoModerationTriggerMetadataData = MISSING,
             enabled: bool = MISSING,
             exempt_roles: List[SupportsInt] = MISSING,
-            exempt_channels: List[SupportsInt] = MISSING
+            exempt_channels: List[SupportsInt] = MISSING,
+            reason: str = MISSING,
     ) -> AutoModerationRuleData:
         """Create a new automoderation rule.
 
@@ -124,6 +125,7 @@ class GuildEndpoints(Requester):
             enabled: Whether the rule is enabled.
             exempt_roles: Role IDs which should not be affected by the rule.
             exempt_channels: Channel IDs which should not be affected.
+            reason: The audit log reason for creating the rule.
 
         Returns:
             The newly created automod rule object.
@@ -142,7 +144,7 @@ class GuildEndpoints(Requester):
         }
         return await self.request(
             Route('POST', '/guilds/{guild_id}/auto-moderation/rules', guild_id=int(guild)),
-            json=payload
+            json=payload, reason=reason
         )
 
     async def edit_automod_rule(
@@ -157,9 +159,10 @@ class GuildEndpoints(Requester):
             trigger_metadata: AutoModerationTriggerMetadataData = MISSING,
             enabled: bool = MISSING,
             exempt_roles: List[SupportsInt] = MISSING,
-            exempt_channels: List[SupportsInt] = MISSING
+            exempt_channels: List[SupportsInt] = MISSING,
+            reason: str = MISSING,
     ) -> AutoModerationRuleData:
-        """Create a new automoderation rule.
+        """Edit an existing automoderation rule.
 
         This method requires the `MANAGE_GUILD` permission.
 
@@ -173,6 +176,7 @@ class GuildEndpoints(Requester):
             enabled: Whether the rule is enabled.
             exempt_roles: Role IDs which should not be affected by the rule.
             exempt_channels: Channel IDs which should not be affected.
+            reason: The audit log reason for editing the rule.
 
         Returns:
             The newly created automod rule object.
@@ -194,10 +198,16 @@ class GuildEndpoints(Requester):
                 'PATCH', '/guilds/{guild_id}/auto-moderation/rules/{automod_rule}',
                 guild_id=int(guild), automod_rule=int(rule)
             ),
-            json=payload
+            json=payload, reason=reason
         )
 
-    async def delete_automod_rule(self, guild: SupportsInt, rule: SupportsInt) -> None:
+    async def delete_automod_rule(
+            self,
+            guild: SupportsInt,
+            rule: SupportsInt,
+            *,
+            reason: str = MISSING,
+    ) -> None:
         """Delete an automod rule by its ID.
 
         This method requires the `MANAGE_GUILD` permission.
@@ -205,10 +215,11 @@ class GuildEndpoints(Requester):
         Parameters:
             guild: The ID of the guild the automod rule is in.
             rule: The ID of the automod rule to delete.
+            reason: The audit log reason for deleting the rule.
         """
         return await self.request(Route(
             'DELETE', '/guilds/{guild_id}/auto-moderation/{automod_rule}',
-            guild_id=int(guild), automod_rule=int(rule)
+            guild_id=int(guild), automod_rule=int(rule), reason=reason
         ))
 
     # Emoji endpoints
