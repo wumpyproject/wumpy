@@ -4,7 +4,10 @@ from discord_typings import (
     AuditLogData, AutoModerationActionData, AutoModerationRuleData,
     AutoModerationTriggerMetadataData, BanData, ChannelData,
     ChannelPositionData, EmojiData, GuildData, GuildMemberData,
-    GuildPreviewData, GuildWidgetData, GuildWidgetSettingsData,
+    GuildPreviewData, GuildScheduledEventData,
+    GuildScheduledEventEntityMetadata, GuildScheduledEventEntityTypes,
+    GuildScheduledEventPrivacyLevels, GuildScheduledEventStatus,
+    GuildScheduledEventUserData, GuildWidgetData, GuildWidgetSettingsData,
     IntegrationData, InviteData, ListThreadsData, PermissionOverwriteData,
     RoleData, RolePositionData, StageInstanceData, VoiceRegionData,
     WelcomeChannelData, WelcomeScreenData
@@ -1516,6 +1519,232 @@ class GuildEndpoints(Requester):
                 'PATCH', '/guilds/{guild_id}/voice-states/{user_id}',
                 guild_id=int(guild), user_id=int(user)
             ), json=payload
+        )
+
+    # Guild Scheduled Events endpoints
+
+    async def fetch_scheduled_events(
+            self,
+            guild: SupportsInt,
+            *,
+            with_counts: bool = MISSING,
+    ) -> List[GuildScheduledEventData]:
+        """Fetch all current scheduled events for a guild.
+
+        Parameters:
+            guild: The ID of the guild.
+            with_counts: Whether to include user-counts.
+
+        Returns:
+            A list of guild scheduled events.
+        """
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/scheduled-events', guild_id=int(guild)),
+            params={'with_user_count': with_counts}
+        )
+
+    async def create_scheduled_event(
+            self,
+            guild: SupportsInt,
+            *,
+            name: str,
+            privacy_level: GuildScheduledEventPrivacyLevels,
+            entity_type: GuildScheduledEventEntityTypes,
+            start_time: str,
+            description: str = MISSING,
+            channel: SupportsInt = MISSING,
+            entity_metadata: GuildScheduledEventEntityMetadata = MISSING,
+            end_time: str = MISSING,
+            image: str = MISSING,
+            reason: str = MISSING,
+    ) -> GuildScheduledEventData:
+        """Create a new scheduled event in a guild.
+
+        Guild can have up to 100 scheduled or active events at a time.
+
+        Parameters:
+            guild: The ID of the guild to schedule the event in.
+            name: The name of the scheduled event.
+            privacy_level: The privacy level of the scheduled event.
+            entity_type: The type of the scheduled event entity.
+            start_time: The ISO8601 timestamp of when the event starts.
+            description: The longer description of the scheduled event.
+            channel: The channel that the scheduled event will take place.
+            entity_metadata:
+                Additional metadata about the scheduled event, having to do
+                with its entity.
+            end_time: The ISO8601 timestamp of when the event ends.
+            image: The cover image for the scheduled event.
+            reason: The audit log reason for creating the scheduled event.
+
+        Returns:
+            The created scheduled event.
+        """
+        payload = {
+            'channel_id': int(channel) if channel is not MISSING else MISSING,
+            'entity_metadata': entity_metadata,
+            'name': name,
+            'privacy_level': privacy_level,
+            'scheduled_start_time': start_time,
+            'scheduled_end_time': end_time,
+            'description': description,
+            'entity_type': entity_type,
+            'image': image,
+        }
+        return await self.request(
+            Route('POST', '/guilds/{guild_id}/scheduled-events', guild_id=int(guild)),
+            json=payload, reason=reason,
+        )
+
+    async def fetch_scheduled_event(
+            self,
+            guild: SupportsInt,
+            scheduled_event: SupportsInt,
+            *,
+            with_counts: bool = MISSING
+    ) -> GuildScheduledEventData:
+        """Fetch a scheduled event in a guild by its ID.
+
+        Parameters:
+            guild: The ID of the guild the scheduled even is in.
+            scheduled_event: The scheduled event to fetch.
+            with_counts: Whether to include user counts.
+
+        Returns:
+            The guild scheduled event object from Discord.
+        """
+        return await self.request(
+            Route(
+                'GET', '/guilds{guild_id}/scheduled-events/{scheduled_event}',
+                guild_id=int(guild), scheduled_event=int(scheduled_event)
+            ),
+            params={'with_user_count': with_counts}
+        )
+
+    async def edit_scheduled_event(
+            self,
+            guild: SupportsInt,
+            scheduled_event: SupportsInt,
+            *,
+            status: GuildScheduledEventStatus = MISSING,
+            name: str = MISSING,
+            privacy_level: GuildScheduledEventPrivacyLevels = MISSING,
+            entity_type: GuildScheduledEventEntityTypes = MISSING,
+            start_time: str = MISSING,
+            description: Optional[str] = MISSING,
+            channel: Optional[SupportsInt] = MISSING,
+            entity_metadata: Optional[GuildScheduledEventEntityMetadata] = MISSING,
+            end_time: str = MISSING,
+            image: str = MISSING,
+            reason: str = MISSING,
+    ) -> GuildScheduledEventData:
+        """Edit a scheduled event for a guild.
+
+        This method is used to start or end an event by modifying its status.
+
+        Parameters:
+            guild: The ID of the guild to schedule the event in.
+            scheduled_event: The ID of the scheduled event.
+            status: The new status of the scheduled event.
+            name: The new name of the scheduled event.
+            privacy_level: The new privacy level of the scheduled event.
+            entity_type: The new type of the scheduled event entity.
+            start_time: The new ISO8601 timestamp of when the event starts.
+            description: The new longer description of the scheduled event.
+            channel: The new channel that the scheduled event will take place.
+            entity_metadata:
+                The new metadata about the scheduled event, having to do
+                with its entity.
+            end_time: The new ISO8601 timestamp of when the event ends.
+            image: The new cover image for the scheduled event.
+            reason: The audit log reason for editing the scheduled event.
+
+        Returns:
+            The updated and new guild scheduled event.
+        """
+        if channel is not None and channel is not MISSING:
+            channel = int(channel)
+
+        payload = {
+            'status': status,
+            'channel_id': channel,
+            'entity_metadata': entity_metadata,
+            'name': name,
+            'privacy_level': privacy_level,
+            'scheduled_start_time': start_time,
+            'scheduled_end_time': end_time,
+            'description': description,
+            'entity_type': entity_type,
+            'image': image,
+        }
+
+        return await self.request(
+            Route(
+                'PATCH', '/guilds/{guild_id}/scheduled-events/{scheduled_event}',
+                guild_id=int(guild), scheduled_event=int(scheduled_event)
+            ),
+            json=payload
+        )
+
+    async def delete_scheduled_event(
+            self,
+            guild: SupportsInt,
+            scheduled_event: SupportsInt,
+            *,
+            reason: str = MISSING
+    ) -> None:
+        """Delete a scheduled event.
+
+        Parameters:
+            guild: The ID of the guild the scheduled event is in.
+            scheduled_event: The ID of the scheduled event.
+            reason: The audit log reason for deleting the scheduled event.
+        """
+        await self.request(
+            Route(
+                'DELETE', '/guilds/{guild_id}/scheduled-events/{scheduled_event}',
+                guild_id=int(guild), scheduled_event=int(scheduled_event)
+            ),
+            reason=reason
+        )
+
+    async def fetch_scheduled_event_users(
+            self,
+            guild: SupportsInt,
+            scheduled_event: SupportsInt,
+            *,
+            limit: int = 100,
+            with_member: bool = False,
+            before: SupportsInt = MISSING,
+            after: SupportsInt = MISSING
+    ) -> List[GuildScheduledEventUserData]:
+        """Fetch currently interested users for a scheduled event.
+
+        Parameters:
+            guild: The ID of the guild the scheduled event is in.
+            scheduled_event: The ID of the scheduled event.
+            limit: Maximm number of users to return.
+            with_member: Whether to include member information in the response.
+            before: User ID to only return users before.
+            after: User ID to only return users after.
+
+        Return:
+            A list of scheduled event users, with a `guild_scheduled_event_id`,
+            `user` and potentially `member` key.
+        """
+        params = {
+            'limit': limit,
+            'with_member': with_member,
+            'before': before,
+            'after': after,
+        }
+
+        return await self.request(
+            Route(
+                'GET', '/guilds/{guild_id}/scheduled-events/{scheduled_event}/users',
+                guild_id=int(guild), scheduled_event=int(scheduled_event)
+            ),
+            params=params
         )
 
     # Invite endpoints
