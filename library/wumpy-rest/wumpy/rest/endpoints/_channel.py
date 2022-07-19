@@ -3,9 +3,10 @@ from typing import (
 )
 
 from discord_typings import (
-    AllowedMentionsData, ChannelData, EmbedData, FollowedChannelData,
-    InviteData, ListThreadsData, MessageData, PartialAttachmentData,
-    PermissionOverwriteData, ThreadMemberData, UserData
+    AllowedMentionsData, ChannelData, ComponentData, EmbedData,
+    FollowedChannelData, InviteData, ListThreadsData, MessageData,
+    MessageReferenceData, PartialAttachmentData, PermissionOverwriteData,
+    ThreadMemberData, UserData
 )
 from typing_extensions import Literal
 
@@ -34,6 +35,10 @@ class ChannelEndpoints(Requester):
             object if the channel is a thread.
         """
         return await self.request(Route("GET", "/channels/{channel_id}", channel_id=int(channel)))
+
+    # ChannelData has to be used for each of these overloads. For example,
+    # even though a voice channel is edited, if only the position changes then
+    # it'll match the text channel overload.
 
     @overload
     async def edit_channel(
@@ -101,6 +106,22 @@ class ChannelEndpoints(Requester):
     ) -> ChannelData:
         ...
 
+    @overload
+    async def edit_channel(
+            self,
+            channel: SupportsInt,
+            *,
+            name: str = MISSING,
+            archived: bool = MISSING,
+            auto_archive: int = MISSING,
+            locked: bool = MISSING,
+            invitable: bool = MISSING,
+            rate_limit: Optional[int] = MISSING,
+            flags: int = MISSING,
+            reason: str = MISSING,
+    ) -> ChannelData:
+        ...
+
     async def edit_channel(
         self,
         channel: SupportsInt,
@@ -118,6 +139,11 @@ class ChannelEndpoints(Requester):
         rtc_region: Optional[str] = MISSING,
         video_quality: Optional[Literal[1, 2]] = MISSING,
         default_auto_archive: Optional[int] = MISSING,
+        archived: bool = MISSING,
+        auto_archive: int = MISSING,
+        locked: bool = MISSING,
+        invitable: bool = MISSING,
+        flags: int = MISSING,
         reason: str = MISSING
     ) -> ChannelData:
         """Edit the settings of a channel.
@@ -155,6 +181,13 @@ class ChannelEndpoints(Requester):
             default_auto_archive:
                 The default value for the automatic archival of threads created
                 in this channel.
+            archived: Whether the thread is archived.
+            auto_archive: Duration in minutes for the thread to archive.
+            locked: Whether the thread has been locked by a moderator.
+            invitable:
+                Whether non-moderators can add other non-moderators to the
+                private thread (channel type 12).
+            flags: Channel flags sent as a bitfield (can only set PINNED).
             reason: The reason shown in the audit log for editing this channel.
 
         Returns:
@@ -179,6 +212,11 @@ class ChannelEndpoints(Requester):
             'rtc_region': rtc_region,
             'video_quality_mode': video_quality,
             'default_auto_archive_duration': default_auto_archive,
+            'archived': archived,
+            'auto_arcive_duration': auto_archive,
+            'locked': locked,
+            'invitable': invitable,
+            'flags': flags,
         }
 
         return await self.request(
@@ -308,6 +346,8 @@ class ChannelEndpoints(Requester):
         tts: bool = MISSING,
         embeds: Iterable[EmbedData] = MISSING,
         allowed_mentions: AllowedMentionsData = MISSING,
+        message_reference: MessageReferenceData = MISSING,
+        components: List[ComponentData] = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: Optional[PartialAttachmentData] = None,
         stickers: Iterable[SupportsInt] = MISSING
@@ -321,9 +361,11 @@ class ChannelEndpoints(Requester):
         Parameters:
             channel: The ID of the channel to send a message to.
             content: The content of the message.
-            tts: Whether the message should be sent using text-to-speech.¨
+            tts: Whether the message should be sent using text-to-speech.
             embeds: Embeds to send with the message.
-            allowed_mentions: Rules for allowed mentions by the messagfe.
+            allowed_mentions: Rules for allowed mentions by the message.
+            message_reference: Message reference information for replies.
+            components: Message components to include with the message.
             files: Files to upload and attach with the message.
             stickers: Stickers to add to the message.
 
@@ -339,6 +381,8 @@ class ChannelEndpoints(Requester):
             'tts': tts,
             'embeds': embeds,
             'allowed_mentions': allowed_mentions,
+            'message_reference': message_reference,
+            'components': components,
             'attachments': attachments,
             'sticker_ids': [int(s) for s in stickers] if stickers else MISSING,
         }
@@ -497,6 +541,7 @@ class ChannelEndpoints(Requester):
         flags: SupportsInt = MISSING,
         files: Optional[RequestFiles] = None,
         allowed_mentions: Optional[AllowedMentionsData] = MISSING,
+        components: Optional[Iterable[ComponentData]] = MISSING,
         attachments: Optional[PartialAttachmentData] = MISSING
     ) -> MessageData:
         """Edit a previously sent message.
@@ -518,6 +563,7 @@ class ChannelEndpoints(Requester):
                 objects to be added successfully.
             allowed_mentions: Allowed mentions to parse the new content with.
             attachments: Attachments to add, change or remove from the message.
+            components: New message components to overwrite the old ones.
 
         Returns:
             The updated message object.
@@ -527,6 +573,7 @@ class ChannelEndpoints(Requester):
             'embeds': embeds,
             'flags': int(flags) if flags is not MISSING else flags,
             'allowed_mentions': allowed_mentions,
+            'components': components,
             'attachments': attachments
         }
 
@@ -875,6 +922,7 @@ class ChannelEndpoints(Requester):
         *,
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
+        rate_limit: int = MISSING,
         reason: str = MISSING
     ) -> ChannelData:
         ...
@@ -886,6 +934,7 @@ class ChannelEndpoints(Requester):
         *,
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
+        rate_limit: int = MISSING,
         type: int,
         invitable: bool = MISSING,
         reason: str = MISSING
@@ -899,6 +948,7 @@ class ChannelEndpoints(Requester):
         *,
         name: str,
         archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
+        rate_limit: int = MISSING,
         type: int = MISSING,
         invitable: bool = MISSING,
         reason: str = MISSING
@@ -920,6 +970,9 @@ class ChannelEndpoints(Requester):
             archive_duration:
                 After how many minutes after recent activity the thread should
                 be archived automatically.
+            rate_limit:
+                Amount of seconds (0-21600) users need to wait before
+                sending another message.
             type: The type of thread to create. Pass in a channel type.
             invitable:
                 Whether non-moderators can add non-moderators to the thread.
@@ -937,7 +990,8 @@ class ChannelEndpoints(Requester):
 
         payload: Dict[str, Any] = {
             'name': name,
-            'auto_archive_duration': archive_duration
+            'auto_archive_duration': archive_duration,
+            'rate_limit_per_user': rate_limit,
         }
 
         if message is not MISSING:
