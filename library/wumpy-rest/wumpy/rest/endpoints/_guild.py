@@ -588,6 +588,9 @@ class GuildEndpoints(Requester):
         permission_overwrites: List[PermissionOverwriteData] = MISSING,
         parent: SupportsInt = MISSING,
         nsfw: bool = MISSING,
+        rtc_region: str = MISSING,
+        video_quality_mode: Literal[1, 2] = MISSING,
+        default_auto_archive: int = MISSING,
         reason: str = MISSING
     ) -> ChannelData:
         """Create a new guild channel.
@@ -616,6 +619,9 @@ class GuildEndpoints(Requester):
                 channel upon creation.
             parent: The ID of the parent category to create the channel in.
             nsfw: Whether the channel should be marked NSFW or not.
+            rtc_region: The voice RTC region for the voice channel.
+            video_quality_mode: The video quality mode of the voice channel.
+            default_auto_archive: The default auto-archive duration for threads.
 
         Returns:
             The created channel object.
@@ -631,6 +637,9 @@ class GuildEndpoints(Requester):
             'permissin_overwrites': permission_overwrites,
             'parent_id': int(parent) if parent else parent,
             'nsfw': nsfw,
+            'rtc_region': rtc_region,
+            'video_quality_mode': video_quality_mode,
+            'default_auto_archive_duration': default_auto_archive,
         }
 
         return await self.request(
@@ -899,15 +908,40 @@ class GuildEndpoints(Requester):
             ), reason=reason
         )
 
-    async def fetch_bans(self, guild: SupportsInt) -> List[BanData]:
-        """Fetch all bans made on a guild.
+    async def fetch_bans(
+            self,
+            guild: SupportsInt,
+            *,
+            limit: int = 1000,
+            before: SupportsInt = MISSING,
+            after: SupportsInt = MISSING,
+    ) -> List[BanData]:
+        """Fetch bans made on a guild.
 
         This method requires the `BAN_MEMBERS` permission.
 
+        This method allows pagination through the `before` and `after`
+        parameters, with the user IDs in ascending order.
+
         Parameters:
             guild: The ID of the guild to fetch bans from.
+            limit: The maximum amount of bans to return.
+            before: User ID to only return bans before.
+            after: User ID to only return bans after.
+
+        Returns:
+            A list of guild ban objects.
         """
-        return await self.request(Route('GET', '/guilds/{guild_id}/bans', guild_id=int(guild)))
+        params = {
+            'limit': limit,
+            'before': int(before) if before is not MISSING else MISSING,
+            'after': int(after) if after is not MISSING else MISSING,
+        }
+
+        return await self.request(
+            Route('GET', '/guilds/{guild_id}/bans', guild_id=int(guild)),
+            params=params
+        )
 
     async def fetch_ban(self, guild: SupportsInt, user: SupportsInt) -> BanData:
         """Fetch a specific ban made on a user.
@@ -1111,6 +1145,23 @@ class GuildEndpoints(Requester):
                 guild_id=int(guild), role_id=int(role)
             ),
             json=payload, reason=reason
+        )
+
+    async def edit_guild_mfa(self, guild: SupportsInt, level: int) -> int:
+        """Update the guild's MFA level.
+
+        This requires that the bot user owns the guild.
+
+        Parameters:
+            guild: The ID of the guild to update the MFA level.
+            level: The new MFA level.
+
+        Returns:
+            The new MFA level.
+        """
+        return await self.request(
+            Route('POST', '/guilds/{guild_id}/mfa', guild_id=int(guild)),
+            json={'level': level}
         )
 
     async def delete_role(
@@ -1462,7 +1513,7 @@ class GuildEndpoints(Requester):
         channel: SupportsInt,
         suppress: bool = MISSING,
         request_to_speak: Optional[str] = MISSING
-    ) -> Any:  # TODO: What does this return?
+    ) -> None:
         """Update the bot user's voice state in that guild.
 
         This endpoint can only be used when `channel` is already a stage
@@ -1476,6 +1527,7 @@ class GuildEndpoints(Requester):
             suppress: Whether the bot user's voice should be suppressed.
             request_to_speak:
                 A ISO8601 timestamp of when the bot user should ask to speak.
+                This must be in the past.
         """
         payload = {
             'channel_id': int(channel),
@@ -1495,7 +1547,7 @@ class GuildEndpoints(Requester):
         *,
         channel: SupportsInt,
         suppress: bool = MISSING
-    ) -> Any:  # TODO: What does this return?
+    ) -> None:
         """Edit another user's voice state.
 
         This endpoint can only be used when `channel` is already a stage
