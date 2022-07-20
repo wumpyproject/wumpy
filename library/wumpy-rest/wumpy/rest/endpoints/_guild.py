@@ -1840,6 +1840,8 @@ class GuildEndpoints(Requester):
         channel: SupportsInt,
         topic: str,
         privacy_level: Literal[1, 2] = MISSING,
+        *,
+        send_notification: bool = MISSING,
         reason: str = MISSING
     ) -> StageInstanceData:
         """Create a new stage instance associated with a stage channel.
@@ -1850,6 +1852,8 @@ class GuildEndpoints(Requester):
             channel: The ID of the stage channel.
             topic: The (1-120 character) topic of the new stage instance.
             privacy_level: The privacy level of the new stage instance.
+            send_notification:
+                Whether to send a push notification about the stage starting.
             reason: The audit log reason for creating the stage instance.
 
         Returns:
@@ -1859,6 +1863,7 @@ class GuildEndpoints(Requester):
             'channel_id': int(channel),
             'topic': topic,
             'privacy_level': privacy_level,
+            'send_start_notification': send_notification,
         }
 
         return await self.request(
