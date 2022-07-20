@@ -1,6 +1,8 @@
 from typing import List, Optional, SupportsInt
 
-from discord_typings import DMChannelData, GuildData, UserData
+from discord_typings import (
+    DMChannelData, GuildData, PartialGuildData, UserData
+)
 
 from .._requester import Requester
 from .._route import Route
@@ -76,7 +78,7 @@ class UserEndpoints(Requester):
         before: SupportsInt = MISSING,
         after: SupportsInt = MISSING,
         limit: int = 200
-    ) -> List[GuildData]:
+    ) -> List[PartialGuildData]:
         """Fetch all guilds that the bot user is in.
 
         This endpoint allows pagination for bots who are a member of more than
