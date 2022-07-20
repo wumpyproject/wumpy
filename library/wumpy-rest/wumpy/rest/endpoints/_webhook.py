@@ -20,7 +20,7 @@ class WebhookEndpoints(Requester):
 
     __slots__ = ()
 
-    async def fetch_webhook(self, webhook: SupportsInt, token: str) -> WebhookData:
+    async def fetch_webhook(self, webhook: SupportsInt, token: str = MISSING) -> WebhookData:
         """Fetch a specific webhook by its ID.
 
         The `token` parameter is optional, but requires that the requester is
@@ -115,7 +115,7 @@ class WebhookEndpoints(Requester):
             webhook_id=int(webhook), webhook_token=token
         ), json=payload)
 
-    async def delete_webhook(self, webhook: SupportsInt, token: str) -> None:
+    async def delete_webhook(self, webhook: SupportsInt, token: str = MISSING) -> None:
         """Delete a webhook permanently.
 
         If used without the `token`, this requires the requester to be
@@ -126,6 +126,12 @@ class WebhookEndpoints(Requester):
             webhook: The ID of the webhook to delete.
             token: The token for the webhook being deleted.
         """
+        if token is MISSING:
+            await self.request(Route(
+                'DELETE', '/webhooks/{webhook_id}', webhook_id=int(webhook)
+            ))
+            return
+
         await self.request(Route(
             'DELETE', '/webhooks/{webhook_id}/{webhook_token}',
             webhook_id=int(webhook), webhook_token=token
@@ -148,6 +154,7 @@ class WebhookEndpoints(Requester):
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AllowedMentionsData] = MISSING,
+        thread_name: str = MISSING,
     ) -> None:
         ...
 
@@ -168,6 +175,7 @@ class WebhookEndpoints(Requester):
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AllowedMentionsData] = MISSING,
+        thread_name: str = MISSING,
     ) -> MessageData:
         ...
 
@@ -187,6 +195,7 @@ class WebhookEndpoints(Requester):
         allowed_mentions: AllowedMentionsData = MISSING,
         files: Optional[RequestFiles] = None,
         attachments: List[AllowedMentionsData] = MISSING,
+        thread_name: str = MISSING,
     ) -> Union[MessageData, None]:
         """Execute a webhook and send a message in the channel it's setup in.
 
@@ -208,6 +217,8 @@ class WebhookEndpoints(Requester):
                 to parse and ping in the client.
             files: Files to upload to Discord.
             attachments: Filename and descriptions for the files.
+            thread_name:
+                The name of the created thread if this is a forum channel.
 
         Returns:
             The created message object if `wait` is specified.
@@ -229,7 +240,8 @@ class WebhookEndpoints(Requester):
             'embeds': embeds,
             'components': components,
             'allowed_mentions': allowed_mentions,
-            'attachments': attachments
+            'attachments': attachments,
+            'thread_name': thread_name,
         }
 
         # Because of the usage of files here, we need to use multipart/form-data
@@ -286,6 +298,7 @@ class WebhookEndpoints(Requester):
         token: str,
         message: SupportsInt,
         *,
+        thread: SupportsInt = MISSING,
         content: Optional[str] = MISSING,
         embeds: Optional[Sequence[EmbedData]] = MISSING,
         components: Optional[Sequence[ComponentData]] = MISSING,
@@ -299,6 +312,7 @@ class WebhookEndpoints(Requester):
             webhook: The ID of the webhook that sent the message.
             token: The token of the webhook.
             message: The ID of the message to edit.
+            thread: The ID of the thread the message is in.
             content: The new content of the message.
             embeds: The new list of embeds to display.
             allowed_mentions:
@@ -331,7 +345,8 @@ class WebhookEndpoints(Requester):
                 'PATCH', '/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}',
                 webhook_id=int(webhook), webhook_token=token, message_id=int(message)
             ),
-            data=data, files=httpxfiles
+            data=data, files=httpxfiles,
+            params={'thread_id': int(thread) if thread is not MISSING else thread}
         )
 
     async def delete_webhook_message(

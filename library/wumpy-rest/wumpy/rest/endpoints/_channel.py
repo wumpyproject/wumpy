@@ -6,7 +6,7 @@ from discord_typings import (
     AllowedMentionsData, ChannelData, ComponentData, EmbedData,
     FollowedChannelData, InviteData, ListThreadsData, MessageData,
     MessageReferenceData, PartialAttachmentData, PermissionOverwriteData,
-    ThreadMemberData, UserData
+    ThreadMemberData, UserData, WebhookData
 )
 from typing_extensions import Literal
 
@@ -1193,3 +1193,46 @@ class ChannelEndpoints(Requester):
             Route('GET', '/channels/{channel_id}/threads/archived/public', channel_id=int(channel)),
             params=query
         )
+
+    # Part of Webhook endpoints
+
+    async def create_webhook(
+            self,
+            channel: SupportsInt,
+            *,
+            name: str,
+            avatar: Optional[str] = MISSING
+    ) -> WebhookData:
+        """Create a new webhook in the channel.
+
+        Parameters:
+            channel: The channel to create the webhook in.
+            name: The name of the webhook.
+            avatar: The default webhook avatar when used.
+
+        Returns:
+            The created webhook.
+        """
+        payload = {
+            'name': name,
+            'avatar': avatar
+        }
+
+        return await self.request(
+            Route('POST', '/channels/{channel_id}/webhooks', channel_id=int(channel)),
+            json=payload
+        )
+
+    async def fetch_webhooks(self, channel: SupportsInt) -> List[WebhookData]:
+        """Fetch all webhooks inside of a channel.
+
+        Parameters:
+            channel: The ID of the channel to return webhooks for.
+
+        Returns:
+            A list of webhooks inside of the specified channel.
+        """
+        return await self.request(Route(
+            'GET', '/channels/{channel_id}/webhooks',
+            channel_id=int(channel)
+        ))

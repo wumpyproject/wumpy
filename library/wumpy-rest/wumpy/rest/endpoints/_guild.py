@@ -10,7 +10,7 @@ from discord_typings import (
     GuildScheduledEventUserData, GuildWidgetData, GuildWidgetSettingsData,
     IntegrationData, InviteData, ListThreadsData, PermissionOverwriteData,
     RoleData, RolePositionData, StageInstanceData, VoiceRegionData,
-    WelcomeChannelData, WelcomeScreenData
+    WebhookData, WelcomeChannelData, WelcomeScreenData
 )
 from typing_extensions import Literal
 
@@ -1936,3 +1936,21 @@ class GuildEndpoints(Requester):
             Route('DELETE', '/stage-instances/{channel_id}', channel_id=int(channel)),
             reason=reason
         )
+
+    # Webhook endpoints which fit better here
+
+    async def fetch_guild_webhooks(self, guild: SupportsInt) -> List[WebhookData]:
+        """Fetch all webhooks present in the guild.
+
+        This method requires the `MANAGE_WEBHOOKS` permission.
+
+        Parameters:
+            guild: The ID of the guild to fetch webhooks from.
+
+        Returns:
+            The list of webhooks present in the guild.
+        """
+        return await self.request(Route(
+            'GET', '/guilds/{guild_id}/webhooks',
+            guild_id=int(guild)
+        ))
