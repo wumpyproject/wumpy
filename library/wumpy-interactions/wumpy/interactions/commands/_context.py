@@ -84,14 +84,14 @@ class ContextMenuCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
     def _process_no_params(self, signature: inspect.Signature) -> None:
         raise TypeError("'callback' has to have two parameters")
 
-    def resolve_value(self, interaction: CommandInteraction) -> Optional[Any]:
+    def resolve_value(self, interaction: CommandInteraction) -> Any:
         """Resolve the single value for the interaction.
 
         Parameters:
             interaction: The interaction to resolve a value from.
 
         Returns:
-            The single value or None.
+            The single value to pass to the context menu.
         """
         raise NotImplementedError()
 
@@ -101,8 +101,6 @@ class ContextMenuCommand(CommandMiddlewareMixin, CommandCallback[P, RT]):
         options: List[CommandInteractionOption]
     ) -> None:
         value = self.resolve_value(interaction)
-        if value is None:
-            return
 
         await self.callback(interaction, value)  # type: ignore
 
@@ -149,9 +147,9 @@ class UserCommand(ContextMenuCommand[P, RT]):
     _annotation: Optional[Any]
 
     def __init__(self, callback: Callback[P, RT], *, name: Optional[str] = None) -> None:
-        super().__init__(callback, name=name)
-
         self._annotation = None
+
+        super().__init__(callback, name=name)
 
     def _verify_annotation(self, annotation: Any) -> None:
         if annotation not in {User, InteractionMember}:
@@ -177,5 +175,8 @@ class UserCommand(ContextMenuCommand[P, RT]):
         else:
             # self._annotation is InteractionMember
             target = interaction.resolved.members.get(interaction.target_id)
+
+        if target is None:
+            raise RuntimeError('Discord did not pass necessary data for user/member command')
 
         return target
