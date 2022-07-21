@@ -222,7 +222,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
     name: str
     description: Optional[str]
 
-    commands: Dict[str, Union['SubcommandGroup', Command['...', object]]]
+    _commands: Dict[str, Union['SubcommandGroup', Command['...', object]]]
 
     def __init__(
         self,
@@ -235,7 +235,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
 
         self.name = name
         self.description = description
-        self.commands = commands or {}
+        self._commands = commands or {}
 
     async def _inner_call(
         self,
@@ -254,7 +254,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
                 f'Subcommand group did not receive a subcommnad option - got: {options}'
             )
 
-        subcommand = self.commands.get(found[0].name)
+        subcommand = self._commands.get(found[0].name)
         if subcommand is None:
             raise LookupError(f'No subcommand found for interaction {interaction}')
 
@@ -272,10 +272,10 @@ class SubcommandGroup(CommandMiddlewareMixin):
         if command.name is None:
             raise ValueError('Cannot register unnamed command')
 
-        if command.name in self.commands:
+        if command.name in self._commands:
             raise ValueError(f"Command with name '{command.name}' already registered")
 
-        self.commands[command.name] = command
+        self._commands[command.name] = command
 
     def remove_command(
             self,
@@ -295,7 +295,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
         if command.name is None:
             raise ValueError('Cannot remove unnamed command')
 
-        found = self.commands.get(command.name)
+        found = self._commands.get(command.name)
         if not found:
             raise ValueError(f"Cannot find registered command '{command.name}'")
 
@@ -304,7 +304,7 @@ class SubcommandGroup(CommandMiddlewareMixin):
                 f"Registered command '{command.name}' is not the command passed in"
             )
 
-        del self.commands[command.name]
+        del self._commands[command.name]
 
     def group(
         self,
@@ -431,7 +431,7 @@ def _group_payload(group: SubcommandGroup) -> ApplicationCommandOptionData:
         'options': [
             _subcommand_payload(command) if isinstance(command, Command) else
             _group_payload(command)
-            for command in group.commands.values()
+            for command in group._commands.values()
         ]
     }  # type: ignore
 
@@ -456,7 +456,7 @@ def command_payload(
         options = [
             _subcommand_payload(command) if isinstance(command, Command) else
             _group_payload(command)
-            for command in command.commands.values()
+            for command in command._commands.values()
         ]
 
     return {
