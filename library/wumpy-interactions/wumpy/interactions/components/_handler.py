@@ -7,7 +7,7 @@ from .._errors import ErrorContext, ErrorHandlerMixin
 from .._models import ComponentInteraction
 
 __all__ = (
-    'ComponentHandler'
+    'ComponentHandler',
 )
 
 
