@@ -313,6 +313,12 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
             # to cleanup!
             del sys.modules[resolved]
 
+            if isinstance(loader, Extension):
+                try:
+                    loader.unload(self)
+                except Exception as e:
+                    err = e
+
             # We can try our best to recover but this can't fix attributes set
             # by the user or other code that was ran.
             self._remove_module(resolved)
