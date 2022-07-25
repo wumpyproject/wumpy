@@ -108,23 +108,83 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
 
         Parameters:
             target: The target to remove previously loaded objects from.
+
+        Raises:
+            Exception: Something went wrong trying to unload the extension.
         """
+        # NOTE: Any interaction with 'target' MUST be wrapped with a
+        # try/except statement. This method is designed to always continue,
+        # no matter what, so we cannot trust the user.
+
+        to_raise = None
+
         if isinstance(target, EventDispatcher):
-            for name in self._listeners.values():
-                for event, callbacks in name.items():
+            for name, events in self._listeners.items():
+                try:
+                    container = target._listeners[name]
+                except Exception as err:
+                    err.__cause__ = to_raise
+                    to_raise = err
+                    continue
+
+                for initializer, callbacks in events.items():
+                    try:
+                        registered = container[initializer]
+                    except Exception as err:
+                        err.__cause__ = to_raise
+                        to_raise = err
+                        continue
+
+                    # This doesn't have great performance and a list
+                    # comprehension would provide better performance, however,
+                    # to ensure no suprises in the future the internal
+                    # structures shoud always be mutated.
                     for callback in callbacks:
-                        target.remove_listener(callback, event=event)
+                        try:
+                            registered.remove(callback)
+                        except Exception as err:
+                            err.__cause__ = to_raise
+                            to_raise = err
+
+                    # Now that we have removed all callbacks that should be
+                    # removed, clean up empty structures if possible
+
+                    try:
+                        if not registered:
+                            del container[initializer]
+                    except Exception as err:
+                        err.__cause__ = to_raise
+                        to_raise = err
+
+                try:
+                    if not container:
+                        del target._listeners[name]
+                except Exception as err:
+                    err.__cause__ = to_raise
+                    to_raise = err
 
         if isinstance(target, CommandRegistrar):
-            for command in self._commands.values():
-                target.remove_command(command)
+            for command in self._commands:
+                try:
+                    del target._commands[command]
+                except KeyError:
+                    pass
+                except Exception as err:
+                    err.__cause__ = to_raise
+                    to_raise = err
 
         if isinstance(target, ComponentHandler):
-            for pattern, func in self._regex_components.items():
-                target.add_component(pattern, func)
+            for element in self._regex_components:
+                try:
+                    target._regex_components.remove(element)
+                except Exception as err:
+                    err.__cause__ = to_raise
+                    to_raise = err
 
         self._data = None
 
+        if to_raise:
+            raise to_raise
 
 def _is_submodule(a: str, b: str) -> bool:
     """Check if 'a' is a submodule of 'b'."""
