@@ -1,8 +1,8 @@
 import dataclasses
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Union
 
-from discord_typings import InviteData
+from discord_typings import InviteCreateData, InviteData
 from typing_extensions import Self
 
 from ._channels import PartialChannel
@@ -42,7 +42,7 @@ class Invite:
         return self.expires_at < datetime.now(timezone.utc)
 
     @classmethod
-    def from_data(cls, data: InviteData) -> Self:
+    def from_data(cls, data: Union[InviteData, InviteCreateData]) -> Self:
         expires_at = data.get('expires_at')
         if expires_at is not None:
             expires_at = datetime.fromisoformat(expires_at)

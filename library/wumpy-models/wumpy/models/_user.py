@@ -1,6 +1,7 @@
 import dataclasses
+from typing import Union
 
-from discord_typings import UserData
+from discord_typings import UserData, UserUpdateData
 from typing_extensions import Self
 
 from ._base import Model
@@ -31,7 +32,7 @@ class User(Model):
         return f'<@{self.id}>'
 
     @classmethod
-    def from_data(cls, data: UserData) -> Self:
+    def from_data(cls, data: Union[UserData, UserUpdateData]) -> Self:
         return cls(
             id=int(data['id']),
             name=data['username'],
@@ -60,7 +61,7 @@ class BotUser(Model):
     public_flags: UserFlags = UserFlags.none()
 
     @classmethod
-    def from_data(cls, data: UserData) -> Self:
+    def from_data(cls, data: Union[UserData, UserUpdateData]) -> Self:
         if (
             'locale' not in data
             or 'mfa_enabled' not in data

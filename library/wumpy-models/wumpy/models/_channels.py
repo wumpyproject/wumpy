@@ -1,9 +1,10 @@
 import dataclasses
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from discord_typings import (
-    CategoryChannelData, ChannelMentionData, DMChannelData, PartialChannelData,
+    CategoryChannelData, ChannelCreateData, ChannelDeleteData,
+    ChannelMentionData, ChannelUpdateData, DMChannelData, PartialChannelData,
     TextChannelData, ThreadChannelData, ThreadMemberData, VoiceChannelData
 )
 from typing_extensions import Literal, Self
@@ -44,7 +45,13 @@ class PartialChannel(Model):
     type: int
 
     @classmethod
-    def from_data(cls, data: PartialChannelData) -> Self:
+    def from_data(
+        cls,
+        data: Union[
+            PartialChannelData, ChannelCreateData,
+            ChannelUpdateData, ChannelDeleteData
+        ]
+    ) -> Self:
         return cls(
             id=int(data['id']),
             name=data['name'],

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, Set
+from typing import Any, List, Mapping, Optional, Set, Union
 
-from discord_typings import GuildData
+from discord_typings import GuildCreateData, GuildData, GuildUpdateData
 from typing_extensions import Literal, Self
 
 from ._asset import Asset
@@ -52,7 +52,7 @@ class Guild(Model):
     channels: List[Snowflake]
 
     @classmethod
-    def from_data(cls, data: GuildData) -> Self:
+    def from_data(cls, data: Union[GuildData, GuildCreateData, GuildUpdateData]) -> Self:
         return cls(
             id=int(data['id']),
             name=data['name'],
@@ -80,6 +80,6 @@ class Guild(Model):
                 Snowflake(int(item['id'])) for item in data['emojis']
                 if item['id'] is not None
             ],
-            channels=[Snowflake(int(item['id'])) for item in data['channels']],
+            channels=[Snowflake(int(item['id'])) for item in data.get('channels', [])],
             members=[]
         )

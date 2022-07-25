@@ -2,7 +2,9 @@ import dataclasses
 from enum import Enum
 from typing import Iterable, Optional, Sequence, SupportsInt, Tuple, Union
 
-from discord_typings import AllowedMentionsData, MessageData
+from discord_typings import (
+    AllowedMentionsData, MessageCreateData, MessageData, MessageUpdateData
+)
 from typing_extensions import Self
 
 from ._asset import Attachment
@@ -187,7 +189,10 @@ class MessageMentions:
     roles: Tuple[Snowflake, ...]
 
     @classmethod
-    def from_message(cls, data: MessageData) -> Self:
+    def from_message(
+            cls,
+            data: Union[MessageData, MessageCreateData, MessageUpdateData]
+    ) -> Self:
         if data['mentions'] and 'member' in data['mentions'][0]:
             # Pyright doesn't understand that the type has narrowed down to
             # List[UserMentionData] with the 'member' key.
@@ -249,7 +254,10 @@ class Message(Model):
     pinned: bool
 
     @classmethod
-    def from_data(cls, data: MessageData) -> Self:
+    def from_data(
+            cls,
+            data: Union[MessageData, MessageCreateData, MessageUpdateData]
+    ) -> Self:
         if 'member' in data:
             author = Member.from_data(data['member'], data['author'])
         else:

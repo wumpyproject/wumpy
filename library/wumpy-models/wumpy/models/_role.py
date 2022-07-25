@@ -1,7 +1,9 @@
 import dataclasses
-from typing import Optional
+from typing import Optional, Union
 
-from discord_typings import RoleData, RoleTagsData
+from discord_typings import (
+    GuildRoleCreateData, GuildRoleUpdateData, RoleData, RoleTagsData
+)
 from typing_extensions import Self
 
 from ._base import Model, Snowflake
@@ -88,7 +90,13 @@ class Role(Model):
         return self.tags.premium_subscriber
 
     @classmethod
-    def from_data(cls, data: RoleData) -> Self:
+    def from_data(
+            cls,
+            data: Union[RoleData, GuildRoleCreateData, GuildRoleUpdateData]
+    ) -> Self:
+        if 'role' in data:
+            data = data['role']
+
         return cls(
             id=int(data['id']),
             name=data['name'],

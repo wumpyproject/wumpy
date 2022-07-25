@@ -1,8 +1,11 @@
 import dataclasses
 from datetime import datetime, timezone
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
-from discord_typings import GuildMemberData, UserData
+from discord_typings import (
+    GuildMemberAddData, GuildMemberData, GuildMemberRemoveData,
+    GuildMemberUpdateData, UserData
+)
 from typing_extensions import Self
 
 from ._base import Model, Snowflake
@@ -71,7 +74,11 @@ class Member(Model):
         return self.timed_out_until > datetime.now(timezone.utc)
 
     @classmethod
-    def from_user(cls, user: User, data: GuildMemberData) -> Self:
+    def from_user(
+            cls,
+            user: User,
+            data: Union[GuildMemberData, GuildMemberAddData],
+    ) -> Self:
 
         premium_since = data.get('premium_since')
         if premium_since is not None:
@@ -88,7 +95,7 @@ class Member(Model):
             nick=data.get('nick'),
             pending=data.get('pending', False),
 
-            roles=tuple(Snowflake(int(s)) for s in data['roles']),
+            roles=tuple(Snowflake(int(s)) for s in data.get('roles', [])),
 
             joined_at=datetime.fromisoformat(data['joined_at']),
             premium_since=premium_since,
@@ -96,7 +103,11 @@ class Member(Model):
         )
 
     @classmethod
-    def from_data(cls, data: GuildMemberData, user: Optional[UserData] = None) -> Self:
+    def from_data(
+            cls,
+            data: Union[GuildMemberData, GuildMemberAddData],
+            user: Optional[UserData] = None
+    ) -> Self:
         if user is None:
             if 'user' not in data:
                 raise ValueError('Cannot create a member without a user.')
