@@ -45,20 +45,27 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
 
     def __call__(
         self,
-        target: Union[CommandRegistrar, EventDispatcher],
+        target: Union[CommandRegistrar, ComponentHandler, EventDispatcher],
         data: Dict[str, Any]
-    ) -> Callable[[Union[CommandRegistrar, EventDispatcher]], None]:
+    ) -> Callable[[Union[CommandRegistrar, ComponentHandler, EventDispatcher]], None]:
         return self.load(target, data)
 
     def load(
         self,
         target: Union[CommandRegistrar, ComponentHandler, EventDispatcher],
         data: Dict[str, Any]
-    ) -> Callable[[Union[CommandRegistrar, EventDispatcher]], None]:
+    ) -> Callable[[Union[CommandRegistrar, ComponentHandler, EventDispatcher]], None]:
         """Load the extension and add all listeners and commands to the target.
 
         When the extension should be unloaded again the function returned
         should be called.
+
+        Parameters:
+            target: The target to load registered objects to.
+            data: Extra information passed to the extension when loading.
+
+        Returns:
+            The callback to call to unload the extension.
         """
         if isinstance(target, EventDispatcher):
             for name in self._listeners.values():
@@ -78,7 +85,18 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
 
         return self.unload
 
-    def unload(self, target: Union[CommandRegistrar, EventDispatcher]) -> None:
+    def unload(
+            self,
+            target: Union[CommandRegistrar, ComponentHandler, EventDispatcher]
+    ) -> None:
+        """Unload the extension from the target.
+
+        This method is designed to make no assumptions and therefore never
+        fail with an error.
+
+        Parameters:
+            target: The target to remove previously loaded objects from.
+        """
         if isinstance(target, EventDispatcher):
             for name in self._listeners.values():
                 for event, callbacks in name.items():
