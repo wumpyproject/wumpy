@@ -1,8 +1,6 @@
 from typing import List, Optional, SupportsInt
 
-from discord_typings import (
-    DMChannelData, GuildData, PartialGuildData, UserData
-)
+from discord_typings import DMChannelData, PartialGuildData, UserData
 
 from .._requester import Requester
 from .._route import Route

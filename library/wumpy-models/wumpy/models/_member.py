@@ -2,10 +2,7 @@ import dataclasses
 from datetime import datetime, timezone
 from typing import Optional, Tuple, Union
 
-from discord_typings import (
-    GuildMemberAddData, GuildMemberData, GuildMemberRemoveData,
-    GuildMemberUpdateData, UserData
-)
+from discord_typings import GuildMemberAddData, GuildMemberData, UserData
 from typing_extensions import Self
 
 from ._base import Model, Snowflake
