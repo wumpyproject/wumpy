@@ -195,7 +195,13 @@ def _is_submodule(a: str, b: str) -> bool:
 
 
 class ExtensionLoader(CommandRegistrar, EventDispatcher):
-    """Simple mixin that allows dynamically loading extensions."""
+    """Mixin that allows dynamically loading extensions.
+
+    This class has been implemented with being subclasses of
+    `CommandRegistrar`, `ComponentHandler`, and `EventDispatcher` in mind.
+    It can be used with other mixins / parents, but keep in mind that those
+    cannot be accounted for if something fails.
+    """
 
     extensions: Dict[str, Callable[[Union[CommandRegistrar, EventDispatcher]], object]]
 
@@ -209,6 +215,11 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
 
         This should be used as a last-resort to clean up from a module and
         restore the state of the extension loader.
+
+        Parameters:
+            module:
+                The module to look for. References to submodules will also
+                be removed if possible.
         """
         for name in self._listeners.values():
             for event, callbacks in name.items():
