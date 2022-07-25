@@ -68,18 +68,30 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
             The callback to call to unload the extension.
         """
         if isinstance(target, EventDispatcher):
-            for name in self._listeners.values():
-                for event, callbacks in name.items():
-                    for callback in callbacks:
-                        target.add_listener(callback, event=event)
+            # When loading the callbacks and events, it is important that we
+            # copy the containers (list and dicts) so that if commands are
+            # added to the extension in the future, they are not added to the
+            # target in weird behaviour.
+
+            for name, events in self._listeners.items():
+                if name not in target._listeners:
+                    container = {}
+                    target._listeners[name] = container
+                else:
+                    container = target._listeners[name]
+
+                for initializer, callbacks in events.items():
+                    if initializer in container:
+                        container[initializer].extend(callbacks)
+                    else:
+                        # Insert a shallow copy of the list object itself
+                        container[initializer] = callbacks.copy()
 
         if isinstance(target, CommandRegistrar):
-            for command in self._commands.values():
-                target.add_command(command)
+            target._commands.update(self._commands)
 
         if isinstance(target, ComponentHandler):
-            for pattern, func in self._regex_components.items():
-                target.add_component(pattern, func)
+            target._regex_components.extend(self._regex_components)
 
         self._data = data
 
