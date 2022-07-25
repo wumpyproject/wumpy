@@ -93,6 +93,8 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
             for pattern, func in self._regex_components.items():
                 target.add_component(pattern, func)
 
+        self._data = None
+
 
 def _is_submodule(a: str, b: str) -> bool:
     """Check if 'a' is a submodule of 'b'."""
