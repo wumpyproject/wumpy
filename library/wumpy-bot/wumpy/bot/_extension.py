@@ -3,7 +3,9 @@ import importlib.util
 import sys
 from typing import Any, Callable, Dict, Optional, Union
 
-from wumpy.interactions import CommandRegistrar, SubcommandGroup
+from wumpy.interactions import (
+    CommandRegistrar, ComponentHandler, SubcommandGroup
+)
 
 from ._dispatch import EventDispatcher
 from ._errors import ExtensionFailure
@@ -14,7 +16,7 @@ __all__ = (
 )
 
 
-class Extension(CommandRegistrar, EventDispatcher):
+class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
     """Lazily loaded extension of a GatewayClient of InteractionApp.
 
     The point of this class is to be able to split the commands and listeners
@@ -50,7 +52,7 @@ class Extension(CommandRegistrar, EventDispatcher):
 
     def load(
         self,
-        target: Union[CommandRegistrar, EventDispatcher],
+        target: Union[CommandRegistrar, ComponentHandler, EventDispatcher],
         data: Dict[str, Any]
     ) -> Callable[[Union[CommandRegistrar, EventDispatcher]], None]:
         """Load the extension and add all listeners and commands to the target.
@@ -68,6 +70,10 @@ class Extension(CommandRegistrar, EventDispatcher):
             for command in self._commands.values():
                 target.add_command(command)
 
+        if isinstance(target, ComponentHandler):
+            for pattern, func in self._regex_components.items():
+                target.add_component(pattern, func)
+
         self._data = data
 
         return self.unload
@@ -82,6 +88,10 @@ class Extension(CommandRegistrar, EventDispatcher):
         if isinstance(target, CommandRegistrar):
             for command in self._commands.values():
                 target.remove_command(command)
+
+        if isinstance(target, ComponentHandler):
+            for pattern, func in self._regex_components.items():
+                target.add_component(pattern, func)
 
 
 def _is_submodule(a: str, b: str) -> bool:
