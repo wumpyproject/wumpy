@@ -124,8 +124,20 @@ def _ignore_exception(context: ErrorContext) -> None:
 
 
 class ErrorHandlerMixin:
+    """Mixin adding ability to handle errors.
+
+    This mixin adds `handle_error()` to be called when an error is received,
+    and `error()` decorator to register error handlers.
+
+    Error handlers are dispatched in-order they have been added, sequentially.
+    """
 
     _error_handlers: List[Callable[[ErrorContext], Coroutine[Any, Any, object]]]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._error_handlers = []
 
     async def handle_error(self, context: ErrorContext) -> None:
         """Dispatch an error that happened to registered error handlers.
