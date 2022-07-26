@@ -1,7 +1,8 @@
 import importlib
 import importlib.util
 import sys
-from typing import Any, Callable, Dict, Optional, Union
+from types import ModuleType
+from typing import Any, Callable, Dict, Optional, Union, Tuple
 
 from wumpy.interactions import (
     CommandRegistrar, ComponentHandler, SubcommandGroup, ErrorHandlerMixin
@@ -215,12 +216,17 @@ class ExtensionLoader:
     keep in mind that those cannot be accounted for if something fails.
     """
 
-    extensions: Dict[str, Callable[[Union[CommandRegistrar, EventDispatcher]], object]]
+    _extensions: Dict[
+        str, Tuple[
+            ModuleType,
+            Callable[[Union[CommandRegistrar, EventDispatcher]], object]
+        ]
+    ]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self.extensions = {}
+        self._extensions = {}
 
     def _remove_module(self, module: str) -> None:
         """Attempt to find all references to a module and remove them.
@@ -344,7 +350,7 @@ class ExtensionLoader:
             else:
                 raise ValueError("'path' walks too many parent directories") from err
 
-        if resolved in self.extensions:
+        if resolved in self._extensions:
             raise ValueError("'path' cannot be a path to an already loaded extension")
 
         spec = importlib.util.find_spec(resolved, package)
@@ -404,7 +410,39 @@ class ExtensionLoader:
 
         # After all places where things can go wrong, it looks like we actually
         # successfully loaded a module!
-        self.extensions[resolved] = unloader
+        self._extensions[resolved] = (ext, unloader)
+
+    def get_extension(self, path: str, package: Optional[str] = None) -> ModuleType:
+        """Get a loaded extension.
+
+        Parameters:
+            path: The path to the extension, does not require a `:`.
+            package: Required if `path` is relative, see `load_extension()`.
+
+        Returns:
+            The loaded module. This enables functions in the module to be used.
+        """
+        try:
+            name, _ = path.split(':', maxsplit=1)
+        except ValueError:
+            # 'path' doesn't contain an ':' character and so it can't be
+            # unpacked to a tuple with two elements.
+            name = path
+
+        try:
+            resolved = importlib.util.resolve_name(name, package)
+        except (ImportError, ValueError) as err:
+            if not package:
+                raise TypeError(
+                    "'package' is a required argument when 'path' is relative"
+                ) from err
+            else:
+                raise ValueError("'path' walks too many parent directories") from err
+
+        if resolved not in self._extensions:
+            raise ValueError(f"'{path}' is not an already loaded extension")
+
+        return self._extensions[resolved][0]
 
     def unload_extension(self, path: str, package: Optional[str] = None) -> None:
         """Unload a previously loaded extension.
@@ -435,11 +473,11 @@ class ExtensionLoader:
             else:
                 raise ValueError("'path' walks too many parent directories") from err
 
-        if resolved not in self.extensions:
+        if resolved not in self._extensions:
             raise ValueError(f"'{path}' is not an already loaded extension")
 
         try:
-            self.extensions[resolved](self)
+            self._extensions[resolved][1](self)
         except Exception as err:
             # This is *also* very bad, something stopped the extension from
             # finalizing and cleaning up. We can do our best to clean up on the
