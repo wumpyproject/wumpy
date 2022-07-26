@@ -4,7 +4,7 @@ import sys
 from typing import Any, Callable, Dict, Optional, Union
 
 from wumpy.interactions import (
-    CommandRegistrar, ComponentHandler, SubcommandGroup
+    CommandRegistrar, ComponentHandler, SubcommandGroup, ErrorHandlerMixin
 )
 
 from ._dispatch import EventDispatcher
@@ -16,7 +16,7 @@ __all__ = (
 )
 
 
-class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
+class Extension(CommandRegistrar, ComponentHandler, EventDispatcher, ErrorHandlerMixin):
     """Lazily loaded extension of a GatewayClient of InteractionApp.
 
     The point of this class is to be able to split the commands and listeners
@@ -67,6 +67,9 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
         Returns:
             The callback to call to unload the extension.
         """
+        if isinstance(target, ErrorHandlerMixin):
+            target._error_handlers.extend(self._error_handlers)
+
         if isinstance(target, EventDispatcher):
             # When loading the callbacks and events, it is important that we
             # copy the containers (list and dicts) so that if commands are
@@ -117,6 +120,14 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
         # no matter what, so we cannot trust the user.
 
         to_raise = None
+
+        if isinstance(target, ErrorHandlerMixin):
+            for callback in self._error_handlers:
+                try:
+                    target._error_handlers.remove(callback)
+                except Exception as err:
+                    err.__cause__ = to_raise
+                    to_raise = err
 
         if isinstance(target, EventDispatcher):
             for name, events in self._listeners.items():
@@ -199,9 +210,9 @@ class ExtensionLoader:
     """Mixin that allows dynamically loading extensions.
 
     This class has been implemented with being subclasses of
-    `CommandRegistrar`, `ComponentHandler`, and `EventDispatcher` in mind.
-    It can be used with other mixins / parents, but keep in mind that those
-    cannot be accounted for if something fails.
+    `CommandRegistrar`, `ComponentHandler`, `ErrorHandlerMixin`, and
+    `EventDispatcher` in mind. It can be used with other mixins / parents, but
+    keep in mind that those cannot be accounted for if something fails.
     """
 
     extensions: Dict[str, Callable[[Union[CommandRegistrar, EventDispatcher]], object]]
@@ -222,6 +233,15 @@ class ExtensionLoader:
                 The module to look for. References to submodules will also
                 be removed if possible.
         """
+        if isinstance(self, ErrorHandlerMixin):
+            removed_handlers = [
+                cb for cb in self._error_handlers
+                if _is_submodule(cb.__module__, module)
+            ]
+
+            for handler in removed_handlers:
+                self._error_handlers.remove(handler)
+
         if isinstance(self, EventDispatcher):
             empty_events = []
             for name, events in self._listeners.items():
