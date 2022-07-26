@@ -80,7 +80,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         super().__init__()
 
         self.api = InteractionAppRequester(
-            headers={'Authorization': f'Bot {self._token}'}
+            headers={'Authorization': f'Bot {token}'}
         )
 
         self._verification = DiscordRequestVerifier(public_key)
