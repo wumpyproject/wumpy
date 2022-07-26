@@ -2,10 +2,10 @@ import importlib
 import importlib.util
 import sys
 from types import ModuleType
-from typing import Any, Callable, Dict, Optional, Union, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 from wumpy.interactions import (
-    CommandRegistrar, ComponentHandler, SubcommandGroup, ErrorHandlerMixin
+    CommandRegistrar, ComponentHandler, ErrorHandlerMixin, SubcommandGroup
 )
 
 from ._dispatch import EventDispatcher
