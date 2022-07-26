@@ -78,11 +78,15 @@ class CommandInteraction(CommandInteractionModel, Interaction):
         if guild_id is not None:
             guild_id = Snowflake(int(guild_id))
 
+        app_permissions = data.get('app_permissions')
+        if app_permissions is not None:
+            app_permissions = Permissions(int(app_permissions))
+
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
             type=InteractionType(data['type']),
-            app_permissions=Permissions(int(data['app_permissions'])),
+            app_permissions=app_permissions,
 
             channel_id=channel_id,
             guild_id=guild_id,
@@ -134,11 +138,15 @@ class ComponentInteraction(ComponentInteractionModel, Interaction):
         if guild_id is not None:
             guild_id = Snowflake(int(guild_id))
 
+        app_permissions = data.get('app_permissions')
+        if app_permissions is not None:
+            app_permissions = Permissions(int(app_permissions))
+
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
             type=InteractionType(data['type']),
-            app_permissions=Permissions(int(data['app_permissions'])),
+            app_permissions=app_permissions,
 
             channel_id=channel_id,
             guild_id=guild_id,
