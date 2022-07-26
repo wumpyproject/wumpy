@@ -186,6 +186,7 @@ class Extension(CommandRegistrar, ComponentHandler, EventDispatcher):
         if to_raise:
             raise to_raise
 
+
 def _is_submodule(a: str, b: str) -> bool:
     """Check if 'a' is a submodule of 'b'."""
     # The latter condition doesn't work when a == b so we need to add it
