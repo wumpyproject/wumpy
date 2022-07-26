@@ -129,7 +129,10 @@ class ErrorHandlerMixin:
     This mixin adds `handle_error()` to be called when an error is received,
     and `error()` decorator to register error handlers.
 
-    Error handlers are dispatched in-order they have been added, sequentially.
+    Error handlers are dispatched in-order they have been added, sequentially,
+    with the most recently added error handler called first. This means that
+    you can register "root handlers" which get called if no other handler
+    could handle the error, by registering them first.
     """
 
     _error_handlers: List[Callable[[ErrorContext], Coroutine[Any, Any, object]]]
@@ -155,7 +158,7 @@ class ErrorHandlerMixin:
             return
 
         caught = False
-        for handler in self._error_handlers:
+        for handler in reversed(self._error_handlers):
             try:
                 caught = await handler(context)
             except Exception as exc:
