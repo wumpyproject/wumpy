@@ -476,8 +476,14 @@ class ExtensionLoader:
         if resolved not in self._extensions:
             raise ValueError(f"'{path}' is not an already loaded extension")
 
+        # Remove the extension before calling the user callback, so that it
+        # cannot do odd stuff with get_extension() or cause recursion with
+        # load_extension()
+        unloader = self._extensions[resolved][1]
+        del self._extensions[resolved]
+
         try:
-            self._extensions[resolved][1](self)
+            unloader(self)
         except Exception as err:
             # This is *also* very bad, something stopped the extension from
             # finalizing and cleaning up. We can do our best to clean up on the
