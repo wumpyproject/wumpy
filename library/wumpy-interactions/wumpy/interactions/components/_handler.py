@@ -23,12 +23,12 @@ class ComponentHandler(ErrorHandlerMixin):
     This is a mixin class keeping track of handlers for components setup.
     """
 
-    _components: List[Tuple['re.Pattern[str]', ComponentCallback]]
+    _regex_components: List[Tuple['re.Pattern[str]', ComponentCallback]]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self._regex_components = {}
+        self._regex_components = []
 
     async def _wrap_regex_callback(
             self,
@@ -46,7 +46,7 @@ class ComponentHandler(ErrorHandlerMixin):
 
     async def invoke_component(self, interaction: ComponentInteraction) -> None:
         async with anyio.create_task_group() as tg:
-            for pattern, callback in self._components:
+            for pattern, callback in self._regex_components:
                 match = pattern.match(interaction.custom_id)
                 if match:
                     tg.start_soon(self._wrap_regex_callback, callback, interaction, match)
@@ -58,7 +58,7 @@ class ComponentHandler(ErrorHandlerMixin):
             pattern: The compiled regex pattern to match custom IDs with.
             func: The callback to be called when the pattern is matched.
         """
-        self._components.append((pattern, func))
+        self._regex_components.append((pattern, func))
 
     def remove_component(self, pattern: 're.Pattern[str]', func: ComponentCallback) -> None:
         """Remove a callback from the list of components.
@@ -71,7 +71,7 @@ class ComponentHandler(ErrorHandlerMixin):
             ValueError: The callback was not found.
         """
         try:
-            self._components.remove((pattern, func))
+            self._regex_components.remove((pattern, func))
         except ValueError:
             raise ValueError(f'Callback {func} with pattern {pattern} not found.') from None
 
