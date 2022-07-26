@@ -194,7 +194,7 @@ def _is_submodule(a: str, b: str) -> bool:
     return a == b or a.startswith(b + '.')
 
 
-class ExtensionLoader(CommandRegistrar, EventDispatcher):
+class ExtensionLoader:
     """Mixin that allows dynamically loading extensions.
 
     This class has been implemented with being subclasses of
@@ -221,17 +221,73 @@ class ExtensionLoader(CommandRegistrar, EventDispatcher):
                 The module to look for. References to submodules will also
                 be removed if possible.
         """
-        for name in self._listeners.values():
-            for event, callbacks in name.items():
-                for callback in [c for c in callbacks if _is_submodule(c.__module__, module)]:
-                    self.remove_listener(callback, event=event)
+        if isinstance(self, EventDispatcher):
+            empty_events = []
+            for name, events in self._listeners.items():
+                empty_callbacks = []
+                for initializer, callbacks in events.items():
+                    # This list comprehension means we don't iterate the same
+                    # list that is mutated, since it creates a new one.
+                    to_remove = [c for c in callbacks if _is_submodule(c.__module__, module)]
+                    for item in to_remove:
+                        callbacks.remove(item)
 
-        for command in self._commands.values():
-            if (
-                    not isinstance(command, SubcommandGroup)
-                    and _is_submodule(command.callback.__module__, module)
-            ):
-                self.remove_command(command)
+                    if not callbacks:
+                        empty_callbacks.append(initializer)
+
+                # Clean up empty callbacks after we are done iterating
+                for key in empty_callbacks:
+                    del events[key]
+
+                if not events:
+                    empty_events.append(name)
+
+            for key in empty_events:
+                del self._listeners[key]
+
+        if isinstance(self, CommandRegistrar):
+            removed_commands = []
+            for name, command in self._commands.items():
+                if not isinstance(command, SubcommandGroup):
+                    if _is_submodule(command.callback.__module__, module):
+                        removed_commands.append(name)
+
+                    continue
+
+                # The command in question is a subcommand group, the origin
+                # will have to be looked up in one its subcommand. Because the
+                # subcommand group should not be mutated, it is not possible
+                # to only remove the subcommands that is in the module.
+                for subcommand in command._commands.values():
+                    if not isinstance(subcommand, SubcommandGroup):
+                        if _is_submodule(subcommand.callback.__module__, module):
+                            removed_commands.append(name)
+
+                        break
+
+                    for nested_subcommand in subcommand._commands.values():
+                        # Discord only supports 2 levels of nesting. Now, it
+                        # is possible that the user has created more than that
+                        # but it is not worth the effort to continue like this.
+                        if isinstance(nested_subcommand, SubcommandGroup):
+                            continue
+
+                        if _is_submodule(nested_subcommand.callback.__module, module):
+                            removed_commands.append(name)
+
+                        break
+
+            for name in removed_commands:
+                del self._commands[name]
+
+        if isinstance(self, ComponentHandler):
+            removed_components = []
+            for pair in self._regex_components:
+                if _is_submodule(pair[1].__module__, module):
+                    removed_components.append(pair)
+
+            for component in removed_components:
+                self._regex_components.remove(component)
 
     def load_extension(self, path: str, package: Optional[str] = None, **kwargs: Any) -> None:
         """Load an extension at `path`.
