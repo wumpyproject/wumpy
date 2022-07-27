@@ -1,21 +1,88 @@
 import dataclasses
 from datetime import datetime, timezone
-from typing import ClassVar, FrozenSet, Optional
+from typing import ClassVar, FrozenSet, Mapping, Optional, Type, Union
 
 from discord_typings import (
-    ChannelPinsUpdateData, ThreadCreateData, ThreadDeleteData,
-    ThreadListSyncData, ThreadUpdateData, TypingStartData
+    ChannelCreateData, ChannelDeleteData, ChannelPinsUpdateData,
+    ThreadCreateData, ThreadDeleteData, ThreadListSyncData, ThreadUpdateData,
+    TypingStartData
 )
 from typing_extensions import Literal, Self
-from wumpy.models import Member, Snowflake, Thread, ThreadMember
+from wumpy.models import (
+    Category, Member, PartialChannel, Snowflake, TextChannel, Thread,
+    ThreadMember, VoiceChannel
+)
 
 from .._dispatch import Event
 from .._utils import _get_as_snowflake, backport_slots
 
 __all__ = (
+    'ChannelCreateEvent',
+    'ChannelUpdateEvent',
+    'ChannelDeleteEvent',
     'TypingEvent',
+    'ThreadCreateEvent',
+    'ThreadUpdateEvent',
+    'ThreadDeleteEvent',
+    'ThreadListSyncEvent',
     'ChannelPinsUpdateEvent',
 )
+
+
+_CHANNELS: Mapping[int, Type[PartialChannel]] = {
+    0: TextChannel,
+    2: VoiceChannel,
+    4: Category,
+    5: TextChannel,
+    10: Thread,
+    11: Thread,
+    12: Thread,
+    13: VoiceChannel,
+}
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ChannelCreateEvent(Event):
+    channel: Union[TextChannel, VoiceChannel, Category, PartialChannel]
+
+    NAME: ClassVar[str] = 'CHANNEL_CREATE'
+
+    @classmethod
+    def from_payload(cls, payload: ChannelCreateData, cached: None = None) -> Self:
+        return cls(channel=_CHANNELS.get(payload['type'], PartialChannel).from_data(payload))
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ChannelUpdateEvent(Event):
+    channel: Union[TextChannel, VoiceChannel, Category, PartialChannel]
+    cached: Union[TextChannel, VoiceChannel, Category, PartialChannel, None]
+
+    NAME: ClassVar[str] = 'CHANNEL_UPDATE'
+
+    @classmethod
+    def from_payload(
+            cls,
+            payload: ChannelCreateData,
+            cached: Union[TextChannel, VoiceChannel, Category, PartialChannel, None] = None
+    ) -> Self:
+        return cls(
+            channel=_CHANNELS.get(payload['type'], PartialChannel).from_data(payload),
+            cached=cached,
+        )
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True)
+class ChannelDeleteEvent(Event):
+    channel: Union[TextChannel, VoiceChannel, Category, PartialChannel, None]
+
+    NAME: ClassVar[str] = 'CHANNEL_DELETE'
+
+    @classmethod
+    def from_payload(cls, payload: ChannelDeleteData, cached: None = None) -> Optional[Self]:
+        return cls(channel=_CHANNELS.get(payload['type'], PartialChannel).from_data(payload))
 
 
 @backport_slots()

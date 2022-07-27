@@ -1,5 +1,12 @@
 from ._channel import (
+    ChannelCreateEvent,
+    ChannelUpdateEvent,
+    ChannelDeleteEvent,
     TypingEvent,
+    ThreadCreateEvent,
+    ThreadUpdateEvent,
+    ThreadDeleteEvent,
+    ThreadListSyncEvent,
     ChannelPinsUpdateEvent,
 )
 from ._guild import (
@@ -27,7 +34,14 @@ from ._message import (
 )
 
 __all__ = (
+    'ChannelCreateEvent',
+    'ChannelUpdateEvent',
+    'ChannelDeleteEvent',
     'TypingEvent',
+    'ThreadCreateEvent',
+    'ThreadUpdateEvent',
+    'ThreadDeleteEvent',
+    'ThreadListSyncEvent',
     'ChannelPinsUpdateEvent',
     'GuildDeleteEvent',
     'BanAddEvent',
