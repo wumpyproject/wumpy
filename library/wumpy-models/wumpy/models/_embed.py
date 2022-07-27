@@ -1,6 +1,6 @@
 import dataclasses
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from discord_typings import (
     EmbedAuthorData, EmbedData, EmbedFieldData, EmbedFooterData,
