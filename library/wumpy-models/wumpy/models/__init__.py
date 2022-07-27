@@ -34,6 +34,7 @@ from ._embed import (
     EmbedAuthor,
     Embed,
     EmbedBuilder,
+    embed_data,
 )
 from ._emoji import (
     Emoji,

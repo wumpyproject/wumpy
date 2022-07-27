@@ -1,6 +1,6 @@
 import dataclasses
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from discord_typings import (
     EmbedAuthorData, EmbedData, EmbedFieldData, EmbedFooterData,
@@ -18,6 +18,7 @@ __all__ = (
     'EmbedAuthor',
     'Embed',
     'EmbedBuilder',
+    'embed_data',
 )
 
 
@@ -259,3 +260,62 @@ class EmbedBuilder:
 
     def finalize(self) -> Embed:
         return Embed.from_builder(self)
+
+
+def embed_data(embed: Union[Embed, EmbedBuilder]) -> EmbedData:
+    """Utility function to transform a user-built model into a dictionary.
+
+    Parameter:
+        embed: The embed model or builder.
+
+    Returns:
+        The data for the embed.
+    """
+    data: EmbedData = {'fields': []}
+
+    if embed.title is not None:
+        data['title'] = embed.title
+
+    if embed.description is not None:
+        data['description'] = embed.description
+
+    if embed.url is not None:
+        data['url'] = embed.url
+
+    if embed.colour is not None:
+        data['color'] = embed.colour
+
+    if embed.timestamp is not None:
+        data['timestamp'] = embed.timestamp.isoformat()
+
+    if embed.footer is not None:
+        data['footer'] = {
+            'text': embed.footer.text,
+        }
+
+        if embed.footer.icon_url is not None:
+            data['footer']['icon_url'] = embed.footer.icon_url
+
+    if embed.image is not None:
+        data['image'] = {'url': embed.image.url}
+
+    if embed.thumbnail is not None:
+        data['thumbnail'] = {'url': embed.thumbnail.url}
+
+    if embed.author is not None:
+        data['author'] = {'name': embed.author.name}
+
+        if embed.author.url is not None:
+            data['author']['url'] = embed.author.url
+
+        if embed.author.icon_url is not None:
+            data['author']['icon_url'] = embed.author.icon_url
+
+    for field in embed.fields:
+        data['fields'].append({
+            'name': field.name,
+            'value': field.value,
+            'inline': field.inline,
+        })
+
+    return data
