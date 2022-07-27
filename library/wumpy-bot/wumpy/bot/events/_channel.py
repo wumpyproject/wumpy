@@ -30,7 +30,7 @@ class TypingEvent(Event):
     timestamp: datetime
     member: Optional[Member]
 
-    NAME: ClassVar[str] = "TYPING_START"
+    NAME: ClassVar[str] = 'TYPING_START'
 
     @classmethod
     def from_payload(
@@ -59,7 +59,7 @@ class ThreadCreateEvent(Event):
 
     newly_created: bool
 
-    NAME: ClassVar[str] = "THREAD_CREATE"
+    NAME: ClassVar[str] = 'THREAD_CREATE'
 
     @classmethod
     def from_payload(
@@ -79,7 +79,7 @@ class ThreadUpdateEvent(Event):
     thread: Thread
     cached: Optional[Thread]
 
-    NAME: ClassVar[str] = "THREAD_UPDATE"
+    NAME: ClassVar[str] = 'THREAD_UPDATE'
 
     @classmethod
     def from_payload(
@@ -103,7 +103,7 @@ class ThreadDeleteEvent(Event):
 
     cached: Optional[Thread]
 
-    NAME: ClassVar[str] = "THREAD_DELETE"
+    NAME: ClassVar[str] = 'THREAD_DELETE'
 
     @classmethod
     def from_payload(
@@ -129,7 +129,7 @@ class ThreadListSyncEvent(Event):
     threads: FrozenSet[Thread]
     thread_members: FrozenSet[ThreadMember]
 
-    NAME: ClassVar[str] = "THREAD_LIST_SYNC"
+    NAME: ClassVar[str] = 'THREAD_LIST_SYNC'
 
     @classmethod
     def from_payload(
@@ -167,7 +167,7 @@ class ChannelPinsUpdateEvent(Event):
 
     last_pin_timestamp: Optional[datetime]
 
-    NAME: ClassVar[str] = "CHANNEL_PINS_UPDATE"
+    NAME: ClassVar[str] = 'CHANNEL_PINS_UPDATE'
 
     @classmethod
     def from_payload(
