@@ -9,6 +9,11 @@ from ._channel import (
     ThreadListSyncEvent,
     ChannelPinsUpdateEvent,
 )
+from ._gateway import (
+    HelloEvent,
+    ResumedEvent,
+    ReadyEvent,
+)
 from ._guild import (
     GuildDeleteEvent,
     BanAddEvent,
@@ -43,6 +48,9 @@ __all__ = (
     'ThreadDeleteEvent',
     'ThreadListSyncEvent',
     'ChannelPinsUpdateEvent',
+    'HelloEvent',
+    'ReadyEvent',
+    'ResumedEvent',
     'GuildDeleteEvent',
     'BanAddEvent',
     'BanRemoveEvent',
