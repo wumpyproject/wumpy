@@ -1,17 +1,19 @@
 import dataclasses
+from typing import Sequence
 
 from discord_typings import (
     ApplicationCommandInteractionData, ComponentInteractionData
 )
 from typing_extensions import Self
 from wumpy.models import (
-    ApplicationCommandOption, CommandInteraction as CommandInteractionModel,
-    CommandInteractionOption,
-    ComponentInteraction as ComponentInteractionModel, ComponentType,
+    ActionRow, AllowedMentions, ApplicationCommandOption,
+    CommandInteraction as CommandInteractionModel, CommandInteractionOption,
+    ComponentInteraction as ComponentInteractionModel, ComponentType, Embed,
     Interaction as InteractionModel, InteractionType, Member, Message,
     Permissions, ResolvedInteractionData, SelectInteractionValue, Snowflake,
-    User
+    User, component_data, embed_data
 )
+from wumpy.rest import MISSING
 
 from ._compat import Request
 
@@ -31,13 +33,34 @@ class Interaction(InteractionModel):
 
     async def respond(
         self,
-        content: str,
+        content: str = MISSING,
+        *,
+        tts: bool = MISSING,
+        embeds: Sequence[Embed] = MISSING,
+        allowed_mentions: AllowedMentions = MISSING,
+        components: Sequence[ActionRow] = MISSING,
+        ephemeral: bool = MISSING,
     ) -> None:
+        data = {
+            'content': content,
+            'tts': tts,
+        }
+
+        if embeds is not MISSING:
+            data['embeds'] = [embed_data(emb) for emb in embeds]
+
+        if allowed_mentions is not MISSING:
+            data['allowed_mentions'] = allowed_mentions.data()
+
+        if components is not MISSING:
+            data['components'] = [component_data(comp) for comp in components]
+
+        if ephemeral is True:
+            data['flags'] = 1 << 6
+
         await self._request.respond({
             'type': 4,
-            'data': {
-                'content': content
-            }
+            'data': data
         })
 
     async def defer(self) -> None:
@@ -170,11 +193,32 @@ class ComponentInteraction(ComponentInteractionModel, Interaction):
 
     async def update(
         self,
-        content: str,
+        content: str = MISSING,
+        *,
+        tts: bool = MISSING,
+        embeds: Sequence[Embed] = MISSING,
+        allowed_mentions: AllowedMentions = MISSING,
+        components: Sequence[ActionRow] = MISSING,
+        ephemeral: bool = MISSING,
     ) -> None:
+        data = {
+            'content': content,
+            'tts': tts,
+        }
+
+        if embeds is not MISSING:
+            data['embeds'] = [embed_data(emb) for emb in embeds]
+
+        if allowed_mentions is not MISSING:
+            data['allowed_mentions'] = allowed_mentions.data()
+
+        if components is not MISSING:
+            data['components'] = [component_data(comp) for comp in components]
+
+        if ephemeral is True:
+            data['flags'] = 1 << 6
+
         await self._request.respond({
             'type': 7,
-            'data': {
-                'content': content
-            }
+            'data': data
         })
