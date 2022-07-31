@@ -308,7 +308,6 @@ class SubcommandGroup(CommandMiddlewareMixin):
 
     def group(
         self,
-        *,
         name: str,
         description: str,
     ) -> 'SubcommandGroup':

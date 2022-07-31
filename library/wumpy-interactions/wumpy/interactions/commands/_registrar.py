@@ -25,7 +25,6 @@ CommandUnion = Union[
 
 
 def group(
-    *,
     name: str,
     description: str
 ) -> SubcommandGroup:
@@ -246,7 +245,6 @@ class CommandRegistrar(ErrorHandlerMixin):
 
     def group(
         self,
-        *,
         name: str,
         description: str
     ) -> SubcommandGroup:
