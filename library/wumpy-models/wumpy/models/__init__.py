@@ -25,6 +25,7 @@ from ._components import (
     SelectMenu,
     SelectMenuOption,
     TextInput,
+    component_data,
 )
 from ._embed import (
     EmbedThumbnail,
@@ -122,6 +123,7 @@ __all__ = (
     'SelectMenu',
     'SelectMenuOption',
     'TextInput',
+    'component_data',
     'EmbedThumbnail',
     'EmbedImage',
     'EmbedFooter',

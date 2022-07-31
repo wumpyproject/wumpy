@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from discord_typings import (
     ActionRowData, ButtonComponentData, ComponentData, SelectMenuComponentData,
@@ -17,6 +17,7 @@ __all__ = (
     'SelectMenu',
     'SelectMenuOption',
     'TextInput',
+    'component_data',
 )
 
 
@@ -41,7 +42,7 @@ def _create_component(
 class ActionRow:
     components: Tuple[Union['Button', 'LinkButton', 'SelectMenu', 'TextInput'], ...]
 
-    type = 1
+    type: Literal[1] = 1
 
     @classmethod
     def from_data(cls, data: ActionRowData) -> Self:
@@ -63,7 +64,7 @@ class Button:
 
     disabled: bool = False
 
-    type = 2
+    type: Literal[2] = 2
 
     @classmethod
     def from_data(cls, data: ButtonComponentData) -> Self:
@@ -95,8 +96,8 @@ class LinkButton:
 
     disabled: bool = False
 
-    type = 2
-    style = 5
+    type: Literal[2] = 2
+    style: Literal[5] = 5
 
     @classmethod
     def from_data(cls, data: ButtonComponentData) -> Self:
@@ -128,7 +129,7 @@ class SelectMenu:
 
     disabled: bool = False
 
-    type = 3
+    type: Literal[3] = 3
 
     @classmethod
     def from_data(cls, data: SelectMenuComponentData) -> Self:
@@ -188,7 +189,7 @@ class TextInput:
     value: Optional[str] = None
     placeholder: Optional[str] = None
 
-    type = 4
+    type: Literal[4] = 4
 
     @classmethod
     def from_data(cls, data: TextInputComponentData) -> Self:
@@ -204,3 +205,86 @@ class TextInput:
             value=data.get('value'),
             placeholder=data.get('placeholder'),
         )
+
+
+def _select_option_data(option: SelectMenuOption) -> SelectMenuOptionData:
+    data: Dict[str, Any] = {
+        'label': option.label,
+        'value': option.value,
+        'default': option.default,
+    }
+
+    if option.description is not None:
+        data['description'] = option.description
+
+    if option.emoji is not None:
+        data['emoji'] = option.emoji
+
+    return data
+
+
+def component_data(
+        component: Union[ActionRow, LinkButton, Button, SelectMenu, TextInput]
+) -> ComponentData:
+    """Utility function to transform a component model into a dictionary.
+
+    Parameters:
+        component: The component to transform into its dictionary data.
+
+    Returns:
+        The created dictionary with the data.
+    """
+    data: Dict[str, Any]
+
+    if component.type == 1:
+        data = {
+            'type': 1,
+            'components': [component_data(item) for item in component.components],
+        }
+
+    elif component.type == 2:
+        data = {
+            'type': 2,
+            'style': component.style,
+            'disabled': component.disabled,
+        }
+
+        if isinstance(component, Button):
+            data['custom_id'] = component.custom_id
+
+        if component.emoji is not None:
+            data['emoji'] = component.emoji
+
+        if component.label is not None:
+            data['label'] = component.label
+
+    elif component.type == 3:
+        data = {
+            'type': 3,
+            'custom_id': component.custom_id,
+            'options': [_select_option_data(option) for option in component.options],
+            'min_values': component.min_values,
+            'max_values': component.max_values,
+            'disabled': component.disabled,
+        }
+    elif component.type == 4:
+        data = {
+            'type': component.type,
+            'style': component.style,
+            'custom_id': component.custom_id,
+            'label': component.label,
+            'min_length': component.min_length,
+            'max_length': component.max_length,
+            'required': component.required,
+        }
+
+        if component.value is not None:
+            data['value'] = component.value
+
+        if component.placeholder is not None:
+            data['placeholder'] = component.placeholder
+
+    else:
+        raise ValueError("Unknown component type of 'component' parameter")
+
+    return data
