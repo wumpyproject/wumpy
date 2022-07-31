@@ -4,15 +4,13 @@ from discord_typings import (
     ApplicationCommandInteractionData, ComponentInteractionData
 )
 from typing_extensions import Self
-from wumpy.models import ApplicationCommandOption
-from wumpy.models import CommandInteraction as CommandInteractionModel
-from wumpy.models import CommandInteractionOption
-from wumpy.models import ComponentInteraction as ComponentInteractionModel
-from wumpy.models import ComponentType
-from wumpy.models import Interaction as InteractionModel
 from wumpy.models import (
-    InteractionType, Member, Message, Permissions, ResolvedInteractionData,
-    SelectInteractionValue, Snowflake, User
+    ApplicationCommandOption, CommandInteraction as CommandInteractionModel,
+    CommandInteractionOption,
+    ComponentInteraction as ComponentInteractionModel, ComponentType,
+    Interaction as InteractionModel, InteractionType, Member, Message,
+    Permissions, ResolvedInteractionData, SelectInteractionValue, Snowflake,
+    User
 )
 
 from ._compat import Request

@@ -3,14 +3,10 @@ from typing import Any, ClassVar, FrozenSet, Mapping, Optional, Tuple
 
 from discord_typings import ReadyData
 from typing_extensions import Self
-from wumpy.models import (
-    Snowflake, User, ApplicationFlags
-)
-
+from wumpy.models import ApplicationFlags, Snowflake, User
 
 from .._dispatch import Event
 from .._utils import backport_slots
-
 
 __all__ = (
     'HelloEvent',
