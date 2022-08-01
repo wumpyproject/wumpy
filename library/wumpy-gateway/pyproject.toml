@@ -1,6 +1,6 @@
 [project]
 name = "wumpy-gateway"
-version = "0.2.0"
+version = "0.3.0"
 description = "Lowlevel but easy-to-use wrapper over the Discord gateway"
 readme = {file = "README.md", content-type="text/markdown"}
 
@@ -38,7 +38,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-dependencies = ["discord-gateway >=0.3.0, <1", "anyio >= 3.3.4, <4"]
+dependencies = ["discord-gateway >=0.4.0, <1", "anyio >= 3.3.4, <4"]
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
