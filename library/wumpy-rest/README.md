@@ -15,7 +15,7 @@ TOKEN = 'ABC123.XYZ789'
 
 
 async def main():
-    async with APIClient(headers={'Authentication': f'Bot {TOKEN}'}) as api:
+    async with APIClient(TOKEN) as api:
         print(await api.fetch_my_user())
 
 
@@ -27,10 +27,13 @@ made up of multiple route classes. You can create your own class with the
 routes you use:
 
 ```python
-from wumpy.rest import ApplicationCommandRequester, InteractionRequester
+from wumpy.rest import (
+    ApplicationCommandRequester, InteractionRequester,
+    HTTPXRequester
+)
 
 
-class MyAPIClient(ApplicationCommandRequester, InteractionRequester):
+class MyAPIClient(ApplicationCommandRequester, InteractionRequester, HTTPXRequester):
 
     __slots__ = ()  # Save some memory for this class
 ```
@@ -64,12 +67,8 @@ from wumpy.rest import APIClient
 class NoOpRatelimiter:
     """Ratelimiter implementation that does nothing; a no-op implementation."""
 
-    async def __aenter__(self) -> Callable[
-        [Route], AsyncContextManager[
-            Callable[[Mapping[str, str]], Awaitable]
-        ]
-    ]:
-        return self.acquire
+    async def __aenter__(self):
+        return self
 
     async def __aexit__(
         self,
@@ -79,11 +78,8 @@ class NoOpRatelimiter:
     ) -> object:
         pass
 
-    async def update(self, headers: Mapping[str, str]) -> object:
-        pass
-
     @asynccontextmanager
-    async def acquire(self, route: Route) -> AsyncGenerator[
+    async def __call__(self, route: Route) -> AsyncGenerator[
         Callable[[Mapping[str, str]], Coroutine[Any, Any, object]],
         None
     ]:
@@ -93,12 +89,12 @@ class NoOpRatelimiter:
         # then returns).
         yield self.update
 
+    async def update(self, headers: Mapping[str, str]) -> object:
+        pass
+
 
 async def main():
-    async with APIClient(
-        NoOpRatelimiter(),
-        headers={'Authentication': f'Bot {TOKEN}'}
-    ) as api:
+    async with APIClient(TOKEN, ratelimiter=NoOpRatelimiter()) as api:
         print(await api.fetch_my_user())
 
 
