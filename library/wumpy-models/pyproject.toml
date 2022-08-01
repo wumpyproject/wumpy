@@ -1,6 +1,6 @@
 [project]
 name = "wumpy-models"
-version = "0.0.1"
+version = "0.1.0"
 description = "Fully typed, memory efficient Discord object representations"
 readme = {file = "README.md", content-type="text/markdown"}
 
