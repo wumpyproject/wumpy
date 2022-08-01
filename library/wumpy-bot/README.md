@@ -20,7 +20,7 @@ bot = Bot('ABC123.XYZ789')  # Replace with your token and keep it safe!
 
 # This runs the bot with Trio as the event loop (recommended),
 # use backend='asyncio' to run it under asyncio.
-anyio.run(bot, backend='trio')
+anyio.run(bot.run, backend='trio')
 ```
 
 ### Registering listeners
@@ -30,7 +30,8 @@ events using Wumpy's rich event listeners:
 
 ```python
 import anyio
-from wumpy.bot import Bot, MessageDeleteEvent
+from wumpy.bot import Bot
+from wumpy.bot.events import MessageDeleteEvent
 
 
 bot = Bot('ABC123.XYZ789')
@@ -41,7 +42,7 @@ async def log_deleted_messages(event: MessageDeleteEvent):
     print(f'Message {event.message_id} in {event.channel_id} was deleted')
 
 
-anyio.run(bot, backend='trio')
+anyio.run(bot.run, backend='trio')
 ```
 
 The listener is registered with the `@bot.listener()` decorator, which tells
