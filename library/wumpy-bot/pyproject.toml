@@ -1,6 +1,6 @@
 [project]
 name = "wumpy-bot"
-version = "0.0.1"
+version = "0.1.0"
 description = "Highly abstracted and easy to use wrapper over the Wumpy project"
 readme = {file = "README.md", content-type="text/markdown"}
 
@@ -15,7 +15,7 @@ keywords = [
     "python-3"
 ]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 2 - Pre-Alpha",
     "Framework :: AnyIO",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
@@ -36,7 +36,15 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-# TODO: dependencies
+dependencies = [
+    "anyio >= 3.3.4, <4",
+    "typing_extensions >= 4.3, <5",
+    "wumpy-gateway >= 0.3, <1",
+    "wumpy-rest >= 0.3, <1",
+    "wumpy-models >= 0.1, <1",
+    "wumpy-interactions >= 0.1, <1",
+    "wumpy-cache >= 0.1, <1"
+]
 
 [project.urls]
 Homepage = "https://github.com/wumpyproject/wumpy"
