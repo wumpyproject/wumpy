@@ -75,6 +75,12 @@ class ErrorContext(Mapping[str, Any]):
             and self._vars == other._vars
         )
 
+    def __repr__(self) -> str:
+        err_args = ','.join([repr(arg) for arg in self.error.args])
+        ctx = ','.join([f'{key}={repr(value)}' for key, value in self._vars.items()])
+
+        return f"ErrorContext({type(self.error)}({err_args}), {self.internal}, {ctx})"
+
     def __len__(self) -> int:
         return len(self._vars)
 
