@@ -2,8 +2,8 @@ import sys
 import traceback
 from types import MappingProxyType
 from typing import (
-    Any, Callable, Coroutine, ItemsView, KeysView, List, Mapping, Optional,
-    TypeVar, Union, ValuesView, overload
+    Any, Callable, Coroutine, ItemsView, Iterator, KeysView, List, Mapping,
+    Optional, TypeVar, Union, ValuesView, overload
 )
 
 import anyio
@@ -80,6 +80,9 @@ class ErrorContext(Mapping[str, Any]):
 
     def __contains__(self, item: object) -> bool:
         return item in self._vars if isinstance(item, str) else NotImplemented
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._vars)
 
     def __getitem__(self, key: str) -> Any:
         """Lookup the key in the relevant variables.
