@@ -60,7 +60,7 @@ class Interaction(InteractionModel):
 
         await self._request.respond({
             'type': 4,
-            'data': data
+            'data': {k: v for k, v in data.items() if v is not MISSING}
         })
 
     async def defer(self) -> None:
@@ -220,5 +220,5 @@ class ComponentInteraction(ComponentInteractionModel, Interaction):
 
         await self._request.respond({
             'type': 7,
-            'data': data
+            'data': {k: v for k, v in data.items() if v is not MISSING}
         })
