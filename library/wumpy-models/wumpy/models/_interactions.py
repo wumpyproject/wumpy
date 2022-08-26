@@ -26,6 +26,7 @@ __all__ = (
     'ResolvedInteractionData',
     'CommandInteractionOption',
     'Interaction',
+    'AutocompleteInteraction',
     'CommandInteraction',
     'ComponentInteraction',
     'SelectInteractionValue',
@@ -157,14 +158,51 @@ class Interaction(Model):
 
     application_id: Snowflake
     type: InteractionType
-    app_permissions: Optional[Permissions]
-
-    guild_id: Optional[Snowflake]
-    channel_id: Optional[Snowflake]
-
-    author: Union[User, Member]
     token: str
     version: int
+
+    author: Union[User, Member, None]
+    guild_id: Optional[Snowflake]
+    channel_id: Optional[Snowflake]
+    app_permissions: Optional[Permissions]
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True, eq=False)
+class AutocompleteInteraction(Interaction):
+
+    name: str
+    invoked: Snowflake
+    invoked_type: ApplicationCommandOption
+
+    author: None
+    app_permissions: None
+
+    options: List[CommandInteractionOption]
+
+    @classmethod
+    def from_data(cls, data: ApplicationCommandInteractionData) -> Self:
+        return cls(
+            id=int(data['id']),
+            application_id=Snowflake(int(data['application_id'])),
+            type=InteractionType(data['type']),
+            token=data['token'],
+            version=data['version'],
+
+            author=None,
+            guild_id=_get_as_snowflake(data, 'guild_id'),
+            channel_id=_get_as_snowflake(data, 'channel_id'),
+            app_permissions=None,
+
+            name=data['data']['name'],
+            invoked=Snowflake(int(data['data']['id'])),
+            invoked_type=ApplicationCommandOption(data['data']['type']),
+
+            options=[
+                CommandInteractionOption.from_data(option)
+                for option in data['data'].get('options', [])
+            ]
+        )
 
 
 @backport_slots()
@@ -174,6 +212,8 @@ class CommandInteraction(Interaction):
     name: str
     invoked: Snowflake
     invoked_type: ApplicationCommandOption
+
+    author: Union[User, Member]
 
     resolved: ResolvedInteractionData
     target_id: Optional[int]
@@ -234,6 +274,7 @@ class CommandInteraction(Interaction):
 @dataclasses.dataclass(frozen=True, eq=False)
 class ComponentInteraction(Interaction):
 
+    author: Union[User, Member]
     message: Message
 
     custom_id: str
