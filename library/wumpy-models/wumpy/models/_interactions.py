@@ -111,6 +111,8 @@ class CommandInteractionOption:
     type: ApplicationCommandOption
 
     value: Optional[Any]
+    focused: bool
+
     options: List['CommandInteractionOption']
 
     @classmethod
@@ -120,6 +122,7 @@ class CommandInteractionOption:
             type=ApplicationCommandOption(data['type']),
 
             value=data.get('value'),
+            focused=data.get('focused', False),
             options=[cls.from_data(option) for option in data.get('options', [])]
         )
 
