@@ -18,6 +18,7 @@ from ._middleware import (
     SanicMiddleware,
 )
 from ._models import (
+    AutocompleteInteraction,
     Interaction,
     CommandInteraction,
     ComponentInteraction,
@@ -64,6 +65,7 @@ __all__ = (
     'CommandSetupError',
     'ASGIMiddleware',
     'SanicMiddleware',
+    'AutocompleteInteraction',
     'Interaction',
     'CommandInteraction',
     'ComponentInteraction',

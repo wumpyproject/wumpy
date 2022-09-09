@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Sequence
+from typing import Dict, List, Sequence, Tuple, Union
 
 from discord_typings import (
     ApplicationCommandInteractionData, ComponentInteractionData
@@ -7,6 +7,7 @@ from discord_typings import (
 from typing_extensions import Self
 from wumpy.models import (
     ActionRow, AllowedMentions, ApplicationCommandOption,
+    AutocompleteInteraction as AutocompleteInteractionModel,
     CommandInteraction as CommandInteractionModel, CommandInteractionOption,
     ComponentInteraction as ComponentInteractionModel, ComponentType, Embed,
     Interaction as InteractionModel, InteractionType, Member, Message,
@@ -18,6 +19,7 @@ from wumpy.rest import MISSING
 from ._compat import Request
 
 __all__ = (
+    'AutocompleteInteraction',
     'Interaction',
     'CommandInteraction',
     'ComponentInteraction',
@@ -25,6 +27,34 @@ __all__ = (
 
 # This is a subclass of the wumpy.models representations for interactions that
 # use the Request classes to make the responses.
+
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class AutocompleteInteraction(AutocompleteInteractionModel):
+    _request: Request
+
+    async def autocomplete(
+            self,
+            choices: Union[List[str], Dict[str, str], List[Tuple[str, str]]]
+    ) -> None:
+        if isinstance(choices, dict):
+            response = [{'name': k, 'value': v} for k, v in choices.items()]
+        elif isinstance(choices, list):
+            if choices:
+                # Assumes a homogenous list in this case
+                if isinstance(choices, tuple):
+                    response = [{'name': t[0], 'value': t[1]} for t in choices]
+                else:
+                    response = [{'name': item, 'value': item} for item in choices]
+            else:
+                response = []
+        else:
+            raise TypeError(f"Invalid type {type(choices)!r} for parameter 'choices'")
+
+        await self._request.respond({
+            'type': 8,
+            'data': {'choices': response}
+        })
 
 
 @dataclasses.dataclass(frozen=True, eq=False)
