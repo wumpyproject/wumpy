@@ -2,6 +2,7 @@ import contextlib
 import logging
 import sys
 from abc import ABC, abstractmethod
+from contextvars import ContextVar, Token
 from types import TracebackType
 from typing import (
     IO, Any, Awaitable, Callable, Dict, Mapping, Optional, Sequence, Tuple,
@@ -30,6 +31,7 @@ __all__ = (
 
 _log = logging.getLogger(__name__)
 
+_current_api: ContextVar['Requester'] = ContextVar('_current_api')
 
 # The following type variables are adapted from HTTPX because of a conversion
 # done from a RequestFiles -> HTTPXFiles (the latter which HTTPX understands)
@@ -49,7 +51,10 @@ class Requester(ABC):
     are properly cleaned up.
     """
 
-    __slots__ = ('_opened',)
+    _opened: bool
+    _prev_context: Optional[Token]
+
+    __slots__ = ('_opened', '_prev_context')
 
     # If this method would not take arbitrary args and kwargs, then subclasses
     # would technically violate the signature
@@ -57,12 +62,14 @@ class Requester(ABC):
         super().__init__(*args, **kwargs)
 
         self._opened = False
+        self._prev_context = None
 
     async def __aenter__(self) -> Self:
         if self._opened:
             raise RuntimeError("Cannot enter already opened requester")
 
         self._opened = True
+        self._prev_context = _current_api.set(self)
         return self
 
     async def __aexit__(
@@ -72,6 +79,10 @@ class Requester(ABC):
         exc_tb: Optional[TracebackType] = None
     ) -> None:
         self._opened = False
+
+        # There should be an old token, but this is not the place to complain
+        if self._prev_context is not None:
+            _current_api.reset(self._prev_context)
 
     @staticmethod
     def _clean_dict(mapping: Dict[Any, Any]) -> Dict[Any, Any]:

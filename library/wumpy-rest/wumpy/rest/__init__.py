@@ -23,6 +23,8 @@ from ._route import (
 )
 from ._utils import (
     MISSING,
+    APIClient,
+    get_api,
 )
 
 __all__ = (
@@ -40,14 +42,5 @@ __all__ = (
     'Route',
     'MISSING',
     'APIClient',
+    'get_api',
 )
-
-
-class APIClient(endpoints.ApplicationCommandEndpoints, endpoints.ChannelEndpoints,
-                endpoints.GatewayEndpoints, endpoints.GuildEndpoints,
-                endpoints.GuildTemplateEndpoints, endpoints.InteractionEndpoints,
-                endpoints.StickerEndpoints, endpoints.UserEndpoints,
-                endpoints.WebhookEndpoints, HTTPXRequester):
-    """Requester class with all endpoints inherited."""
-
-    __slots__ = ()
