@@ -1,8 +1,8 @@
 import inspect
 from enum import Enum
 from typing import (
-    Any, AnyStr, Callable, ClassVar, Dict, List, Optional, Tuple, Type,
-    TypeVar, Union
+    Any, AnyStr, Awaitable, Callable, ClassVar, Dict, List, Optional, Tuple,
+    Type, TypeVar, Union
 )
 
 from typing_extensions import Annotated, Literal, get_args, get_origin
@@ -12,6 +12,7 @@ from wumpy.models import (
 )
 
 from .._errors import CommandSetupError
+from .._models import AutocompleteInteraction
 from . import _slash  # Circular dependency
 
 __all__ = (
@@ -111,6 +112,7 @@ def Option(
     description: Optional[str] = None,
     required: Optional[bool] = None,
     choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]], None] = None,
+    autocomplete: Optional[Callable[[AutocompleteInteraction, Any], Awaitable[object]]] = None,
     min: Optional[int] = None,
     max: Optional[int] = None,
     type: Optional[Any] = None,
@@ -133,6 +135,7 @@ def Option(
             Whether the option can be omitted. If a default is passed this is
             automatically set implicitly.
         choices: Set choices that the user can pick from in the Discord client.
+        autocomplete: Autocomplete callback function.
         min: Smallest number that can be entered for number types.
         max: Biggest number that can be entered for number types.
         type:
@@ -210,6 +213,7 @@ class OptionClass:
         description: A description of the option.
         required: Whether the option can be omitted.
         choices: Strict choices that the user can pick from.
+        autocomplete: Autocomplete callback for the option.
         min: Smallest number that can be entered for number types
         max: Biggest number that can be entered for number types
         default: Default the library will use when the option is omitted.
@@ -228,6 +232,7 @@ class OptionClass:
     description: Optional[str]
     required: Optional[bool]
     choices: Optional[Dict[str, Union[str, int, float]]]  # Name of the choice to the value
+    autocomplete: Optional[Callable[[AutocompleteInteraction, Any], Awaitable[object]]]
 
     min: Optional[int]
     max: Optional[int]
@@ -241,7 +246,7 @@ class OptionClass:
     __slots__ = (
         'default', 'name', 'description', 'required',
         'choices', 'type', 'converter', 'param', 'kind',
-        'min', 'max'
+        'min', 'max', 'autocomplete',
     )
 
     # Mapping of primitive types to their equivalent ApplicationCommandOption
@@ -266,6 +271,7 @@ class OptionClass:
         # This isn't very readable, but it means a list or dictionary of
         # strings, integers or floats.
         choices: Union[List[Union[str, int, float]], Dict[str, Union[str, int, float]], None] = None,
+        autocomplete: Optional[Callable[[AutocompleteInteraction, Any], Awaitable[object]]] = None,
         min: Optional[int] = None,
         max: Optional[int] = None,
         type: Optional[Any] = None
@@ -284,6 +290,7 @@ class OptionClass:
             choices = {str(value): value for value in choices}
 
         self.choices = choices
+        self.autocomplete = autocomplete
 
         self.min = min
         self.max = max
@@ -454,6 +461,9 @@ class OptionClass:
             Dict[str, Union[str, int, float]],
             None
         ] = None,
+        autocomplete: Optional[Callable[
+            [AutocompleteInteraction, Any], Awaitable[object]
+        ]] = None,
         min: Optional[int] = None,
         max: Optional[int] = None,
         type: Any = None
@@ -481,6 +491,9 @@ class OptionClass:
                 choices = {str(value): value for value in choices}
 
             self.choices = choices
+
+        if autocomplete is not None:
+            self.autocomplete = autocomplete
 
         if min is not None:
             self.min = min

@@ -10,7 +10,7 @@ from discord_typings import (
 from typing_extensions import ParamSpec
 from wumpy.models import ApplicationCommandOption, CommandInteractionOption
 
-from .._models import CommandInteraction
+from .._models import AutocompleteInteraction, CommandInteraction
 from . import _option
 from ._base import Callback, CommandCallback
 from ._middleware import CommandMiddlewareMixin
@@ -56,9 +56,23 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
 
     async def _inner_call(
         self,
-        interaction: CommandInteraction,
+        interaction: Union[AutocompleteInteraction, CommandInteraction],
         options: List[CommandInteractionOption]
     ) -> RT:
+        if isinstance(interaction, AutocompleteInteraction):
+            # Find the option that is currently being autocompleted
+            focused = [option for option in options if option.focused]
+            if not focused:
+                raise ValueError('Autocomplete interaction with no focused option')
+
+            option = self.options[focused[0].name]
+            if not option.autocomplete:
+                raise LookupError(f'Option does not have autocomplete for {interaction}')
+
+            # We don't return with the type of the typevar, but there's not
+            # much we can do here really.
+            return await option.autocomplete(interaction, focused[0].value)  # type: ignore
+
         # We receive options as a JSON array but this is inefficient to lookup
         mapping = {option.name: option for option in options}
         args, kwargs = [], {}
