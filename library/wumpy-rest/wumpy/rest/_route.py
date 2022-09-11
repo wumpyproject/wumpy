@@ -27,8 +27,6 @@ class Route:
 
     __slots__ = ('method', 'path', 'params')
 
-    BASE = 'https://discord.com/api/v10'
-
     def __init__(self, method: str, path: str, **params: Union[str, int]) -> None:
         self.method = method
         self.path = path
@@ -49,8 +47,11 @@ class Route:
 
     @property
     def url(self) -> str:
-        """Return a complete, formatted url that a request should be made to."""
-        return self.BASE + self.path.format_map(
+        """Return a complete, formatted url that a request should be made to.
+
+        This needs to be appended to the base URL after formatting.
+        """
+        return self.path.format_map(
             # Replace special characters with the %xx escapes
             {k: urlquote(v) if isinstance(v, str) else v for k, v in self.params.items()}
         )

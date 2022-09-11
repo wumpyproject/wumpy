@@ -158,7 +158,7 @@ class HTTPXRequester(Requester):
     _stack: contextlib.AsyncExitStack
 
     __slots__ = (
-        '_ratelimiter', '_session', '_stack',
+        '_ratelimiter', '_session', '_stack', '_base_url',
     )
 
     def __init__(
@@ -167,6 +167,7 @@ class HTTPXRequester(Requester):
         *,
         headers: Dict[str, str] = {},
         ratelimiter: Optional[Ratelimiter] = None,
+        base_url: str = 'https://discord.com/api/v10',
         proxy: Optional[str] = None,
         timeout: float = 5.0,
     ) -> None:
@@ -183,6 +184,7 @@ class HTTPXRequester(Requester):
             proxies=proxy, follow_redirects=True, timeout=timeout
         )
         self._ratelimiter = ratelimiter if ratelimiter is not None else DictRatelimiter()
+        self._base_url = base_url
 
     async def __aenter__(self) -> Self:
         await super().__aenter__()
@@ -283,7 +285,7 @@ class HTTPXRequester(Requester):
             content = None
 
         res = await self.session.request(
-            route.method, route.url,
+            route.method, self._base_url + route.url,
             headers=headers, content=content, data=data, files=files, auth=auth, params=params
         )
 
