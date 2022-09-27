@@ -141,10 +141,9 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
         """Authenticate the request and verify that it came from Discord.
 
         Returns:
-            A two-item tuple. The first item is a boolean indicating whether
-            the request could be authenticated and the second item is the body
-            for the request, if it was received. It is not safe to assume that
-            a body was received if the first item is `False`.
+            A boolean indicating whether the request could be authenticated.
+            The body for the request, if it was received. It is not safe to
+                assume that a body was received if the first item is `False`.
         """
         signature: Optional[bytes] = None
         timestamp: Optional[bytes] = None
