@@ -16,34 +16,46 @@ _abort_if_ratelimited: ContextVar[bool] = ContextVar('_abort_if_ratelimited', de
 
 
 class RatelimiterContext:
-    """Public-facing namespace of ratelimiting context variables.
+    """Ratelimiting context variables for the request made.
 
-    This class provides properties that get underlying context variables set
-    elsewhere. These context variables allow transparently configuring
-    ratelimiting without adding a bunch of parameters to each request.
+    This class provides attributes which are gotten from underlying context
+    variables at instantiation time. These context variables allow
+    transparently configuring ratelimiting without adding a bunch of parameters
+    to each request - nor having to change the signature of ratelimiters for
+    every update.
 
     It is adviced that all ratelimiters implement all of these behaviours. If
     some configuration cannot be implemented the ratelimiter should raise an
     error to signal to the developer that this configuration cannot be used.
+
+    An instance of this class can be safely passed to a different context
+    without having attributes change, thus an instance of this represents the
+    current state at a certain point in time.
+
+    Examples:
+
+        ```python
+        ctx = RatelimiterContext()
+        print(ctx.abort_if_ratelimited)
+        ```
+
+    Attributes:
+        abort_if_ratelimited:
+            Abort the request if it will hit ratelimits.
+
+            This ratelimiting configuration is what powers the context manager
+            of the same name (`abort_if_ratelimited()`). It allows the user to
+            specify that they wish to abort requests if they get ratelimited.
     """
 
-    @staticmethod
-    def abort_if_ratelimited() -> bool:
-        """Abort the request if it will hit ratelimits.
+    abort_if_ratelimited: bool
 
-        This ratelimiting configuration is what powers the context manager of
-        the same name (`abort_if_ratelimited()`). It allows the user to specify
-        that they wish to abort requests if they get ratelimited.
+    def __new__(cls) -> Self:
+        self = super().__new__(cls)
 
-        There are two places where the ratelimiter needs to check this value:
+        self.abort_if_ratelimited = _abort_if_ratelimited.get()
 
-        - Before pre-emptively waiting on a ratelimit, and...
-        - Before retrying a request that failed with a `Ratelimited` exception
-
-        Under both these circumstances, the ratelimiter should raise the
-        `Ratelimited` exception which will be catched by the context manager.
-        """
-        return _abort_if_ratelimited.get()
+        return self
 
 
 class _AbortRatelimitsManager:

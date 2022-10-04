@@ -55,7 +55,7 @@ class Ratelimiter(Protocol):
     ) -> Optional[bool]:
         ...
 
-    def __call__(self, route: Route) -> AsyncContextManager[
+    def __call__(self, route: Route, ctx: RatelimiterContext) -> AsyncContextManager[
         Callable[[Mapping[str, str]], Awaitable[object]]
     ]:
         ...
@@ -286,10 +286,10 @@ class _RouteRatelimit:
         self.deferred = False
 
     @asynccontextmanager
-    async def acquire(self) -> AsyncGenerator[
+    async def acquire(self, ctx: RatelimiterContext) -> AsyncGenerator[
         Callable[[Mapping[str, str]], Awaitable[object]], None
     ]:
-        if RatelimiterContext.abort_if_ratelimited():
+        if ctx.abort_if_ratelimited:
             try:
                 self._lock.acquire_nowait()
             except anyio.WouldBlock:
@@ -312,7 +312,7 @@ class _RouteRatelimit:
             await anyio.sleep(1 + exc.attempt * 2)
 
         except RateLimited as exc:
-            if RatelimiterContext.abort_if_ratelimited():
+            if ctx.abort_if_ratelimited:
                 raise
 
             # The data is somewhat duplicated, which means we can try our best
@@ -506,14 +506,15 @@ class DictRatelimiter:
         self._tasks.cancel_scope.cancel()
         return await self._tasks.__aexit__(exc_type, exc_val, exc_tb)
 
-    def __call__(self, route: Route) -> AsyncContextManager[
+    def __call__(self, route: Route, ctx: RatelimiterContext) -> AsyncContextManager[
         Callable[[Mapping[str, str]], Awaitable[object]]
     ]:
-        return self.get_lock(route)
+        return self.get_lock(route, ctx)
 
     def get_lock(
         self,
-        route: Route
+        route: Route,
+        ctx: RatelimiterContext
     ) -> AsyncContextManager[Callable[[Mapping[str, str]], Awaitable[object]]]:
         """Get a ratelimit lock by its endpoint.
 
@@ -533,12 +534,12 @@ class DictRatelimiter:
             lock = self.fallbacks.setdefault(
                 route.endpoint + route.major_params, Ratelimit()
             )
-            return _RouteRatelimit(self, lock, route).acquire()
+            return _RouteRatelimit(self, lock, route).acquire(ctx)
 
         # We have more accurate bucket information we can use together with the
         # major parameters..
         lock = self.locks.setdefault(bucket + route.major_params, Ratelimit())
-        return _RouteRatelimit(self, lock, route).acquire()
+        return _RouteRatelimit(self, lock, route).acquire(ctx)
 
     def set_lock(
         self,
