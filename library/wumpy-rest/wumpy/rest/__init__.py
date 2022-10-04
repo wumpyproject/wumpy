@@ -1,4 +1,3 @@
-from . import endpoints
 from ._config import (
     RatelimiterContext,
     abort_if_ratelimited,
@@ -10,21 +9,23 @@ from ._errors import (
     NotFound,
     ServerException,
 )
+from ._impl import (
+    HTTPXRequester,
+    APIClient,
+    get_api,
+)
 from ._ratelimiter import (
     Ratelimiter,
     DictRatelimiter,
 )
 from ._requester import (
     Requester,
-    HTTPXRequester,
 )
 from ._route import (
     Route,
 )
 from ._utils import (
     MISSING,
-    APIClient,
-    get_api,
 )
 
 __all__ = (
@@ -35,12 +36,12 @@ __all__ = (
     'Forbidden',
     'NotFound',
     'ServerException',
+    'HTTPXRequester',
+    'APIClient',
+    'get_api',
     'Ratelimiter',
     'DictRatelimiter',
     'Requester',
-    'HTTPXRequester',
     'Route',
     'MISSING',
-    'APIClient',
-    'get_api',
 )
