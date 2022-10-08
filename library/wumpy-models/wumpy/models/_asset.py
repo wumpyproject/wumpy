@@ -2,14 +2,12 @@ import dataclasses
 from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from discord_typings import AttachmentData
 from typing_extensions import Literal, Self
 
-from ._utils import Model, backport_slots
+from ._utils import backport_slots
 
 __all__ = (
     'Asset',
-    'Attachment',
 )
 
 
@@ -59,38 +57,3 @@ class Asset:
             path = f'{destination}.{fmt}'
 
         return self.__class__(f'{url.scheme}://{url.netloc}{path}?{query}')
-
-
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
-class Attachment(Model):
-    filename: str
-
-    size: int
-    url: str
-    proxy_url: str
-
-    content_type: Optional[str] = None
-    description: Optional[str] = None
-
-    height: Optional[int] = None
-    width: Optional[int] = None
-    ephemeral: bool = False
-
-    @classmethod
-    def from_data(cls, data: AttachmentData) -> Self:
-        return cls(
-            id=int(data['id']),
-            filename=data['filename'],
-
-            size=int(data['size']),
-            url=data['url'],
-            proxy_url=data['proxy_url'],
-
-            content_type=data.get('content_type'),
-            description=data.get('description'),
-
-            height=data.get('height'),
-            width=data.get('width'),
-            ephemeral=data.get('ephemeral', False)
-        )

@@ -3,11 +3,11 @@ from enum import Enum
 from typing import Iterable, Optional, Sequence, SupportsInt, Tuple, Union
 
 from discord_typings import (
-    AllowedMentionsData, MessageCreateData, MessageData, MessageUpdateData
+    AllowedMentionsData, AttachmentData, MessageCreateData, MessageData,
+    MessageUpdateData
 )
 from typing_extensions import Self
 
-from ._asset import Attachment
 from ._channels import ChannelMention
 from ._embed import Embed
 from ._emoji import MessageReaction
@@ -17,6 +17,7 @@ from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
 
 __all__ = (
     'AllowedMentions',
+    'AttachmentData',
     'MessageMentions',
     'MessageType',
     'Message',
@@ -178,6 +179,41 @@ class AllowedMentions:
     @classmethod
     def all(cls) -> Self:
         return cls(everyone=True, users=True, roles=True, replied_user=True)
+
+
+@backport_slots()
+@dataclasses.dataclass(frozen=True, eq=False)
+class Attachment(Model):
+    filename: str
+
+    size: int
+    url: str
+    proxy_url: str
+
+    content_type: Optional[str] = None
+    description: Optional[str] = None
+
+    height: Optional[int] = None
+    width: Optional[int] = None
+    ephemeral: bool = False
+
+    @classmethod
+    def from_data(cls, data: AttachmentData) -> Self:
+        return cls(
+            id=int(data['id']),
+            filename=data['filename'],
+
+            size=int(data['size']),
+            url=data['url'],
+            proxy_url=data['proxy_url'],
+
+            content_type=data.get('content_type'),
+            description=data.get('description'),
+
+            height=data.get('height'),
+            width=data.get('width'),
+            ephemeral=data.get('ephemeral', False)
+        )
 
 
 @backport_slots()
