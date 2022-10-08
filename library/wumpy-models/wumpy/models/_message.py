@@ -8,13 +8,12 @@ from discord_typings import (
 from typing_extensions import Self
 
 from ._asset import Attachment
-from ._base import Model, Snowflake
 from ._channels import ChannelMention
 from ._embed import Embed
 from ._emoji import MessageReaction
 from ._member import Member
 from ._user import User
-from ._utils import _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
 
 __all__ = (
     'AllowedMentions',

@@ -2,11 +2,6 @@ from ._asset import (
     Asset,
     Attachment,
 )
-from ._base import (
-    DISCORD_EPOCH,
-    Model,
-    Snowflake,
-)
 from ._channels import (
     PartialChannel,
     ChannelMention,
@@ -102,13 +97,15 @@ from ._user import (
     User,
     BotUser,
 )
+from ._utils import (
+    DISCORD_EPOCH,
+    Model,
+    Snowflake,
+)
 
 __all__ = (
     'Asset',
     'Attachment',
-    'DISCORD_EPOCH',
-    'Model',
-    'Snowflake',
     'PartialChannel',
     'ChannelMention',
     'InteractionChannel',
@@ -170,4 +167,7 @@ __all__ = (
     'Sticker',
     'User',
     'BotUser',
+    'DISCORD_EPOCH',
+    'Model',
+    'Snowflake',
 )

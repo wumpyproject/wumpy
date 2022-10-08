@@ -3,9 +3,8 @@ import dataclasses
 from discord_typings import UserData
 from typing_extensions import Self
 
-from ._base import Model
 from ._flags import UserFlags
-from ._utils import backport_slots
+from ._utils import Model, backport_slots
 
 __all__ = (
     'User',

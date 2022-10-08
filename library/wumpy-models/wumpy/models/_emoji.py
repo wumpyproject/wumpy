@@ -5,9 +5,8 @@ from typing import Optional, Tuple
 from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
-from ._base import DISCORD_EPOCH, Model, Snowflake
 from ._user import User
-from ._utils import backport_slots
+from ._utils import DISCORD_EPOCH, Model, Snowflake, backport_slots
 
 __all__ = (
     'Emoji',

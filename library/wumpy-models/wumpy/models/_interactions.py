@@ -9,7 +9,6 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
-from ._base import Model, Snowflake
 from ._channels import InteractionChannel
 from ._emoji import Emoji
 from ._member import InteractionMember, Member
@@ -17,7 +16,7 @@ from ._message import Message
 from ._permissions import Permissions
 from ._role import Role
 from ._user import User
-from ._utils import _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
 
 __all__ = (
     'InteractionType',

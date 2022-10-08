@@ -5,8 +5,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 from discord_typings import AttachmentData
 from typing_extensions import Literal, Self
 
-from ._base import Model
-from ._utils import backport_slots
+from ._utils import Model, backport_slots
 
 __all__ = (
     'Asset',

@@ -5,11 +5,10 @@ from typing import Optional, Tuple, Union
 from discord_typings import GuildMemberAddData, GuildMemberData, UserData
 from typing_extensions import Self
 
-from ._base import Model, Snowflake
 from ._flags import UserFlags
 from ._permissions import Permissions
 from ._user import User
-from ._utils import backport_slots
+from ._utils import Model, Snowflake, backport_slots
 
 __all__ = (
     'Member',

@@ -5,8 +5,7 @@ from discord_typings import GuildCreateData, GuildData, GuildUpdateData
 from typing_extensions import Literal, Self
 
 from ._asset import Asset
-from ._base import Model, Snowflake
-from ._utils import _get_as_snowflake
+from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'Guild',

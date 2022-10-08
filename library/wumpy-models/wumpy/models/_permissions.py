@@ -5,9 +5,8 @@ from typing import Any, Callable, Optional, SupportsInt, Union, overload
 from discord_typings import PermissionOverwriteData
 from typing_extensions import Self
 
-from ._base import Model
 from ._flags import DiscordFlags, flag
-from ._utils import backport_slots
+from ._utils import Model, backport_slots
 
 __all__ = (
     'Permissions',

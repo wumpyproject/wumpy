@@ -6,9 +6,8 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
-from ._base import Model, Snowflake
 from ._permissions import Permissions
-from ._utils import backport_slots
+from ._utils import Model, Snowflake, backport_slots
 
 __all__ = (
     'RoleTags',
