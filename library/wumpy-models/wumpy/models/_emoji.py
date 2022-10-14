@@ -83,7 +83,7 @@ class MessageReaction:
     def from_data(cls, data: MessageReactionData) -> Self:
         return cls(
             count=data['count'],
-            emoji=Emoji.from_data(data['emoji'])
+            emoji=Emoji.from_data(data['emoji']),
 
             me=data['me'],
         )
