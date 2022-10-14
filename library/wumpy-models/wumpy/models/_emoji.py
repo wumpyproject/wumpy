@@ -27,7 +27,7 @@ class Emoji(Model):
     animated: bool = False
     available: bool = True
 
-    REGEX: ClassVar[re.Pattern[str]] = re.compile(
+    REGEX: ClassVar['re.Pattern[str]'] = re.compile(
         r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?'
     )
 
