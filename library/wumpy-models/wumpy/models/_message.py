@@ -17,7 +17,7 @@ from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'AllowedMentions',
-    'AttachmentData',
+    'Attachment',
     'MessageMentions',
     'MessageType',
     'Message',

@@ -1,6 +1,5 @@
 from ._asset import (
     Asset,
-    Attachment,
 )
 from ._channels import (
     PartialChannel,
@@ -74,6 +73,7 @@ from ._member import (
 )
 from ._message import (
     AllowedMentions,
+    Attachment,
     MessageMentions,
     MessageType,
     Message,
@@ -105,7 +105,6 @@ from ._utils import (
 
 __all__ = (
     'Asset',
-    'Attachment',
     'PartialChannel',
     'ChannelMention',
     'InteractionChannel',
@@ -155,6 +154,7 @@ __all__ = (
     'Member',
     'InteractionMember',
     'AllowedMentions',
+    'Attachment',
     'MessageMentions',
     'MessageType',
     'Message',
