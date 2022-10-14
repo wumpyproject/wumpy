@@ -1,13 +1,13 @@
-import dataclasses
 from typing import Optional, Union
 
+import attrs
 from discord_typings import (
     GuildRoleCreateData, GuildRoleUpdateData, RoleData, RoleTagsData
 )
 from typing_extensions import Self
 
 from ._permissions import Permissions
-from ._utils import Model, Snowflake, backport_slots
+from ._utils import Model, Snowflake
 
 __all__ = (
     'RoleTags',
@@ -15,8 +15,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True, kw_only=True)
 class RoleTags:
     """Tags on a particular Discord role.
 
@@ -24,10 +23,10 @@ class RoleTags:
     managed or whether it is the role members get when boosting.
     """
 
-    bot_id: Optional[Snowflake]
-    integration_id: Optional[Snowflake]
+    bot_id: Optional[Snowflake] = None
+    integration_id: Optional[Snowflake] = None
 
-    premium_subscriber: bool
+    premium_subscriber: bool = False
 
     @classmethod
     def from_data(cls, data: RoleTagsData) -> Self:
@@ -46,10 +45,9 @@ class RoleTags:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Role(Model):
-    """Representation of a Discord role with permissions.¨
+    """Representation of a Discord role with permissions.
 
     A role represents a set of permissions attached to a group of members.
     `@everyone` is also a role like any other role expect for the fact that its
@@ -72,12 +70,12 @@ class Role(Model):
     name: str
     color: int
     position: int
-    permissions: Permissions
+    permissions: Permissions = Permissions(0)
 
-    hoist: bool
-    managed: bool
-    mentionable: bool
-    tags: RoleTags
+    hoist: bool = False
+    managed: bool = False
+    mentionable: bool = False
+    tags: RoleTags = RoleTags()
 
     @property
     def premium_subscriber(self) -> bool:

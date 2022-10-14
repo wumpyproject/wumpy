@@ -1,8 +1,8 @@
-import dataclasses
 import enum
 from types import MappingProxyType
 from typing import Any, List, Optional, Union
 
+import attrs
 from discord_typings import (
     ApplicationCommandInteractionData, ApplicationCommandOptionInteractionData,
     ComponentInteractionData, ResolvedInteractionDataData, SelectMenuOptionData
@@ -16,7 +16,7 @@ from ._message import Message
 from ._permissions import Permissions
 from ._role import Role
 from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'InteractionType',
@@ -58,17 +58,28 @@ class ApplicationCommandOption(enum.Enum):
     number = 10  # Includes decimals
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+def _proxy_field():
+    """Helper to create a mapping proxy field.
+
+    This function is only used by `ResolvedInteractionData` to simplify the
+    code and reduce line-length.
+
+    It is assumed that `attrs` expects each field object to only be used for
+    one attribute, therefore this should be called for each attribute.
+    """
+    return attrs.field(default=MappingProxyType({}), converter=MappingProxyType)
+
+
+@attrs.define(frozen=True, kw_only=True)
 class ResolvedInteractionData:
 
-    users: 'MappingProxyType[int, User]'
-    members: 'MappingProxyType[int, InteractionMember]'
+    users: 'MappingProxyType[int, User]' = _proxy_field()
+    members: 'MappingProxyType[int, InteractionMember]' = _proxy_field()
 
-    roles: 'MappingProxyType[int, Role]'
-    channels: 'MappingProxyType[int, InteractionChannel]'
+    roles: 'MappingProxyType[int, Role]' = _proxy_field()
+    channels: 'MappingProxyType[int, InteractionChannel]' = _proxy_field()
 
-    messages: 'MappingProxyType[int, Message]'
+    messages: 'MappingProxyType[int, Message]' = _proxy_field()
 
     @classmethod
     def from_data(cls, data: ResolvedInteractionDataData) -> Self:
@@ -97,8 +108,7 @@ class ResolvedInteractionData:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class CommandInteractionOption:
     """Application Command option received from Discord.
 
@@ -109,10 +119,10 @@ class CommandInteractionOption:
     name: str
     type: ApplicationCommandOption
 
-    value: Optional[Any]
-    focused: bool
+    value: Optional[Any] = attrs.field(default=None, kw_only=True)
 
-    options: List['CommandInteractionOption']
+    options: List['CommandInteractionOption'] = attrs.field(factory=list, kw_only=True)
+    focused: bool = attrs.field(default=False, kw_only=True)
 
     @classmethod
     def from_data(cls, data: ApplicationCommandOptionInteractionData) -> Self:
@@ -126,17 +136,16 @@ class CommandInteractionOption:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class SelectInteractionValue:
     """One of the values for a select option."""
 
     label: str
     value: str
-    description: Optional[str] = None
+    description: Optional[str] = attrs.field(default=None, kw_only=True)
 
-    emoji: Optional[Emoji] = None
-    default: Optional[bool] = None
+    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    default: Optional[bool] = attrs.field(default=None, kw_only=True)
 
     @classmethod
     def from_data(cls, data: SelectMenuOptionData) -> Self:
@@ -154,23 +163,20 @@ class SelectInteractionValue:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Interaction(Model):
-
     application_id: Snowflake
     type: InteractionType
     token: str
-    version: int
+    version: int = 1
 
-    author: Union[User, Member, None]
-    guild_id: Optional[Snowflake]
-    channel_id: Optional[Snowflake]
-    app_permissions: Optional[Permissions]
+    author: Union[User, Member, None] = None
+    guild_id: Optional[Snowflake] = None
+    channel_id: Optional[Snowflake] = None
+    app_permissions: Optional[Permissions] = None
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class AutocompleteInteraction(Interaction):
 
     name: str
@@ -191,10 +197,8 @@ class AutocompleteInteraction(Interaction):
             token=data['token'],
             version=data['version'],
 
-            author=None,
             guild_id=_get_as_snowflake(data, 'guild_id'),
             channel_id=_get_as_snowflake(data, 'channel_id'),
-            app_permissions=None,
 
             name=data['data']['name'],
             invoked=Snowflake(int(data['data']['id'])),
@@ -207,8 +211,7 @@ class AutocompleteInteraction(Interaction):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class CommandInteraction(Interaction):
 
     name: str
@@ -218,7 +221,7 @@ class CommandInteraction(Interaction):
     author: Union[User, Member]
 
     resolved: ResolvedInteractionData
-    target_id: Optional[int]
+    target_id: Optional[int] = None
     options: List[CommandInteractionOption]
 
     @classmethod
@@ -272,8 +275,7 @@ class CommandInteraction(Interaction):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class ComponentInteraction(Interaction):
 
     author: Union[User, Member]

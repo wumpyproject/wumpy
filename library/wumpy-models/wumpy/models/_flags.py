@@ -1,9 +1,8 @@
-import dataclasses
 from typing import Callable, Optional, Type, Union, overload
 
+import attrs
 from typing_extensions import Self
 
-from ._utils import backport_slots
 
 __all__ = (
     'ApplicationFlags',
@@ -13,8 +12,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class DiscordFlags:
     """The base for all bitfield wrappers.
 
@@ -96,8 +94,7 @@ class DiscordFlags:
         return cls(0)
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class BitMask:
     """Representing one bit of a bitfield, using discriptors.
 
@@ -148,8 +145,7 @@ def flag(func: Callable[[], int]) -> BitMask:
     return BitMask(func())
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(eq=False)
 class ApplicationFlags(DiscordFlags):
     """Bitfield flags for a Discord application."""
 
@@ -194,8 +190,7 @@ class ApplicationFlags(DiscordFlags):
         return 1 << 17
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(eq=False)
 class Intents(DiscordFlags):
     """Bitfield for Discord gateway intents.
 
@@ -384,8 +379,7 @@ class Intents(DiscordFlags):
         return cls(value)
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(eq=False)
 class MessageFlags(DiscordFlags):
     """Flags for a message object sent by Discord."""
 
@@ -435,8 +429,7 @@ class MessageFlags(DiscordFlags):
         return 1 << 8
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define()
 class UserFlags(DiscordFlags):
     """Bitfield flags for a Discord user object."""
 

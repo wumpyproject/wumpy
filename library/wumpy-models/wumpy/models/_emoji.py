@@ -1,12 +1,12 @@
-import dataclasses
 import re
-from typing import Optional, Tuple
+from typing import ClassVar, Optional, Tuple
 
+import attrs
 from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
 from ._user import User
-from ._utils import DISCORD_EPOCH, Model, Snowflake, backport_slots
+from ._utils import DISCORD_EPOCH, Model, Snowflake
 
 __all__ = (
     'Emoji',
@@ -14,8 +14,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Emoji(Model):
 
     name: str
@@ -28,7 +27,9 @@ class Emoji(Model):
     animated: bool = False
     available: bool = True
 
-    REGEX = re.compile(r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?')
+    REGEX: ClassVar[re.Pattern[str]] = re.compile(
+        r'<?(?P<animated>a)?:?(?P<name>[A-Za-z0-9\_]+):(?P<id>[0-9]{13,20})>?'
+    )
 
     @classmethod
     def from_data(cls, data: EmojiData) -> Self:
@@ -71,17 +72,18 @@ class Emoji(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class MessageReaction:
     count: int
-    me: bool
     emoji: Emoji
+
+    me: bool = attrs.field(default=False, kw_only=True)
 
     @classmethod
     def from_data(cls, data: MessageReactionData) -> Self:
         return cls(
             count=data['count'],
-            me=data['me'],
             emoji=Emoji.from_data(data['emoji'])
+
+            me=data['me'],
         )

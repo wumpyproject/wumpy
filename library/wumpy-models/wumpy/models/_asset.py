@@ -1,20 +1,16 @@
-import dataclasses
 from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlsplit
 
+import attrs
 from typing_extensions import Literal, Self
-
-from ._utils import backport_slots
 
 __all__ = (
     'Asset',
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define()
 class Asset:
-
     url: str
 
     BASE = 'https://cdn.discordapp.com'

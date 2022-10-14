@@ -1,10 +1,9 @@
-import dataclasses
-
+import attrs
 from discord_typings import UserData
 from typing_extensions import Self
 
 from ._flags import UserFlags
-from ._utils import Model, backport_slots
+from ._utils import Model
 
 __all__ = (
     'User',
@@ -12,8 +11,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class User(Model):
     name: str
     discriminator: int
@@ -41,22 +39,13 @@ class User(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
-class BotUser(Model):
-    name: str
-    discriminator: int
+@attrs.define(eq=False, kw_only=True)
+class BotUser(User):
+    bot: bool = True  # Update default
 
     locale: str
     mfa_enabled: bool
     verified: bool
-
-    # As a result of these defaults, BotUser cannot be a subclass of User,
-    # although that also helps with the REST API methods (cannot DM yourself).
-
-    bot: bool = True
-    system: bool = False
-    public_flags: UserFlags = UserFlags.none()
 
     @classmethod
     def from_data(cls, data: UserData) -> Self:

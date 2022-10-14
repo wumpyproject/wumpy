@@ -1,29 +1,27 @@
-import dataclasses
 from datetime import datetime, timezone
 from typing import Optional, Union
 
+import attrs
 from discord_typings import InviteCreateData, InviteData
 from typing_extensions import Self
 
 from ._channels import PartialChannel
 from ._user import User
-from ._utils import backport_slots
 
 __all__ = (
     'Invite',
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(frozen=True)
 class Invite:
     """Representation of a Discord invite."""
 
     code: str
-    expires_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = attrs.field(default=None, kw_only=True)
 
-    inviter: Optional[User] = None
-    channel: Optional[PartialChannel] = None
+    inviter: Optional[User] = attrs.field(default=None, kw_only=True)
+    channel: Optional[PartialChannel] = attrs.field(default=None, kw_only=True)
 
     def __str__(self) -> str:
         return self.url

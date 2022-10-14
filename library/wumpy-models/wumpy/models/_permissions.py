@@ -1,12 +1,12 @@
-import dataclasses
 from enum import Enum
 from typing import Any, Callable, Optional, SupportsInt, Union, overload
 
+import attrs
 from discord_typings import PermissionOverwriteData
 from typing_extensions import Self
 
 from ._flags import DiscordFlags, flag
-from ._utils import Model, backport_slots
+from ._utils import Model
 
 __all__ = (
     'Permissions',
@@ -15,8 +15,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define()
 class Permissions(DiscordFlags):
     """A bitfield for wrapping Discord permissions."""
 
@@ -355,8 +354,7 @@ class Permissions(DiscordFlags):
         return 1 << 40
 
 
-@backport_slots(weakref_slot=False)
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class TriBitMask:
     """Representing one bit of two bitfields similar to BitMask.
 
@@ -388,8 +386,7 @@ class PermissionTarget(Enum):
     member = 1
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False)
 class PermissionOverwrite(Model):
     """"Discord permission overwrite object.
 

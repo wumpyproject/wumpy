@@ -1,12 +1,12 @@
-import dataclasses
 from enum import Enum
 from typing import Optional
 
+import attrs
 from discord_typings import StickerData, StickerItemData
 from typing_extensions import Self
 
 from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'StickerType',
@@ -27,8 +27,7 @@ class StickerFormatType(Enum):
     lottie = 3
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class StickerItem(Model):
     name: str
     format_type: StickerFormatType
@@ -42,21 +41,20 @@ class StickerItem(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Sticker(StickerItem):
-    description: Optional[str]
-
-    pack_id: Optional[Snowflake]
-    sort_value: Optional[int]
-
-    tags: str
     type: StickerType
 
-    available: bool
-    guild_id: Optional[Snowflake]
+    tags: str
+    description: Optional[str] = None
 
-    user: Optional[User]
+    pack_id: Optional[Snowflake] = None
+    sort_value: Optional[int] = None
+
+    available: bool = True
+    guild_id: Optional[Snowflake] = None
+
+    user: Optional[User] = None
 
     @classmethod
     def from_data(cls, data: StickerData) -> Self:

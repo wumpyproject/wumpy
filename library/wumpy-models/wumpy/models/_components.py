@@ -1,6 +1,6 @@
-import dataclasses
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, ClassVar
 
+import attrs
 from discord_typings import (
     ActionRowData, ButtonComponentData, ComponentData, SelectMenuComponentData,
     SelectMenuOptionData, TextInputComponentData
@@ -8,7 +8,6 @@ from discord_typings import (
 from typing_extensions import Literal, Self
 
 from ._emoji import Emoji
-from ._utils import backport_slots
 
 __all__ = (
     'ActionRow',
@@ -37,12 +36,11 @@ def _create_component(
     raise ValueError(f"Unknown component type {data['type']} for data: {data}")
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class ActionRow:
     components: Tuple[Union['Button', 'LinkButton', 'SelectMenu', 'TextInput'], ...]
 
-    type: Literal[1] = 1
+    type: ClassVar[Literal[1]] = 1
 
     @classmethod
     def from_data(cls, data: ActionRowData) -> Self:
@@ -51,20 +49,18 @@ class ActionRow:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class Button:
-
     style: Literal[1, 2, 3, 4]
 
     custom_id: str
 
-    emoji: Optional[Emoji] = None
-    label: Optional[str] = None
+    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    label: Optional[str] = attrs.field(default=None, kw_only=True)
 
-    disabled: bool = False
+    disabled: bool = attrs.field(default=False, kw_only=True)
 
-    type: Literal[2] = 2
+    type: ClassVar[Literal[2]] = 2
 
     @classmethod
     def from_data(cls, data: ButtonComponentData) -> Self:
@@ -85,19 +81,18 @@ class Button:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class LinkButton:
 
     url: str
 
-    emoji: Optional[Emoji] = None
-    label: Optional[str] = None
+    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    label: Optional[str] = attrs.field(default=None, kw_only=True)
 
-    disabled: bool = False
+    disabled: bool = attrs.field(default=False, kw_only=True)
 
-    type: Literal[2] = 2
-    style: Literal[5] = 5
+    type: ClassVar[Literal[2]] = 2
+    style: ClassVar[Literal[5]] = 5
 
     @classmethod
     def from_data(cls, data: ButtonComponentData) -> Self:
@@ -116,20 +111,19 @@ class LinkButton:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class SelectMenu:
 
     custom_id: str
     options: Tuple['SelectMenuOption', ...]
 
-    placeholder: Optional[str] = None
-    min_values: int = 1
-    max_values: int = 1
+    placeholder: Optional[str] = attrs.field(default=None, kw_only=True)
+    min_values: int = attrs.field(default=1, kw_only=True)
+    max_values: int = attrs.field(default=1, kw_only=True)
 
-    disabled: bool = False
+    disabled: bool = attrs.field(default=False, kw_only=True)
 
-    type: Literal[3] = 3
+    type: ClassVar[Literal[3]] = 3
 
     @classmethod
     def from_data(cls, data: SelectMenuComponentData) -> Self:
@@ -146,16 +140,15 @@ class SelectMenu:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class SelectMenuOption:
     label: str
     value: str
 
-    description: Optional[str] = None
-    emoji: Optional[Emoji] = None
+    description: Optional[str] = attrs.field(default=None, kw_only=True)
+    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
 
-    default: bool = False
+    default: bool = attrs.field(default=False, kw_only=True)
 
     @classmethod
     def from_data(cls, data: SelectMenuOptionData) -> Self:
@@ -174,22 +167,21 @@ class SelectMenuOption:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class TextInput:
 
     style: Literal[1, 2]
     custom_id: str
     label: str
 
-    min_length: int = 0
-    max_length: int = 4000
+    min_length: int = attrs.field(default=0, kw_only=True)
+    max_length: int = attrs.field(default=4000, kw_only=True)
 
-    required: bool = True
-    value: Optional[str] = None
-    placeholder: Optional[str] = None
+    required: bool = attrs.field(default=True, kw_only=True)
+    value: Optional[str] = attrs.field(default=None, kw_only=True)
+    placeholder: Optional[str] = attrs.field(default=None, kw_only=True)
 
-    type: Literal[4] = 4
+    type: ClassVar[Literal[4]] = 4
 
     @classmethod
     def from_data(cls, data: TextInputComponentData) -> Self:

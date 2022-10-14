@@ -1,8 +1,8 @@
-import dataclasses
 from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+import attrs
 from discord_typings import (
     DiscordIntegrationData, IntegrationAccountData, IntegrationApplicationData,
     StreamingIntegrationData
@@ -10,7 +10,7 @@ from discord_typings import (
 from typing_extensions import Self
 
 from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'IntegrationExpire',
@@ -33,8 +33,7 @@ class IntegrationType(str, Enum):
     discord = 'discord'
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class IntegrationAccount:
     """Information about the account associated with an integration.
 
@@ -51,8 +50,7 @@ class IntegrationAccount:
         return cls(data['id'], data['name'])
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class IntegrationApplication(Model):
     """Information about a bot/OAuth2 application.
 
@@ -97,8 +95,7 @@ class IntegrationApplication(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class BotIntegration(Model):
     """Representation of a bot integration in a guild.
 
@@ -134,8 +131,7 @@ class BotIntegration(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class StreamIntegration(Model):
     """Representation of a guild integration for Twitch or YouTube.
 

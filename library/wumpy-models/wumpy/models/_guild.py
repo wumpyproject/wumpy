@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional, Set, Union
 
+import attrs
 from discord_typings import GuildCreateData, GuildData, GuildUpdateData
 from typing_extensions import Literal, Self
 
@@ -20,7 +20,7 @@ def _get_as_asset(data: Optional[Mapping[str, Any]], key: str) -> Optional[Asset
     return Asset.from_path(value) if value is not None else None
 
 
-@dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Guild(Model):
     name: str
     owner_id: Snowflake
@@ -62,7 +62,6 @@ class Guild(Model):
             discovery_splash=_get_as_asset(data, 'discovery_splash'),
 
             features=set(data['features']),
-
 
             afk_timeout=data['afk_timeout'],
             afk_channel_id=_get_as_snowflake(data, 'afk_channel_id'),

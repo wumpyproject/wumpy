@@ -1,7 +1,7 @@
-import dataclasses
 from enum import Enum
 from typing import Iterable, Optional, Sequence, SupportsInt, Tuple, Union
 
+import attrs
 from discord_typings import (
     AllowedMentionsData, AttachmentData, MessageCreateData, MessageData,
     MessageUpdateData
@@ -13,7 +13,7 @@ from ._embed import Embed
 from ._emoji import MessageReaction
 from ._member import Member
 from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'AllowedMentions',
@@ -181,8 +181,7 @@ class AllowedMentions:
         return cls(everyone=True, users=True, roles=True, replied_user=True)
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Attachment(Model):
     filename: str
 
@@ -216,12 +215,11 @@ class Attachment(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True, kw_only=True)
 class MessageMentions:
-    users: Union[Tuple[User, ...], Tuple[Member, ...]]
-    channels: Tuple[ChannelMention, ...]
-    roles: Tuple[Snowflake, ...]
+    users: Union[Tuple[User, ...], Tuple[Member, ...]] = ()
+    channels: Tuple[ChannelMention, ...] = ()
+    roles: Tuple[Snowflake, ...] = ()
 
     @classmethod
     def from_message(
@@ -270,23 +268,23 @@ class MessageType(Enum):
     thread_starter_message = 22
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Message(Model):
     type: MessageType
 
-    channel_id: Snowflake
-    guild_id: Optional[Snowflake]
     author: Union[User, Member]
 
-    content: str
-    tts: bool
-    attachments: Tuple[Attachment, ...]
-    embeds: Tuple[Embed, ...]
-    reactions: Tuple[MessageReaction, ...]
-    mentions: MessageMentions
+    channel_id: Snowflake
+    guild_id: Optional[Snowflake] = None
 
-    pinned: bool
+    content: str = ''
+    tts: bool = False
+    attachments: Tuple[Attachment, ...] = ()
+    embeds: Tuple[Embed, ...] = ()
+    reactions: Tuple[MessageReaction, ...] = ()
+    mentions: MessageMentions = MessageMentions()
+
+    pinned: bool = False
 
     @classmethod
     def from_data(
@@ -301,10 +299,10 @@ class Message(Model):
         return cls(
             id=int(data['id']),
             type=MessageType(data['type']),
+            author=author,
 
             channel_id=Snowflake(int(data['channel_id'])),
             guild_id=_get_as_snowflake(data, 'guild_id'),
-            author=author,
 
             content=data['content'],
             tts=data['tts'],

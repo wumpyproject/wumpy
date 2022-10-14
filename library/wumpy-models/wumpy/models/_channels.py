@@ -1,7 +1,7 @@
-import dataclasses
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Union
 
+import attrs
 from discord_typings import (
     CategoryChannelData, ChannelCreateData, ChannelDeleteData,
     ChannelMentionData, ChannelUpdateData, DMChannelData, PartialChannelData,
@@ -11,7 +11,7 @@ from typing_extensions import Literal, Self
 
 from ._permissions import PermissionOverwrite, Permissions
 from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake, backport_slots
+from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'PartialChannel',
@@ -26,8 +26,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class PartialChannel(Model):
     """Channel with only a handful of fields.
 
@@ -58,8 +57,7 @@ class PartialChannel(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class ChannelMention(PartialChannel):
     guild_id: Snowflake
 
@@ -73,8 +71,7 @@ class ChannelMention(PartialChannel):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class InteractionChannel(PartialChannel):
     """Channel with only a handful of fields.
 
@@ -97,8 +94,7 @@ class InteractionChannel(PartialChannel):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class DMChannel(Model):
 
     type: Literal[1]
@@ -123,8 +119,7 @@ class DMChannel(Model):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class TextChannel(PartialChannel):
 
     type: Literal[0, 5]
@@ -175,8 +170,7 @@ class TextChannel(PartialChannel):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class ThreadMember:
     id: Optional[Snowflake]
     user_id: Optional[Snowflake]
@@ -193,8 +187,7 @@ class ThreadMember:
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False)
 class Thread(PartialChannel):
 
     type: Literal[10, 11, 12]
@@ -253,8 +246,7 @@ class Thread(PartialChannel):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class VoiceChannel(PartialChannel):
 
     type: Literal[2, 13]
@@ -291,8 +283,7 @@ class VoiceChannel(PartialChannel):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True, eq=False)
+@attrs.define(eq=False, kw_only=True)
 class Category(PartialChannel):
 
     type: Literal[4]
