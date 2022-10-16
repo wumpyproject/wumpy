@@ -1,6 +1,6 @@
-import dataclasses
 from typing import ClassVar, FrozenSet, Optional, Sequence
 
+import attrs
 from discord_typings import (
     GuildBanAddData, GuildBanRemoveData, GuildDeleteData,
     GuildEmojisUpdateData, GuildMemberAddData, GuildMemberRemoveData,
@@ -11,7 +11,6 @@ from typing_extensions import Self
 from wumpy.models import Emoji, Guild, Member, Role, Snowflake, Sticker, User
 
 from .._dispatch import Event
-from .._utils import backport_slots
 
 __all__ = (
     'GuildDeleteEvent',
@@ -28,8 +27,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class GuildDeleteEvent(Event):
     unavailable: Optional[bool]
 
@@ -50,8 +48,7 @@ class GuildDeleteEvent(Event):
         return cls(unavailable=payload.get('unavailable'), guild=cached)
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class BanAddEvent(Event):
     guild_id: Snowflake
 
@@ -73,8 +70,7 @@ class BanAddEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class BanRemoveEvent(Event):
     guild_id: Snowflake
     user: User
@@ -93,8 +89,7 @@ class BanRemoveEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class GuildEmojisUpdateEvent(Event):
     guild_id: Snowflake
 
@@ -117,8 +112,7 @@ class GuildEmojisUpdateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class GuildStickersUpdateEvent(Event):
     guild_id: Snowflake
 
@@ -141,8 +135,7 @@ class GuildStickersUpdateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class MemberJoinEvent(Event):
     guild_id: Snowflake
     member: Member
@@ -161,8 +154,7 @@ class MemberJoinEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class MemberRemoveEvent(Event):
     guild_id: Snowflake
     user: User
@@ -181,8 +173,7 @@ class MemberRemoveEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class MemberUpdateEvent(Event):
     guild_id: Snowflake
     member: Member
@@ -203,8 +194,7 @@ class MemberUpdateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class RoleCreateEvent(Event):
     guild_id: Snowflake
     role: Role
@@ -223,8 +213,7 @@ class RoleCreateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class RoleUpdateEvent(Event):
     guild_id: Snowflake
     role: Role
@@ -245,8 +234,7 @@ class RoleUpdateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class RoleDeleteEvent(Event):
     guild_id: Snowflake
     role_id: Snowflake

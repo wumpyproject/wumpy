@@ -1,4 +1,3 @@
-import dataclasses
 import inspect
 from abc import abstractmethod
 from functools import partial
@@ -12,6 +11,7 @@ from typing import (  # noqa: F401
 import anyio
 import anyio.abc
 import anyio.lowlevel
+import attrs
 from typing_extensions import Self, TypeAlias
 from wumpy.interactions import ErrorContext, ErrorHandlerMixin
 
@@ -28,7 +28,7 @@ CoroFunc: TypeAlias = 'Callable[..., Coroutine[Any, Any, T]]'
 C = TypeVar('C', bound='CoroFunc[object]')
 
 
-@dataclasses.dataclass(frozen=True)
+@attrs.define(frozen=True)
 class Event:
     """Parent class for events, meant to be read from annotations.
 
@@ -44,8 +44,6 @@ class Event:
     """
 
     NAME: ClassVar[str]
-
-    __slots__ = ()  # If subclasses want to use it
 
     @classmethod
     @abstractmethod

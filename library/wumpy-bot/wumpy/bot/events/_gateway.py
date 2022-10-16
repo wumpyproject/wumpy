@@ -1,12 +1,11 @@
-import dataclasses
 from typing import Any, ClassVar, FrozenSet, Mapping, Optional, Tuple
 
+import attrs
 from discord_typings import ReadyData
 from typing_extensions import Self
 from wumpy.models import ApplicationFlags, Snowflake, User
 
 from .._dispatch import Event
-from .._utils import backport_slots
 
 __all__ = (
     'HelloEvent',
@@ -15,8 +14,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define()
 class HelloEvent(Event):
 
     NAME: ClassVar[str] = 'HELLO'
@@ -26,8 +24,7 @@ class HelloEvent(Event):
         return cls()
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define()
 class ResumedEvent(Event):
 
     NAME: ClassVar[str] = 'RESUMED'
@@ -37,8 +34,7 @@ class ResumedEvent(Event):
         return cls()
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ReadyEvent(Event):
     user: User
     guilds: FrozenSet[Snowflake]

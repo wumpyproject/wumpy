@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, Generic, Optional, Type, TypeVar
 # Internal, but it would be pointless to copy it over.
 from wumpy.models._utils import \
     _get_as_snowflake as _get_as_snowflake  # noqa: F401
-from wumpy.models._utils import backport_slots as backport_slots  # noqa: F401
 
 __all__ = (
 

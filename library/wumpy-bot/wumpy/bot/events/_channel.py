@@ -1,7 +1,7 @@
-import dataclasses
 from datetime import datetime, timezone
 from typing import ClassVar, FrozenSet, Mapping, Optional, Type, Union
 
+import attrs
 from discord_typings import (
     ChannelCreateData, ChannelDeleteData, ChannelPinsUpdateData,
     ThreadCreateData, ThreadDeleteData, ThreadListSyncData, ThreadUpdateData,
@@ -14,7 +14,7 @@ from wumpy.models import (
 )
 
 from .._dispatch import Event
-from .._utils import _get_as_snowflake, backport_slots
+from .._utils import _get_as_snowflake
 
 __all__ = (
     'ChannelCreateEvent',
@@ -41,8 +41,7 @@ _CHANNELS: Mapping[int, Type[PartialChannel]] = {
 }
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ChannelCreateEvent(Event):
     channel: Union[TextChannel, VoiceChannel, Category, PartialChannel]
 
@@ -53,11 +52,10 @@ class ChannelCreateEvent(Event):
         return cls(channel=_CHANNELS.get(payload['type'], PartialChannel).from_data(payload))
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ChannelUpdateEvent(Event):
     channel: Union[TextChannel, VoiceChannel, Category, PartialChannel]
-    cached: Union[TextChannel, VoiceChannel, Category, PartialChannel, None]
+    cached: Union[TextChannel, VoiceChannel, Category, PartialChannel, None] = None
 
     NAME: ClassVar[str] = 'CHANNEL_UPDATE'
 
@@ -73,10 +71,9 @@ class ChannelUpdateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ChannelDeleteEvent(Event):
-    channel: Union[TextChannel, VoiceChannel, Category, PartialChannel, None]
+    channel: Union[TextChannel, VoiceChannel, Category, PartialChannel, None] = None
 
     NAME: ClassVar[str] = 'CHANNEL_DELETE'
 
@@ -85,17 +82,16 @@ class ChannelDeleteEvent(Event):
         return cls(channel=_CHANNELS.get(payload['type'], PartialChannel).from_data(payload))
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class TypingEvent(Event):
     """Dispatched when a user starts typing in a channel."""
 
     user_id: Snowflake
     channel_id: Snowflake
-    guild_id: Optional[Snowflake]
-
     timestamp: datetime
-    member: Optional[Member]
+
+    guild_id: Optional[Snowflake] = None
+    member: Optional[Member] = None
 
     NAME: ClassVar[str] = 'TYPING_START'
 
@@ -119,8 +115,7 @@ class TypingEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ThreadCreateEvent(Event):
     thread: Thread
 
@@ -140,11 +135,10 @@ class ThreadCreateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ThreadUpdateEvent(Event):
     thread: Thread
-    cached: Optional[Thread]
+    cached: Optional[Thread] = None
 
     NAME: ClassVar[str] = 'THREAD_UPDATE'
 
@@ -160,15 +154,14 @@ class ThreadUpdateEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ThreadDeleteEvent(Event):
     thread_id: Snowflake
     parent_id: Snowflake
     guild_id: Snowflake
     type: Literal[10, 11, 12]
 
-    cached: Optional[Thread]
+    cached: Optional[Thread] = None
 
     NAME: ClassVar[str] = 'THREAD_DELETE'
 
@@ -187,8 +180,7 @@ class ThreadDeleteEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ThreadListSyncEvent(Event):
     guild_id: Snowflake
     channel_ids: FrozenSet[Snowflake]
@@ -217,8 +209,7 @@ class ThreadListSyncEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ChannelPinsUpdateEvent(Event):
     """Dispatched when a channel's pins are updated.
 
@@ -230,9 +221,9 @@ class ChannelPinsUpdateEvent(Event):
     """
 
     channel_id: Snowflake
-    guild_id: Optional[Snowflake]
+    guild_id: Optional[Snowflake] = None
 
-    last_pin_timestamp: Optional[datetime]
+    last_pin_timestamp: Optional[datetime] = None
 
     NAME: ClassVar[str] = 'CHANNEL_PINS_UPDATE'
 

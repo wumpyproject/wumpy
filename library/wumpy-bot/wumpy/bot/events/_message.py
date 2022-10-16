@@ -1,6 +1,6 @@
-import dataclasses
 from typing import ClassVar, FrozenSet, Optional, Sequence
 
+import attrs
 from discord_typings import (
     MessageCreateData, MessageDeleteBulkData, MessageDeleteData,
     MessageReactionAddData, MessageReactionRemoveData,
@@ -10,7 +10,7 @@ from typing_extensions import Self
 from wumpy.models import Emoji, Member, Message, Snowflake
 
 from .._dispatch import Event
-from .._utils import _get_as_snowflake, backport_slots
+from .._utils import _get_as_snowflake
 
 __all__ = (
     'MessageDeleteEvent',
@@ -22,8 +22,7 @@ __all__ = (
 )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class MessageCreateEvent(Event):
     message: Message
 
@@ -38,8 +37,7 @@ class MessageCreateEvent(Event):
         return cls(message=Message.from_data(payload))
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class MessageUpdateEvent(Event):
     message: Message
     cached: Optional[Message]
@@ -55,8 +53,7 @@ class MessageUpdateEvent(Event):
         return cls(message=Message.from_data(payload), cached=cached)
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class MessageDeleteEvent(Event):
     message_id: Snowflake
     channel_id: Snowflake
@@ -81,8 +78,7 @@ class MessageDeleteEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class BulkMessageDeleteEvent(Event):
     """Dispatched when multiple messages are deleted at once."""
 
@@ -109,8 +105,7 @@ class BulkMessageDeleteEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ReactionAddEvent(Event):
     """Dispatched when a user adds a reaction to a message."""
 
@@ -145,8 +140,7 @@ class ReactionAddEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ReactionRemoveEvent(Event):
     """Dispatched when a reaction is removed from a message."""
 
@@ -175,8 +169,7 @@ class ReactionRemoveEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ReactionClearEvent(Event):
     """Dispatched when all reactions is removed from a message."""
 
@@ -199,8 +192,7 @@ class ReactionClearEvent(Event):
         )
 
 
-@backport_slots()
-@dataclasses.dataclass(frozen=True)
+@attrs.define(kw_only=True)
 class ReactionEmojiClearEvent(Event):
     """Dispatched when only a specific emoji's reactions are cleared."""
 
