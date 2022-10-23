@@ -5,14 +5,14 @@ import attrs
 from discord_typings import StickerData, StickerItemData
 from typing_extensions import Self
 
-from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake
+from .._utils import Model, Snowflake, _get_as_snowflake
+from ._user import RawUser
 
 __all__ = (
     'StickerType',
     'StickerFormatType',
-    'StickerItem',
-    'Sticker',
+    'RawStickerItem',
+    'RawSticker',
 )
 
 
@@ -28,7 +28,7 @@ class StickerFormatType(Enum):
 
 
 @attrs.define(eq=False, kw_only=True)
-class StickerItem(Model):
+class RawStickerItem(Model):
     name: str
     format_type: StickerFormatType
 
@@ -42,7 +42,7 @@ class StickerItem(Model):
 
 
 @attrs.define(eq=False, kw_only=True)
-class Sticker(StickerItem):
+class RawSticker(RawStickerItem):
     type: StickerType
 
     tags: str
@@ -54,13 +54,13 @@ class Sticker(StickerItem):
     available: bool = True
     guild_id: Optional[Snowflake] = None
 
-    user: Optional[User] = None
+    user: Optional[RawUser] = None
 
     @classmethod
     def from_data(cls, data: StickerData) -> Self:
         user = data.get('user')
         if user is not None:
-            user = User.from_data(user)
+            user = RawUser.from_data(user)
 
         return cls(
             id=int(data['id']),

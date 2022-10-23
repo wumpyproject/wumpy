@@ -8,7 +8,6 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
-
 __all__ = (
     'EmbedThumbnail',
     'EmbedImage',

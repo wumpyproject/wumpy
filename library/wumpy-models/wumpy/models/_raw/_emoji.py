@@ -5,17 +5,17 @@ import attrs
 from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
+from .._utils import DISCORD_EPOCH, Model, Snowflake
 from ._user import User
-from ._utils import DISCORD_EPOCH, Model, Snowflake
 
 __all__ = (
-    'Emoji',
-    'MessageReaction',
+    'RawEmoji',
+    'RawMessageReaction',
 )
 
 
 @attrs.define(eq=False, kw_only=True)
-class Emoji(Model):
+class RawEmoji(Model):
 
     name: str
 
@@ -73,9 +73,9 @@ class Emoji(Model):
 
 
 @attrs.define(frozen=True)
-class MessageReaction:
+class RawMessageReaction:
     count: int
-    emoji: Emoji
+    emoji: RawEmoji
 
     me: bool = attrs.field(default=False, kw_only=True)
 
@@ -83,7 +83,7 @@ class MessageReaction:
     def from_data(cls, data: MessageReactionData) -> Self:
         return cls(
             count=data['count'],
-            emoji=Emoji.from_data(data['emoji']),
+            emoji=RawEmoji.from_data(data['emoji']),
 
             me=data['me'],
         )

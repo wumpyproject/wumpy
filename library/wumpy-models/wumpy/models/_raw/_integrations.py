@@ -9,16 +9,16 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
-from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake
+from .._utils import Model, Snowflake, _get_as_snowflake
+from ._user import RawUser
 
 __all__ = (
     'IntegrationExpire',
     'IntegrationType',
     'IntegrationAccount',
-    'IntegrationApplication',
-    'BotIntegration',
-    'StreamIntegration',
+    'RawIntegrationApplication',
+    'RawBotIntegration',
+    'RawStreamIntegration',
 )
 
 
@@ -51,7 +51,7 @@ class IntegrationAccount:
 
 
 @attrs.define(eq=False, kw_only=True)
-class IntegrationApplication(Model):
+class RawIntegrationApplication(Model):
     """Information about a bot/OAuth2 application.
 
     Attributes:
@@ -66,10 +66,10 @@ class IntegrationApplication(Model):
     icon: Optional[str]
     description: str
     summary: str
-    user: Optional[User] = None
+    user: Optional[RawUser] = None
 
     @classmethod
-    def from_user(cls, user: User, data: IntegrationApplicationData) -> Self:
+    def from_user(cls, user: RawUser, data: IntegrationApplicationData) -> Self:
         return cls(
             id=int(data['id']),
             name=data['name'],
@@ -83,7 +83,7 @@ class IntegrationApplication(Model):
     def from_data(cls, data: IntegrationApplicationData) -> Self:
         user = data.get('bot')
         if user is not None:
-            user = User.from_data(user)
+            user = RawUser.from_data(user)
 
         return cls(
             id=int(data['id']),
@@ -96,7 +96,7 @@ class IntegrationApplication(Model):
 
 
 @attrs.define(eq=False, kw_only=True)
-class BotIntegration(Model):
+class RawBotIntegration(Model):
     """Representation of a bot integration in a guild.
 
     Attributes:
@@ -108,10 +108,10 @@ class BotIntegration(Model):
     enabled: bool
     account: IntegrationAccount
 
-    application: Optional[IntegrationApplication] = None
+    application: Optional[RawIntegrationApplication] = None
 
     @property
-    def user(self) -> Optional[User]:
+    def user(self) -> Optional[RawUser]:
         """The user associated with the integration."""
         return None if self.application is None else self.application.user
 
@@ -119,7 +119,7 @@ class BotIntegration(Model):
     def from_data(cls, data: DiscordIntegrationData) -> Self:
         application = data.get('application')
         if application is not None:
-            application = IntegrationApplication.from_data(application)
+            application = RawIntegrationApplication.from_data(application)
 
         return cls(
             id=int(data['id']),
@@ -132,7 +132,7 @@ class BotIntegration(Model):
 
 
 @attrs.define(eq=False, kw_only=True)
-class StreamIntegration(Model):
+class RawStreamIntegration(Model):
     """Representation of a guild integration for Twitch or YouTube.
 
     Attributes:
@@ -159,7 +159,7 @@ class StreamIntegration(Model):
     enable_emoticons: bool
     expire_behavior: IntegrationExpire
     expire_grace_period: int
-    user: User
+    user: RawUser
     synced_at: datetime
     subscriber_count: int
     revoked: bool
@@ -177,7 +177,7 @@ class StreamIntegration(Model):
             enable_emoticons=data['enable_emoticons'],
             expire_behavior=IntegrationExpire(data['expire_behavior']),
             expire_grace_period=data['expire_grace_period'],
-            user=User.from_data(data['user']),
+            user=RawUser.from_data(data['user']),
             synced_at=datetime.fromisoformat(data['synced_at']),
             subscriber_count=data['subscriber_count'],
             revoked=data['revoked'],

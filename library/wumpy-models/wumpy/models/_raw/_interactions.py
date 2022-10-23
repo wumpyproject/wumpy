@@ -9,26 +9,26 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
+from .._utils import Model, Snowflake, _get_as_snowflake
 from ._channels import InteractionChannel
-from ._emoji import Emoji
-from ._member import InteractionMember, Member
-from ._message import Message
+from ._emoji import RawEmoji
+from ._member import RawInteractionMember, RawMember
+from ._message import RawMessage
 from ._permissions import Permissions
-from ._role import Role
-from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake
+from ._role import RawRole
+from ._user import RawUser
 
 __all__ = (
     'InteractionType',
     'ComponentType',
     'ApplicationCommandOption',
-    'ResolvedInteractionData',
+    'RawResolvedInteractionData',
     'CommandInteractionOption',
-    'Interaction',
-    'AutocompleteInteraction',
-    'CommandInteraction',
-    'ComponentInteraction',
-    'SelectInteractionValue',
+    'RawInteraction',
+    'RawAutocompleteInteraction',
+    'RawCommandInteraction',
+    'RawComponentInteraction',
+    'RawSelectInteractionValue',
 )
 
 
@@ -71,30 +71,30 @@ def _proxy_field():
 
 
 @attrs.define(frozen=True, kw_only=True)
-class ResolvedInteractionData:
+class RawResolvedInteractionData:
 
-    users: 'MappingProxyType[int, User]' = _proxy_field()
-    members: 'MappingProxyType[int, InteractionMember]' = _proxy_field()
+    users: 'MappingProxyType[int, RawUser]' = _proxy_field()
+    members: 'MappingProxyType[int, RawInteractionMember]' = _proxy_field()
 
-    roles: 'MappingProxyType[int, Role]' = _proxy_field()
+    roles: 'MappingProxyType[int, RawRole]' = _proxy_field()
     channels: 'MappingProxyType[int, InteractionChannel]' = _proxy_field()
 
-    messages: 'MappingProxyType[int, Message]' = _proxy_field()
+    messages: 'MappingProxyType[int, RawMessage]' = _proxy_field()
 
     @classmethod
     def from_data(cls, data: ResolvedInteractionDataData) -> Self:
         return cls(
             users=MappingProxyType({
-                int(k): User.from_data(v) for k, v in data.get('users', {}).items()
+                int(k): RawUser.from_data(v) for k, v in data.get('users', {}).items()
             }),
             members=MappingProxyType({
-                int(k): InteractionMember.from_data(v, data.get('users', {}).get(k))
+                int(k): RawInteractionMember.from_data(v, data.get('users', {}).get(k))
                 for k, v in data.get('members', {}).items()
                 if data.get('users', {}).get(k)
             }),
 
             roles=MappingProxyType({
-                int(k): Role.from_data(v) for k, v in data.get('roles', {}).items()
+                int(k): RawRole.from_data(v) for k, v in data.get('roles', {}).items()
             }),
             channels=MappingProxyType({
                 int(k): InteractionChannel.from_data(v)
@@ -102,7 +102,7 @@ class ResolvedInteractionData:
             }),
 
             messages=MappingProxyType({
-                int(k): Message.from_data(v)
+                int(k): RawMessage.from_data(v)
                 for k, v in data.get('messages', {}).items()
             }),
         )
@@ -137,21 +137,21 @@ class CommandInteractionOption:
 
 
 @attrs.define(frozen=True)
-class SelectInteractionValue:
+class RawSelectInteractionValue:
     """One of the values for a select option."""
 
     label: str
     value: str
     description: Optional[str] = attrs.field(default=None, kw_only=True)
 
-    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    emoji: Optional[RawEmoji] = attrs.field(default=None, kw_only=True)
     default: Optional[bool] = attrs.field(default=None, kw_only=True)
 
     @classmethod
     def from_data(cls, data: SelectMenuOptionData) -> Self:
         emoji = data.get('emoji')
         if emoji is not None:
-            emoji = Emoji.from_data(emoji)
+            emoji = RawEmoji.from_data(emoji)
 
         return cls(
             label=data['label'],
@@ -164,20 +164,20 @@ class SelectInteractionValue:
 
 
 @attrs.define(eq=False, kw_only=True)
-class Interaction(Model):
+class RawInteraction(Model):
     application_id: Snowflake
     type: InteractionType
     token: str
     version: int = 1
 
-    author: Union[User, Member, None] = None
+    author: Union[RawUser, RawMember, None] = None
     guild_id: Optional[Snowflake] = None
     channel_id: Optional[Snowflake] = None
     app_permissions: Optional[Permissions] = None
 
 
 @attrs.define(eq=False, kw_only=True)
-class AutocompleteInteraction(Interaction):
+class RawAutocompleteInteraction(RawInteraction):
 
     name: str
     invoked: Snowflake
@@ -212,15 +212,15 @@ class AutocompleteInteraction(Interaction):
 
 
 @attrs.define(eq=False, kw_only=True)
-class CommandInteraction(Interaction):
+class RawCommandInteraction(RawInteraction):
 
     name: str
     invoked: Snowflake
     invoked_type: ApplicationCommandOption
 
-    author: Union[User, Member]
+    author: Union[RawUser, RawMember]
 
-    resolved: ResolvedInteractionData
+    resolved: RawResolvedInteractionData
     target_id: Optional[int] = None
     options: List[CommandInteractionOption]
 
@@ -239,11 +239,11 @@ class CommandInteraction(Interaction):
             if user is None:
                 raise ValueError('Sufficient author information missing from interaction')
 
-            author = Member.from_user(User.from_data(user), member)
+            author = RawMember.from_data(member, user)
         elif user is None:
             raise ValueError('Author information missing from interaction')
         else:
-            author = User.from_data(user)
+            author = RawUser.from_data(user)
 
         app_permissions = data.get('app_permissions')
         if app_permissions is not None:
@@ -265,7 +265,7 @@ class CommandInteraction(Interaction):
             invoked=Snowflake(int(data['data']['id'])),
             invoked_type=ApplicationCommandOption(data['data']['type']),
 
-            resolved=ResolvedInteractionData.from_data(data['data'].get('resolved', {})),
+            resolved=RawResolvedInteractionData.from_data(data['data'].get('resolved', {})),
             target_id=target_id,
 
             options=[
@@ -276,15 +276,15 @@ class CommandInteraction(Interaction):
 
 
 @attrs.define(eq=False, kw_only=True)
-class ComponentInteraction(Interaction):
+class RawComponentInteraction(RawInteraction):
 
-    author: Union[User, Member]
-    message: Message
+    author: Union[RawUser, RawMember]
+    message: RawMessage
 
     custom_id: str
     component_type: ComponentType
 
-    values: List[SelectInteractionValue]
+    values: List[RawSelectInteractionValue]
 
     @classmethod
     def from_data(cls, data: ComponentInteractionData) -> Self:
@@ -297,11 +297,11 @@ class ComponentInteraction(Interaction):
             if user is None:
                 raise ValueError('Sufficient author information missing from interaction')
 
-            author = Member.from_user(User.from_data(user), member)
+            author = RawMember.from_data(member, user)
         elif user is None:
             raise ValueError('Author information missing from interaction')
         else:
-            author = User.from_data(user)
+            author = RawUser.from_data(user)
 
         app_permissions = data.get('app_permissions')
         if app_permissions is not None:
@@ -319,13 +319,13 @@ class ComponentInteraction(Interaction):
             token=data['token'],
             version=data['version'],
 
-            message=Message.from_data(data['message']),
+            message=RawMessage.from_data(data['message']),
 
             custom_id=data['data']['custom_id'],
             component_type=ComponentType(data['data']['component_type']),
 
             values=[
-                SelectInteractionValue.from_data(value)
+                RawSelectInteractionValue.from_data(value)
                 for value in data['data'].get('values', [])
             ]
         )

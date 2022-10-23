@@ -6,12 +6,12 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
+from .._utils import Model, Snowflake
 from ._permissions import Permissions
-from ._utils import Model, Snowflake
 
 __all__ = (
     'RoleTags',
-    'Role',
+    'RawRole',
 )
 
 
@@ -46,7 +46,7 @@ class RoleTags:
 
 
 @attrs.define(eq=False, kw_only=True)
-class Role(Model):
+class RawRole(Model):
     """Representation of a Discord role with permissions.
 
     A role represents a set of permissions attached to a group of members.

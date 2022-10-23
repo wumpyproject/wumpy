@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, Union, ClassVar
+from typing import Any, ClassVar, Dict, Optional, Tuple, Union
 
 import attrs
 from discord_typings import (

@@ -4,30 +4,21 @@ import attrs
 from discord_typings import GuildCreateData, GuildData, GuildUpdateData
 from typing_extensions import Literal, Self
 
-from ._asset import Asset
-from ._utils import Model, Snowflake, _get_as_snowflake
+from .._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
-    'Guild',
+    'RawGuild',
 )
 
 
-def _get_as_asset(data: Optional[Mapping[str, Any]], key: str) -> Optional[Asset]:
-    if data is None:
-        return None
-
-    value: Optional[str] = data.get(key)
-    return Asset.from_path(value) if value is not None else None
-
-
 @attrs.define(eq=False, kw_only=True)
-class Guild(Model):
+class RawGuild(Model):
     name: str
     owner_id: Snowflake
 
-    icon: Optional[Asset]
-    splash: Optional[Asset]
-    discovery_splash: Optional[Asset]
+    icon: Optional[str]
+    splash: Optional[str]
+    discovery_splash: Optional[str]
 
     features: Set[str]
 
@@ -57,9 +48,9 @@ class Guild(Model):
             name=data['name'],
             owner_id=Snowflake(int(data['owner_id'])),
 
-            icon=_get_as_asset(data, 'icon'),
-            splash=_get_as_asset(data, 'splash'),
-            discovery_splash=_get_as_asset(data, 'discovery_splash'),
+            icon=data.get('icon'),
+            splash=data.get('splash'),
+            discovery_splash=data.get('discovery_splash'),
 
             features=set(data['features']),
 

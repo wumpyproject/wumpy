@@ -6,21 +6,21 @@ from discord_typings import InviteCreateData, InviteData
 from typing_extensions import Self
 
 from ._channels import PartialChannel
-from ._user import User
+from ._user import RawUser
 
 __all__ = (
-    'Invite',
+    'RawInvite',
 )
 
 
 @attrs.define(frozen=True)
-class Invite:
+class RawInvite:
     """Representation of a Discord invite."""
 
     code: str
     expires_at: Optional[datetime] = attrs.field(default=None, kw_only=True)
 
-    inviter: Optional[User] = attrs.field(default=None, kw_only=True)
+    inviter: Optional[RawUser] = attrs.field(default=None, kw_only=True)
     channel: Optional[PartialChannel] = attrs.field(default=None, kw_only=True)
 
     def __str__(self) -> str:
@@ -47,7 +47,7 @@ class Invite:
 
         inviter = data.get('inviter')
         if inviter is not None:
-            inviter = User.from_data(inviter)
+            inviter = RawUser.from_data(inviter)
 
         channel = data.get('channel')
         if channel is not None:

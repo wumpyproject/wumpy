@@ -3,7 +3,6 @@ from typing import Callable, Optional, Type, Union, overload
 import attrs
 from typing_extensions import Self
 
-
 __all__ = (
     'ApplicationFlags',
     'Intents',

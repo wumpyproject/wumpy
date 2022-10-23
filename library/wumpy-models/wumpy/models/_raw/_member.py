@@ -5,19 +5,19 @@ import attrs
 from discord_typings import GuildMemberAddData, GuildMemberData, UserData
 from typing_extensions import Self
 
+from .._utils import Snowflake
 from ._flags import UserFlags
 from ._permissions import Permissions
-from ._user import User
-from ._utils import Model, Snowflake
+from ._user import RawUser
 
 __all__ = (
-    'Member',
-    'InteractionMember',
+    'RawMember',
+    'RawInteractionMember',
 )
 
 
 @attrs.define(eq=False, kw_only=True)
-class Member(User):
+class RawMember(RawUser):
     joined_at: datetime
     roles: Tuple[Snowflake, ...]
 
@@ -75,7 +75,7 @@ class Member(User):
 
 
 @attrs.define(eq=False, kw_only=True)
-class InteractionMember(Member):
+class RawInteractionMember(RawMember):
     permissions: Permissions = Permissions(0)
 
     @classmethod

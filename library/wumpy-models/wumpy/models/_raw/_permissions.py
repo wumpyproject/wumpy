@@ -5,8 +5,8 @@ import attrs
 from discord_typings import PermissionOverwriteData
 from typing_extensions import Self
 
+from .._utils import Model
 from ._flags import DiscordFlags, flag
-from ._utils import Model
 
 __all__ = (
     'Permissions',

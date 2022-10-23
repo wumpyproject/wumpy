@@ -9,20 +9,20 @@ from discord_typings import (
 )
 from typing_extensions import Literal, Self
 
+from .._utils import Model, Snowflake, _get_as_snowflake
 from ._permissions import PermissionOverwrite, Permissions
 from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake
 
 __all__ = (
     'PartialChannel',
     'ChannelMention',
     'InteractionChannel',
-    'DMChannel',
-    'TextChannel',
+    'RawDMChannel',
+    'RawTextChannel',
     'ThreadMember',
-    'Thread',
-    'VoiceChannel',
-    'Category',
+    'RawThread',
+    'RawVoiceChannel',
+    'RawCategory',
 )
 
 
@@ -95,7 +95,7 @@ class InteractionChannel(PartialChannel):
 
 
 @attrs.define(eq=False, kw_only=True)
-class DMChannel(Model):
+class RawDMChannel(Model):
 
     type: Literal[1]
 
@@ -120,7 +120,7 @@ class DMChannel(Model):
 
 
 @attrs.define(eq=False, kw_only=True)
-class TextChannel(PartialChannel):
+class RawTextChannel(PartialChannel):
 
     type: Literal[0, 5]
 
@@ -188,7 +188,7 @@ class ThreadMember:
 
 
 @attrs.define(eq=False)
-class Thread(PartialChannel):
+class RawThread(PartialChannel):
 
     type: Literal[10, 11, 12]
 
@@ -247,7 +247,7 @@ class Thread(PartialChannel):
 
 
 @attrs.define(eq=False, kw_only=True)
-class VoiceChannel(PartialChannel):
+class RawVoiceChannel(PartialChannel):
 
     type: Literal[2, 13]
 
@@ -284,7 +284,7 @@ class VoiceChannel(PartialChannel):
 
 
 @attrs.define(eq=False, kw_only=True)
-class Category(PartialChannel):
+class RawCategory(PartialChannel):
 
     type: Literal[4]
 

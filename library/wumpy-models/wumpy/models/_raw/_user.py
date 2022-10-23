@@ -2,17 +2,17 @@ import attrs
 from discord_typings import UserData
 from typing_extensions import Self
 
+from .._utils import Model
 from ._flags import UserFlags
-from ._utils import Model
 
 __all__ = (
-    'User',
-    'BotUser',
+    'RawUser',
+    'RawBotUser',
 )
 
 
 @attrs.define(eq=False, kw_only=True)
-class User(Model):
+class RawUser(Model):
     name: str
     discriminator: int
 
@@ -40,7 +40,7 @@ class User(Model):
 
 
 @attrs.define(eq=False, kw_only=True)
-class BotUser(User):
+class RawBotUser(RawUser):
     bot: bool = True  # Update default
 
     locale: str

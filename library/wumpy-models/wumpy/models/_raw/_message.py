@@ -8,19 +8,19 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
+from .._utils import Model, Snowflake, _get_as_snowflake
 from ._channels import ChannelMention
 from ._embed import Embed
-from ._emoji import MessageReaction
-from ._member import Member
-from ._user import User
-from ._utils import Model, Snowflake, _get_as_snowflake
+from ._emoji import RawMessageReaction
+from ._member import RawMember
+from ._user import RawUser
 
 __all__ = (
     'AllowedMentions',
     'Attachment',
-    'MessageMentions',
+    'RawMessageMentions',
     'MessageType',
-    'Message',
+    'RawMessage',
 )
 
 
@@ -216,8 +216,8 @@ class Attachment(Model):
 
 
 @attrs.define(frozen=True, kw_only=True)
-class MessageMentions:
-    users: Union[Tuple[User, ...], Tuple[Member, ...]] = ()
+class RawMessageMentions:
+    users: Union[Tuple[RawUser, ...], Tuple[RawMember, ...]] = ()
     channels: Tuple[ChannelMention, ...] = ()
     roles: Tuple[Snowflake, ...] = ()
 
@@ -229,9 +229,9 @@ class MessageMentions:
         if data['mentions'] and 'member' in data['mentions'][0]:
             # Pyright doesn't understand that the type has narrowed down to
             # List[UserMentionData] with the 'member' key.
-            users = tuple(Member.from_data(m['member'], m) for m in data['mentions'])  # type: ignore
+            users = tuple(RawMember.from_data(m['member'], m) for m in data['mentions'])  # type: ignore
         else:
-            users = tuple(User.from_data(u) for u in data['mentions'])
+            users = tuple(RawUser.from_data(u) for u in data['mentions'])
 
         return cls(
             users=users,
@@ -269,10 +269,10 @@ class MessageType(Enum):
 
 
 @attrs.define(eq=False, kw_only=True)
-class Message(Model):
+class RawMessage(Model):
     type: MessageType
 
-    author: Union[User, Member]
+    author: Union[RawUser, RawMember]
 
     channel_id: Snowflake
     guild_id: Optional[Snowflake] = None
@@ -281,8 +281,8 @@ class Message(Model):
     tts: bool = False
     attachments: Tuple[Attachment, ...] = ()
     embeds: Tuple[Embed, ...] = ()
-    reactions: Tuple[MessageReaction, ...] = ()
-    mentions: MessageMentions = MessageMentions()
+    reactions: Tuple[RawMessageReaction, ...] = ()
+    mentions: RawMessageMentions = RawMessageMentions()
 
     pinned: bool = False
 
@@ -292,9 +292,9 @@ class Message(Model):
             data: Union[MessageData, MessageCreateData, MessageUpdateData]
     ) -> Self:
         if 'member' in data:
-            author = Member.from_data(data['member'], data['author'])
+            author = RawMember.from_data(data['member'], data['author'])
         else:
-            author = User.from_data(data['author'])
+            author = RawUser.from_data(data['author'])
 
         return cls(
             id=int(data['id']),
@@ -308,8 +308,8 @@ class Message(Model):
             tts=data['tts'],
             attachments=tuple(Attachment.from_data(a) for a in data['attachments']),
             embeds=tuple(Embed.from_data(e) for e in data['embeds']),
-            reactions=tuple(MessageReaction.from_data(r) for r in data.get('reactions', [])),
-            mentions=MessageMentions.from_message(data),
+            reactions=tuple(RawMessageReaction.from_data(r) for r in data.get('reactions', [])),
+            mentions=RawMessageMentions.from_message(data),
 
             pinned=data['pinned'],
         )
