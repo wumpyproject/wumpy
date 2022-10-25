@@ -6,7 +6,7 @@ from discord_typings import EmojiData, MessageReactionData
 from typing_extensions import Self
 
 from .._utils import DISCORD_EPOCH, Model, Snowflake
-from ._user import User
+from ._user import RawUser
 
 __all__ = (
     'RawEmoji',
@@ -20,7 +20,7 @@ class RawEmoji(Model):
     name: str
 
     roles: Tuple[Snowflake, ...] = ()
-    user: Optional[User] = None
+    user: Optional[RawUser] = None
 
     require_colons: bool = True
     managed: bool = False
@@ -35,7 +35,7 @@ class RawEmoji(Model):
     def from_data(cls, data: EmojiData) -> Self:
         user = data.get('user')
         if user is not None:
-            user = User.from_data(user)
+            user = RawUser.from_data(user)
 
         return cls(
             id=int(data['id'] or DISCORD_EPOCH << 22),

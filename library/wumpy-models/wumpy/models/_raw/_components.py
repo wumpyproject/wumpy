@@ -7,7 +7,7 @@ from discord_typings import (
 )
 from typing_extensions import Literal, Self
 
-from ._emoji import Emoji
+from ._emoji import RawEmoji
 
 __all__ = (
     'ActionRow',
@@ -55,7 +55,7 @@ class Button:
 
     custom_id: str
 
-    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    emoji: Optional[RawEmoji] = attrs.field(default=None, kw_only=True)
     label: Optional[str] = attrs.field(default=None, kw_only=True)
 
     disabled: bool = attrs.field(default=False, kw_only=True)
@@ -69,7 +69,7 @@ class Button:
 
         emoji = data.get('emoji')
         if emoji is not None:
-            emoji = Emoji.from_data(emoji)
+            emoji = RawEmoji.from_data(emoji)
 
         return cls(
             style=data['style'],
@@ -86,7 +86,7 @@ class LinkButton:
 
     url: str
 
-    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    emoji: Optional[RawEmoji] = attrs.field(default=None, kw_only=True)
     label: Optional[str] = attrs.field(default=None, kw_only=True)
 
     disabled: bool = attrs.field(default=False, kw_only=True)
@@ -101,7 +101,7 @@ class LinkButton:
 
         emoji = data.get('emoji')
         if emoji is not None:
-            emoji = Emoji.from_data(emoji)
+            emoji = RawEmoji.from_data(emoji)
 
         return cls(
             url=data['url'],
@@ -146,7 +146,7 @@ class SelectMenuOption:
     value: str
 
     description: Optional[str] = attrs.field(default=None, kw_only=True)
-    emoji: Optional[Emoji] = attrs.field(default=None, kw_only=True)
+    emoji: Optional[RawEmoji] = attrs.field(default=None, kw_only=True)
 
     default: bool = attrs.field(default=False, kw_only=True)
 
@@ -154,7 +154,7 @@ class SelectMenuOption:
     def from_data(cls, data: SelectMenuOptionData) -> Self:
         emoji = data.get('emoji')
         if emoji is not None:
-            emoji = Emoji.from_data(emoji)
+            emoji = RawEmoji.from_data(emoji)
 
         return cls(
             label=data['label'],

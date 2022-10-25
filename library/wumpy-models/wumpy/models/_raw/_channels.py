@@ -11,7 +11,7 @@ from typing_extensions import Literal, Self
 
 from .._utils import Model, Snowflake, _get_as_snowflake
 from ._permissions import PermissionOverwrite, Permissions
-from ._user import User
+from ._user import RawUser
 
 __all__ = (
     'PartialChannel',
@@ -99,7 +99,7 @@ class RawDMChannel(Model):
 
     type: Literal[1]
 
-    recipients: Tuple[User, ...]
+    recipients: Tuple[RawUser, ...]
     last_message_id: Optional[Snowflake] = None
     last_pin_timestamp: Optional[datetime] = None
 
@@ -113,7 +113,7 @@ class RawDMChannel(Model):
             id=int(data['id']),
             type=data['type'],
 
-            recipients=tuple(User.from_data(d) for d in data['recipients']),
+            recipients=tuple(RawUser.from_data(d) for d in data['recipients']),
             last_message_id=_get_as_snowflake(data, 'last_message_id'),
             last_pin_timestamp=last_pin_timestamp,
         )
