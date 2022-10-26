@@ -19,7 +19,7 @@ __all__ = (
     'InteractionChannel',
     'RawDMChannel',
     'RawTextChannel',
-    'ThreadMember',
+    'RawThreadMember',
     'RawThread',
     'RawVoiceChannel',
     'RawCategory',
@@ -171,7 +171,7 @@ class RawTextChannel(PartialChannel):
 
 
 @attrs.define(eq=False, kw_only=True)
-class ThreadMember:
+class RawThreadMember:
     id: Optional[Snowflake]
     user_id: Optional[Snowflake]
     joined_at: datetime
@@ -205,7 +205,7 @@ class RawThread(PartialChannel):
     slowmode_delay: int
 
     invitable: bool = True
-    thread_member: Optional[ThreadMember] = None
+    thread_member: Optional[RawThreadMember] = None
 
     last_message_id: Optional[Snowflake] = None
     last_pin_timestamp: Optional[datetime] = None
@@ -216,7 +216,7 @@ class RawThread(PartialChannel):
 
         thread_member = data.get('thread_member')
         if thread_member is not None:
-            thread_member = ThreadMember.from_data(thread_member)
+            thread_member = RawThreadMember.from_data(thread_member)
 
         last_pin_timestamp = data.get('last_pin_timestamp')
         if last_pin_timestamp is not None:
