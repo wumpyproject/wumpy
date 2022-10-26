@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, SupportsInt, Union
 
 import attrs
 from discord_typings import (
@@ -6,7 +6,7 @@ from discord_typings import (
 )
 from typing_extensions import Self
 
-from .._utils import Model, Snowflake
+from .._utils import Model, Snowflake, _get_as_snowflake
 from ._permissions import Permissions
 
 __all__ = (
@@ -58,6 +58,7 @@ class RawRole(Model):
         color: The color of the role as an integer.
         position: The position of the role in the role list.
         permissions: The permissions that having this role gives.
+        guild_id: Guild the role belongs to, if it was passed.
         hoist: Whether this role is pinned in the user list.
         managed: Whether this role is managed by an integration or bot.
         mentionable: Whether this role can be mentioned by anyone.
@@ -71,6 +72,8 @@ class RawRole(Model):
     color: int
     position: int
     permissions: Permissions = Permissions(0)
+
+    guild_id: Optional[Snowflake] = None
 
     hoist: bool = False
     managed: bool = False
@@ -89,8 +92,15 @@ class RawRole(Model):
     @classmethod
     def from_data(
             cls,
-            data: Union[RoleData, GuildRoleCreateData, GuildRoleUpdateData]
+            data: Union[RoleData, GuildRoleCreateData, GuildRoleUpdateData],
+            *,
+            guild_id: Optional[SupportsInt] = None,
     ) -> Self:
+        if guild_id is not None:
+            guild_id = Snowflake(guild_id)
+        else:
+            guild_id = _get_as_snowflake(data, 'guild_id')
+
         if 'role' in data:
             data = data['role']
 
