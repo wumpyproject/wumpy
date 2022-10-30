@@ -4,6 +4,8 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 import attrs
 from typing_extensions import Literal, Self
 
+from .._utils import get_api
+
 __all__ = (
     'Asset',
 )
@@ -53,3 +55,7 @@ class Asset:
             path = f'{destination}.{fmt}'
 
         return self.__class__(f'{url.scheme}://{url.netloc}{path}?{query}')
+
+    async def read(self) -> bytes:
+        """Read the asset's content and return it as bytes."""
+        return await get_api().read_asset(self.url)

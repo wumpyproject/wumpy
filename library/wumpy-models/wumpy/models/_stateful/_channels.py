@@ -33,10 +33,92 @@ class DMChannel(RawDMChannel):
             last_pin_timestamp=last_pin_timestamp,
         )
 
+    async def trigger_typing(self) -> None:
+        """Trigger a typing indicator in the channel.
+
+        In general, this endpoint should **not** be used by bots. Only if
+        something may take a few seconds should this be used to let the user
+        know that it is being processed.
+        """
+        await get_api().trigger_typing(self.id)
+
+    async def pin_message(self, message: SupportsInt, *, reason: str = MISSING) -> None:
+        """Pin a specific message in the channel.
+
+        This method requires the `MANAGE_MESSAGES` permission. The maximum
+        amount of pinned messages is 50.
+
+        Parameters:
+            message: The message or ID to pin.
+            reason: The audit log reason for pinning the message.
+        """
+        await get_api().pin_message(self.id, message, reason=reason)
+
+
+    async def unpin_message(self, message: SupportsInt, *, reason: str = MISSING) -> None:
+        """Unpin a specific message in the channel.
+
+        Similar to `pin_message()`; this requires the `MANAGE_MESSAGES`
+        permission.
+
+        Parameters:
+            message: The message or ID to pin.
+            reason: The audit log reason for pinning the message.
+        """
+        await get_api().unpin_message(self.id, message, reason=reason)
+
 
 @attrs.define(eq=False)
 class TextChannel(RawTextChannel):
     ...
+
+    async def trigger_typing(self) -> None:
+        """Trigger a typing indicator in the channel.
+
+        In general, this endpoint should **not** be used by bots. Only if
+        something may take a few seconds should this be used to let the user
+        know that it is being processed.
+        """
+        await get_api().trigger_typing(self.id)
+
+    async def follow(self, target: SupportsInt) -> Snowflake:
+        """Follow the channel.
+
+        Returns:
+            The ID of the webhook created.
+        """
+        data = await get_api().follow_channel(self.id, target)
+        return Snowflake(data['webhook_id'])
+
+    async def crosspost_message(self, message: SupportsInt) -> '_message.Message':
+        """Crosspost a message in the current channel.
+
+        Parameters:
+            message: The message to crosspost to following channels.
+
+        Returns:
+            The same message which was crossposted.
+        """
+        data = await get_api().crosspost_message(self.id, message)
+        return _message.Message.from_data(data)
+
+    async def start_thread(
+            self,
+            *,
+            name: str,
+            message: SupportsInt = MISSING,
+            archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
+            slowmode_delay: int = MISSING,
+            type: int = MISSING,
+            invitable: bool = MISSING,
+            reason: str = MISSING
+    ) -> 'Thread':
+        data = await get_api().start_thread(
+            self.id, message, name=name, archive_duration=archive_duration,
+            rate_limit=slowmode_delay, type=type, invitable=invitable,
+            reason=reason,
+        )
+        return Thread.from_data(data)
 
 
 @attrs.define(eq=False)
@@ -83,10 +165,42 @@ class Thread(RawThread):
             last_pin_timestamp=last_pin_timestamp,
         )
 
+    async def trigger_typing(self) -> None:
+        """Trigger a typing indicator in the channel.
+
+        In general, this endpoint should **not** be used by bots. Only if
+        something may take a few seconds should this be used to let the user
+        know that it is being processed.
+        """
+        await get_api().trigger_typing(self.id)
+
+    async def join(self) -> None:
+        """Join the thread.
+
+        The thread must not be archived or deleted to use this method.
+        """
+        await get_api().join_thread(self.id)
+
+    async def leave(self) -> None:
+        """Leave the joined thread.
+
+        The thread must not be archived or deleted to use this method.
+        """
+        await get_api().leave_thread(self.id)
+
 
 @attrs.define(eq=False)
 class VoiceChannel(RawVoiceChannel):
     ...
+
+    async def trigger_typing(self) -> None:
+        """Trigger a typing indicator in the channel.
+
+        In general, this endpoint should **not** be used by bots. Only if
+        something may take a few seconds should this be used to let the user
+        know that it is being processed.
+        """
+        await get_api().trigger_typing(self.id)
 
 
 @attrs.define(eq=False)

@@ -40,3 +40,18 @@ class Invite(RawInvite):
             inviter=inviter,
             channel=channel
         )
+
+    async def delete(self, *, reason: str = MISSING) -> Self:
+        """Delete the invite.
+
+        This method requires the `MANAGE_CHANNELS` permission on the channel
+        that the invite belongs to, or `MANAGE_GUILD` on the guild.
+
+        Parameters:
+            reason: Audit log reason for deleting the invite.
+
+        Returns:
+            The most recent data of the now deleted invite.
+        """
+        data = await get_api().delete_invite(self.code, reason=reason)
+        return self.__class__.from_data(data)
