@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Mapping, NoReturn, Optional, SupportsInt, Union
+from typing import (
+    TYPE_CHECKING, Any, Mapping, NoReturn, Optional, SupportsInt, Union
+)
 
 import attrs
 from typing_extensions import Self
@@ -142,7 +144,7 @@ def _get_as_snowflake(data: Optional[Mapping[str, Any]], key: str) -> Optional[S
     return Snowflake(int(value)) if value is not None else None
 
 try:
-    from wumpy.rest import get_api, MISSING
+    from wumpy.rest import MISSING, get_api
 except ImportError:
     if not TYPE_CHECKING:
         def get_api(subclass: Optional[type] = None, *, verify: bool = False) -> NoReturn:
