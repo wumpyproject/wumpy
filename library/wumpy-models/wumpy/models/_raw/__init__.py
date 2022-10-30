@@ -59,7 +59,7 @@ from ._interactions import (
     RawAutocompleteInteraction,
     RawCommandInteraction,
     RawComponentInteraction,
-    RawSelectInteractionValue,
+    SelectInteractionValue,
 )
 from ._invite import (
     RawInvite,
@@ -70,7 +70,7 @@ from ._member import (
 )
 from ._message import (
     AllowedMentions,
-    Attachment,
+    RawAttachment,
     RawMessageMentions,
     MessageType,
     RawMessage,
@@ -142,12 +142,12 @@ __all__ = (
     'RawAutocompleteInteraction',
     'RawCommandInteraction',
     'RawComponentInteraction',
-    'RawSelectInteractionValue',
+    'SelectInteractionValue',
     'RawInvite',
     'RawMember',
     'RawInteractionMember',
     'AllowedMentions',
-    'Attachment',
+    'RawAttachment',
     'RawMessageMentions',
     'MessageType',
     'RawMessage',

@@ -6,7 +6,7 @@ from discord_typings import (
     AllowedMentionsData, AttachmentData, MessageCreateData, MessageData,
     MessageUpdateData
 )
-from typing_extensions import Self
+from typing_extensions import Literal, Self
 
 from .._utils import Model, Snowflake, _get_as_snowflake
 from ._channels import ChannelMention
@@ -17,9 +17,8 @@ from ._user import RawUser
 
 __all__ = (
     'AllowedMentions',
-    'Attachment',
+    'RawAttachment',
     'RawMessageMentions',
-    'MessageType',
     'RawMessage',
 )
 
@@ -182,7 +181,7 @@ class AllowedMentions:
 
 
 @attrs.define(eq=False, kw_only=True)
-class Attachment(Model):
+class RawAttachment(Model):
     filename: str
 
     size: int
@@ -270,7 +269,11 @@ class MessageType(Enum):
 
 @attrs.define(eq=False, kw_only=True)
 class RawMessage(Model):
-    type: MessageType
+    type: Literal[
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 14, 15, 16, 17, 18, 19, 20,
+        21, 22, 23,
+    ]
 
     author: Union[RawUser, RawMember]
 
@@ -279,7 +282,7 @@ class RawMessage(Model):
 
     content: str = ''
     tts: bool = False
-    attachments: Tuple[Attachment, ...] = ()
+    attachments: Tuple[RawAttachment, ...] = ()
     embeds: Tuple[Embed, ...] = ()
     reactions: Tuple[RawMessageReaction, ...] = ()
     mentions: RawMessageMentions = RawMessageMentions()
@@ -298,7 +301,7 @@ class RawMessage(Model):
 
         return cls(
             id=int(data['id']),
-            type=MessageType(data['type']),
+            type=data['type'],
             author=author,
 
             channel_id=Snowflake(int(data['channel_id'])),
@@ -306,7 +309,7 @@ class RawMessage(Model):
 
             content=data['content'],
             tts=data['tts'],
-            attachments=tuple(Attachment.from_data(a) for a in data['attachments']),
+            attachments=tuple(RawAttachment.from_data(a) for a in data['attachments']),
             embeds=tuple(Embed.from_data(e) for e in data['embeds']),
             reactions=tuple(RawMessageReaction.from_data(r) for r in data.get('reactions', [])),
             mentions=RawMessageMentions.from_message(data),

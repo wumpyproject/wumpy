@@ -69,17 +69,6 @@ class RawIntegrationApplication(Model):
     user: Optional[RawUser] = None
 
     @classmethod
-    def from_user(cls, user: RawUser, data: IntegrationApplicationData) -> Self:
-        return cls(
-            id=int(data['id']),
-            name=data['name'],
-            icon=data.get('icon'),
-            description=data['description'],
-            summary=data['summary'],
-            user=user
-        )
-
-    @classmethod
     def from_data(cls, data: IntegrationApplicationData) -> Self:
         user = data.get('bot')
         if user is not None:

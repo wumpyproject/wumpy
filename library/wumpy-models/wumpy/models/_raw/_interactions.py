@@ -28,7 +28,7 @@ __all__ = (
     'RawAutocompleteInteraction',
     'RawCommandInteraction',
     'RawComponentInteraction',
-    'RawSelectInteractionValue',
+    'SelectInteractionValue',
 )
 
 
@@ -137,7 +137,7 @@ class CommandInteractionOption:
 
 
 @attrs.define(frozen=True)
-class RawSelectInteractionValue:
+class SelectInteractionValue:
     """One of the values for a select option."""
 
     label: str
@@ -284,7 +284,7 @@ class RawComponentInteraction(RawInteraction):
     custom_id: str
     component_type: ComponentType
 
-    values: List[RawSelectInteractionValue]
+    values: List[SelectInteractionValue]
 
     @classmethod
     def from_data(cls, data: ComponentInteractionData) -> Self:
@@ -325,7 +325,7 @@ class RawComponentInteraction(RawInteraction):
             component_type=ComponentType(data['data']['component_type']),
 
             values=[
-                RawSelectInteractionValue.from_data(value)
+                SelectInteractionValue.from_data(value)
                 for value in data['data'].get('values', [])
             ]
         )
