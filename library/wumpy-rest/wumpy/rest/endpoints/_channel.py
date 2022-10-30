@@ -6,7 +6,7 @@ from discord_typings import (
     AllowedMentionsData, ChannelData, ComponentData, EmbedData,
     FollowedChannelData, InviteData, ListThreadsData, MessageData,
     MessageReferenceData, PartialAttachmentData, PermissionOverwriteData,
-    ThreadMemberData, UserData, WebhookData
+    ThreadChannelData, ThreadMemberData, UserData, WebhookData
 )
 from typing_extensions import Literal
 
@@ -914,33 +914,6 @@ class ChannelEndpoints(Requester):
             reason=reason
         )
 
-    @overload
-    async def start_thread(
-        self,
-        channel: SupportsInt,
-        message: SupportsInt,
-        *,
-        name: str,
-        archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
-        rate_limit: int = MISSING,
-        reason: str = MISSING
-    ) -> ChannelData:
-        ...
-
-    @overload
-    async def start_thread(
-        self,
-        channel: SupportsInt,
-        *,
-        name: str,
-        archive_duration: Literal[60, 1440, 4320, 10080] = MISSING,
-        rate_limit: int = MISSING,
-        type: int,
-        invitable: bool = MISSING,
-        reason: str = MISSING
-    ) -> ChannelData:
-        ...
-
     async def start_thread(
         self,
         channel: SupportsInt,
@@ -952,7 +925,7 @@ class ChannelEndpoints(Requester):
         type: int = MISSING,
         invitable: bool = MISSING,
         reason: str = MISSING
-    ) -> ChannelData:
+    ) -> ThreadChannelData:
         """Start a new thread in a channel.
 
         Depending on whether `message` is passed the thread will be started
