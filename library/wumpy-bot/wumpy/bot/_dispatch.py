@@ -13,7 +13,7 @@ import anyio.abc
 import anyio.lowlevel
 import attrs
 from typing_extensions import Self, TypeAlias
-from wumpy.interactions import ErrorContext, ErrorHandlerMixin
+from ._errors import ErrorContext, ErrorHandlerMixin
 
 from ._utils import _eval_annotations
 

@@ -9,8 +9,6 @@ from ._compat import (
     SanicRequest,
 )
 from ._errors import (
-    ErrorContext,
-    ErrorHandlerMixin,
     CommandSetupError,
 )
 from ._middleware import (
@@ -60,8 +58,6 @@ __all__ = (
     'Request',
     'ASGIRequest',
     'SanicRequest',
-    'ErrorContext',
-    'ErrorHandlerMixin',
     'CommandSetupError',
     'ASGIMiddleware',
     'SanicMiddleware',

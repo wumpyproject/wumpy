@@ -3,7 +3,6 @@ from typing import Any, Callable, Coroutine, List, Tuple, Union
 
 import anyio
 
-from .._errors import ErrorContext, ErrorHandlerMixin
 from .._models import ComponentInteraction
 
 __all__ = (
@@ -17,7 +16,7 @@ ComponentCallback = Callable[
 ]
 
 
-class ComponentHandler(ErrorHandlerMixin):
+class ComponentHandler:
     """Handler for components, dispatching waiting components.
 
     This is a mixin class keeping track of handlers for components setup.
@@ -30,26 +29,12 @@ class ComponentHandler(ErrorHandlerMixin):
 
         self._regex_components = []
 
-    async def _wrap_regex_callback(
-            self,
-            callback: ComponentCallback,
-            interaction: ComponentInteraction,
-            match: 're.Match[str]'
-    ) -> None:
-        try:
-            await callback(interaction, match)
-        except Exception as exc:
-            await self.handle_error(ErrorContext(
-                exc, False, callback=callback,
-                interaction=interaction, component_match=match
-            ))
-
     async def invoke_component(self, interaction: ComponentInteraction) -> None:
-        async with anyio.create_task_group() as tg:
-            for pattern, callback in self._regex_components:
-                match = pattern.match(interaction.custom_id)
-                if match:
-                    tg.start_soon(self._wrap_regex_callback, callback, interaction, match)
+        for pattern, callback in self._regex_components:
+            match = pattern.match(interaction.custom_id)
+            if match:
+                await callback(interaction, match)
+                return
 
     def add_component(self, pattern: 're.Pattern[str]', func: ComponentCallback) -> None:
         """Add a callback to be dispatched when the pattern is matched.

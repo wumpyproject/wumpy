@@ -2,7 +2,6 @@ from typing import Any, Callable, Dict, Optional, TypeVar, Union, overload
 
 from typing_extensions import Literal, ParamSpec
 
-from .._errors import ErrorContext, ErrorHandlerMixin
 from .._models import CommandInteraction
 from ._base import Callback
 from ._context import MessageCommand, UserCommand
@@ -159,7 +158,7 @@ def command(
     return decorator
 
 
-class CommandRegistrar(ErrorHandlerMixin):
+class CommandRegistrar:
     """Root registrar of command handlers."""
 
     _commands: Dict[str, 'CommandUnion[..., object]']
@@ -183,18 +182,7 @@ class CommandRegistrar(ErrorHandlerMixin):
         if command is None:
             return
 
-        try:
-            await command.invoke(interaction, interaction.options)
-        except Exception as exc:
-            ctx = {
-                'interaction': interaction,
-                'command': command,
-            }
-
-            if not isinstance(command, SubcommandGroup):
-                ctx['callback'] = command.callback
-
-            await self.handle_error(ErrorContext(exc, False, **ctx))
+        await command.invoke(interaction, interaction.options)
 
     def add_command(self, command: 'CommandUnion[..., object]') -> None:
         """Register a command to be added to the internal dictionary.

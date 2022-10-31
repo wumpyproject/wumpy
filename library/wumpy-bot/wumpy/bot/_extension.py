@@ -5,11 +5,11 @@ from types import ModuleType
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 from wumpy.interactions import (
-    CommandRegistrar, ComponentHandler, ErrorHandlerMixin, SubcommandGroup
+    CommandRegistrar, ComponentHandler, SubcommandGroup
 )
 
 from ._dispatch import EventDispatcher
-from ._errors import ExtensionFailure
+from ._errors import ExtensionFailure, ErrorHandlerMixin
 
 __all__ = (
     'Extension',
