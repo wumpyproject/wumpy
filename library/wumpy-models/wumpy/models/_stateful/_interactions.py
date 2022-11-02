@@ -18,6 +18,14 @@ from .._raw import (
 from .._utils import Snowflake, _get_as_snowflake
 from . import _member, _message, _role, _user
 
+__all__ = (
+    'ResolvedInteractionData',
+    'Interaction',
+    'AutocompleteInteraction',
+    'CommandInteraction',
+    'ComponentInteraction',
+)
+
 
 def _proxy_field():
     """Helper to create a mapping proxy field.

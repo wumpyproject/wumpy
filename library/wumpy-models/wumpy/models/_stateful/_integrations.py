@@ -14,6 +14,12 @@ from .._raw import (
 from .._utils import Model, Snowflake, _get_as_snowflake
 from . import _user
 
+__all__ = (
+    'IntegrationApplication',
+    'BotIntegration',
+    'StreamIntegration',
+)
+
 
 @attrs.define(eq=False, kw_only=True)
 class IntegrationApplication(RawIntegrationApplication):

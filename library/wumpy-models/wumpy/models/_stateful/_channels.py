@@ -13,6 +13,14 @@ from .._raw import (
 from .._utils import MISSING, Snowflake, _get_as_snowflake, get_api
 from . import _message, _user  # Circular imports
 
+__all__ = (
+    'DMChannel',
+    'TextChannel',
+    'ThreadMember',
+    'Thread',
+    'VoiceChannel',
+    'Category',
+)
 
 @attrs.define(eq=False)
 class DMChannel(RawDMChannel):

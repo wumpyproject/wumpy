@@ -9,7 +9,7 @@ from . import _channels  # Potential circular imports
 
 __all__ = (
     'User',
-    'RawBotUser',
+    'BotUser',
 )
 
 

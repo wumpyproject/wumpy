@@ -8,6 +8,11 @@ from .._raw import RawSticker, RawStickerItem, StickerFormatType, StickerType
 from .._utils import _get_as_snowflake
 from . import _user
 
+__all__ = (
+    'StickerItem',
+    'Sticker',
+)
+
 
 @attrs.define(eq=False, kw_only=True)
 class StickerItem(RawStickerItem):
