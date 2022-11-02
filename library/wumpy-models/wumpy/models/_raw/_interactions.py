@@ -4,7 +4,7 @@ from typing import Any, List, Optional, Union
 
 import attrs
 from discord_typings import (
-    ApplicationCommandInteractionData, ApplicationCommandOptionInteractionData,
+    ApplicationCommandInteractionData, ApplicationCommandOptionInteractionData, AutocompleteInteractionData,
     ComponentInteractionData, ResolvedInteractionDataData, SelectMenuOptionData
 )
 from typing_extensions import Self
@@ -189,7 +189,7 @@ class RawAutocompleteInteraction(RawInteraction):
     options: List[CommandInteractionOption]
 
     @classmethod
-    def from_data(cls, data: ApplicationCommandInteractionData) -> Self:
+    def from_data(cls, data: AutocompleteInteractionData) -> Self:
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
