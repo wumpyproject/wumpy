@@ -1,3 +1,4 @@
+import dataclasses
 import inspect
 from enum import Enum
 from typing import (
@@ -32,32 +33,6 @@ class CommandType(Enum):
     message = 3
 
 
-class OptionType:
-    """Base class for all option types.
-
-    Instances of this class hold no special behaviour and the value is just
-    passed through.
-
-    Attributes:
-        enum: The ApplicationCommandOption value of this type.
-    """
-
-    enum: ApplicationCommandOption
-
-    __slots__ = ('enum',)
-
-    def __init__(self, enum: ApplicationCommandOption) -> None:
-        self.enum = enum
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, ApplicationCommandOption):
-            return self.enum == other
-        elif isinstance(other, self.__class__):
-            return self.enum == other.enum
-
-        return False
-
-
 class MemberUserUnion(OptionType):
     """Option type marker for Union[InteractionUser, InteractionMember].
 
@@ -66,22 +41,6 @@ class MemberUserUnion(OptionType):
     """
 
     enum = ApplicationCommandOption.user
-
-    __slots__ = ()
-
-    def __init__(self) -> None:
-        return
-
-
-class FloatType(OptionType):
-    """Strict float type.
-
-    This is because Discord's equivalent `number` type includes both integers
-    and floats, which can cause unexpected user behaviour when just `float` is
-    used.
-    """
-
-    enum = ApplicationCommandOption.number
 
     __slots__ = ()
 
@@ -609,3 +568,8 @@ class OptionClass:
             data['max_value'] = self.max
 
         return data
+
+
+@dataclasses.dataclass()
+class FinalizedOption:
+    

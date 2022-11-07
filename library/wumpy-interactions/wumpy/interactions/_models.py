@@ -2,7 +2,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Sequence, Tuple, Union,
 
 import attrs
 from discord_typings import (
-    ApplicationCommandInteractionData, ComponentInteractionData
+    ApplicationCommandInteractionData, ComponentInteractionData, AutocompleteInteractionData
 )
 from typing_extensions import Self
 from wumpy.models import (
@@ -15,8 +15,6 @@ from wumpy.models import (
     User, component_data, embed_data
 )
 from wumpy.rest import MISSING
-
-from ._compat import Request
 
 __all__ = (
     'AutocompleteInteraction',
