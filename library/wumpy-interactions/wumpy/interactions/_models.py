@@ -1,22 +1,20 @@
-import dataclasses
-from typing import Dict, List, Sequence, Tuple, Union
+from typing import Any, Awaitable, Callable, Dict, List, Sequence, Tuple, Union, IO
 
+import attrs
 from discord_typings import (
-    ApplicationCommandInteractionData, ComponentInteractionData
+    ApplicationCommandInteractionData, ComponentInteractionData, AutocompleteInteractionData
 )
 from typing_extensions import Self
 from wumpy.models import (
     ActionRow, AllowedMentions, ApplicationCommandOption,
-    AutocompleteInteraction as AutocompleteInteractionModel,
-    CommandInteraction as CommandInteractionModel, CommandInteractionOption,
-    ComponentInteraction as ComponentInteractionModel, ComponentType, Embed,
-    Interaction as InteractionModel, InteractionType, Member, Message,
+    AutocompleteInteraction as _AutocompleteInteraction,
+    CommandInteraction as _CommandInteraction, CommandInteractionOption,
+    ComponentInteraction as _ComponentInteraction, ComponentType, Embed,
+    Interaction as _Interaction, InteractionType, Member, Message,
     Permissions, ResolvedInteractionData, SelectInteractionValue, Snowflake,
     User, component_data, embed_data
 )
 from wumpy.rest import MISSING
-
-from ._compat import Request
 
 __all__ = (
     'AutocompleteInteraction',
@@ -25,41 +23,12 @@ __all__ = (
     'ComponentInteraction',
 )
 
-# This is a subclass of the wumpy.models representations for interactions that
-# use the Request classes to make the responses.
+ResponseCallback = Callable[[Dict[str, Any], List[Union[IO[bytes], bytes]]], Awaitable[object]]
 
 
-@dataclasses.dataclass(frozen=True, eq=False)
-class AutocompleteInteraction(AutocompleteInteractionModel):
-    _request: Request
-
-    async def autocomplete(
-            self,
-            choices: Union[List[str], Dict[str, str], List[Tuple[str, str]]]
-    ) -> None:
-        if isinstance(choices, dict):
-            response = [{'name': k, 'value': v} for k, v in choices.items()]
-        elif isinstance(choices, list):
-            if choices:
-                # Assumes a homogenous list in this case
-                if isinstance(choices, tuple):
-                    response = [{'name': t[0], 'value': t[1]} for t in choices]
-                else:
-                    response = [{'name': item, 'value': item} for item in choices]
-            else:
-                response = []
-        else:
-            raise TypeError(f"Invalid type {type(choices)!r} for parameter 'choices'")
-
-        await self._request.respond({
-            'type': 8,
-            'data': {'choices': response}
-        })
-
-
-@dataclasses.dataclass(frozen=True, eq=False)
-class Interaction(InteractionModel):
-    _request: Request
+@attrs.define(eq=False, kw_only=True)
+class Interaction(_Interaction):
+    _respond: ResponseCallback
 
     async def respond(
         self,
@@ -88,20 +57,76 @@ class Interaction(InteractionModel):
         if ephemeral is True:
             data['flags'] = 1 << 6
 
-        await self._request.respond({
+        await self._respond({
             'type': 4,
             'data': {k: v for k, v in data.items() if v is not MISSING}
-        })
+        }, [])
 
     async def defer(self) -> None:
-        await self._request.respond({'type': 5})
+        await self._respond({'type': 5}, [])
 
 
-@dataclasses.dataclass(frozen=True, eq=False)
-class CommandInteraction(CommandInteractionModel, Interaction):
+@attrs.define(eq=False)
+class AutocompleteInteraction(_AutocompleteInteraction, Interaction):
+
+    async def autocomplete(
+            self,
+            choices: Union[List[str], Dict[str, str], List[Tuple[str, str]]]
+    ) -> None:
+        if isinstance(choices, dict):
+            response = [{'name': k, 'value': v} for k, v in choices.items()]
+        elif isinstance(choices, list):
+            if choices:
+                # Assumes a homogenous list in this case
+                if isinstance(choices, tuple):
+                    response = [{'name': t[0], 'value': t[1]} for t in choices]
+                else:
+                    response = [{'name': item, 'value': item} for item in choices]
+            else:
+                response = []
+        else:
+            raise TypeError(f"Invalid type {type(choices)!r} for parameter 'choices'")
+
+        await self._respond({'type': 8, 'data': {'choices': response}}, [])
 
     @classmethod
-    def from_data(cls, data: ApplicationCommandInteractionData, request: Request) -> Self:
+    def from_data(cls, data: AutocompleteInteractionData, response: ResponseCallback) -> Self:
+        channel_id = data.get('channel_id')
+        if channel_id is not None:
+            channel_id = Snowflake(int(channel_id))
+
+        guild_id = data.get('guild_id')
+        if guild_id is not None:
+            guild_id = Snowflake(int(guild_id))
+
+        return cls(
+            id=int(data['id']),
+            application_id=Snowflake(int(data['application_id'])),
+            type=InteractionType(data['type']),
+            token=data['token'],
+            version=data['version'],
+
+            guild_id=guild_id,
+            channel_id=channel_id,
+
+            name=data['data']['name'],
+            invoked=Snowflake(int(data['data']['id'])),
+            invoked_type=ApplicationCommandOption(data['data']['type']),
+
+            options=[
+                CommandInteractionOption.from_data(option)
+                for option in data['data'].get('options', [])
+            ],
+
+            _respond=response,
+        )
+
+
+@attrs.define(eq=False)
+class CommandInteraction(_CommandInteraction, Interaction):
+
+    @classmethod
+    def from_data(cls, data: ApplicationCommandInteractionData, response: ResponseCallback) -> Self:
         target_id = data['data'].get('target_id')
         if target_id is not None:
             target_id = int(target_id)
@@ -157,15 +182,15 @@ class CommandInteraction(CommandInteractionModel, Interaction):
                 for option in data['data'].get('options', [])
             ],
 
-            _request=request
+            _respond=response
         )
 
 
-@dataclasses.dataclass(frozen=True, eq=False)
-class ComponentInteraction(ComponentInteractionModel, Interaction):
+@attrs.define(eq=False)
+class ComponentInteraction(_ComponentInteraction, Interaction):
 
     @classmethod
-    def from_data(cls, data: ComponentInteractionData, request: Request) -> Self:
+    def from_data(cls, data: ComponentInteractionData, response: ResponseCallback) -> Self:
         user = data.get('user')
 
         if 'member' in data:
@@ -215,11 +240,11 @@ class ComponentInteraction(ComponentInteractionModel, Interaction):
                 for value in data['data'].get('values', [])
             ],
 
-            _request=request
+            _respond=response
         )
 
     async def defer_update(self) -> None:
-        await self._request.respond({'type': 6})
+        await self._respond({'type': 6}, [])
 
     async def update(
         self,
@@ -248,7 +273,7 @@ class ComponentInteraction(ComponentInteractionModel, Interaction):
         if ephemeral is True:
             data['flags'] = 1 << 6
 
-        await self._request.respond({
+        await self._respond({
             'type': 7,
             'data': {k: v for k, v in data.items() if v is not MISSING}
-        })
+        }, [])

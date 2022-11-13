@@ -1,24 +1,26 @@
 import json
 import traceback
+import re
 from contextlib import AsyncExitStack
 from contextvars import ContextVar
+from types import TracebackType
 from typing import (
     Any, AsyncContextManager, Awaitable, Callable, Dict, Optional, Tuple, Type,
-    TypeVar, cast, overload
+    TypeVar, cast, overload, Union, Literal
 )
 
 from discord_typings import InteractionData
 from typing_extensions import Self
+from nacl.exceptions import BadSignatureError
+from nacl.signing import VerifyKey
 from wumpy.rest import HTTPXRequester
 from wumpy.rest.endpoints import (
     ApplicationCommandEndpoints, InteractionEndpoints
 )
 
-from ._compat import ASGIRequest, Request
-from ._models import CommandInteraction, ComponentInteraction
-from ._utils import DiscordRequestVerifier, State
-from .commands import CommandRegistrar, command_payload
-from .components import ComponentHandler
+from ._models import CommandInteraction, ComponentInteraction, ResponseCallback
+from .commands import command_payload, CommandRegistrar, SubcommandGroup, CommandUnion, Command
+from .components import ComponentHandler, ComponentCallback
 
 __all__ = (
     'InteractionAppRequester',
@@ -41,202 +43,76 @@ class InteractionAppRequester(ApplicationCommandEndpoints, InteractionEndpoints,
     __slots__ = ()
 
 
-class InteractionApp(CommandRegistrar, ComponentHandler):
-    """Simple interaction application implementing the ASGI protocol.
-
-    This is a very bare implementation of the ASGI protocol that only does
-    what's absolutely necessary for the Discord API.
-    """
+class InteractionApp:
+    """Interaction app for receiving interactions through webhooks."""
 
     api: InteractionAppRequester
+    _verifier: VerifyKey
 
-    register_commands: bool
-    application_id: int
-    path: str
-
-    state: State
-
+    application_id: Optional[int]
     _token: Optional[str]
-    _verification: DiscordRequestVerifier
-    _user_lifespan: Optional[Callable[[Self], AsyncContextManager[object]]]
 
-    _stack: AsyncExitStack
+    commands: CommandRegistrar
+    components: ComponentHandler
 
     __slots__ = (
-        'api', 'register_commands', 'application_id', 'path', 'state',
-        '_token', '_verification', '_user_lifespan', '_stack'
+        'api', 'register_commands', 'application_id', '_verifier', '_token',
     )
 
     def __init__(
-        self,
-        application_id: int,
-        public_key: str,
-        *,
-        path: str = '/',
-        lifespan: Optional[Callable[[Self], AsyncContextManager[object]]] = None,
-        token: Optional[str] = None,
-        register_commands: bool = True,
+            self,
+            public_key: str,
+            *,
+            application_id: Optional[int] = None,
+            token: Optional[str] = None,
     ) -> None:
         super().__init__()
 
-        self.api = InteractionAppRequester(
-            headers={'Authorization': f'Bot {token}'}
-        )
+        self.api = InteractionAppRequester(token)
+        self._verifier = VerifyKey(bytes.fromhex(public_key))
 
-        self._verification = DiscordRequestVerifier(public_key)
-        self._stack = AsyncExitStack()
+        self.application_id = application_id
         self._token = token
 
-        self._user_lifespan = lifespan
-        self.application_id = application_id
-        self.register_commands = register_commands
-        self.path = path
+    async def __aenter__(self) -> Self:
+        await self.api.__aenter__()
+        return self
 
-    async def _verify_request_target(
+    async def __aexit__(
         self,
-        scope: Dict[str, Any],
-        send: Callable[[Dict[str, Any]], Awaitable[None]],
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> Optional[bool]:
+        return await self.api.__aexit__(exc_type, exc_val, exc_tb)
+
+    def authenticate_request(
+            self,
+            signature: str,
+            timestamp: Union[bytes, bytearray],
+            body: Union[bytes, bytearray],
     ) -> bool:
-        """Verify that the request was made to the correct endpoint.
+        """Authenticate the origin of a request for interactions.
 
-        This method will respond to the request with an appropriate response
-        if the request was made to the wrong endpoint.
-
-        Returns:
-            A boolean indicating whether the request was responded to. If it
-            is `True` then the request has received a response and you should
-            return immediately.
-        """
-        if scope['type'] != 'http':
-            await send({
-                'type': 'http.response.start', 'status': 501,
-                'headers': [(b'content-type', b'text/plain')]
-            })
-            await send({'type': 'http.response.body', 'body': b'Not Implemented'})
-            return True
-
-        if scope['path'] != self.path:
-            await send({
-                'type': 'http.response.start', 'status': 404,
-                'headers': [(b'content-type', b'text/plain')]
-            })
-            await send({'type': 'http.response.body', 'body': b'Not Found'})
-            return True
-
-        elif scope['method'] != 'POST':
-            await send({
-                'type': 'http.response.start', 'status': 405,
-                'headers': [(b'content-type', b'text/plain')]
-            })
-            await send({'type': 'http.response.body', 'body': b'Method Not Allowed'})
-            return True
-
-        return False
-
-    async def _authenticate_request(
-        self,
-        scope: Dict[str, Any],
-        receive: Callable[[], Awaitable[Dict[str, Any]]]
-    ) -> Tuple[bool, Optional[bytes]]:
-        """Authenticate the request and verify that it came from Discord.
+        The purpose of separating this from `process_interaction()` is
+        because of the difference in parameters.
 
         Returns:
-            A boolean indicating whether the request could be authenticated.
-            The body for the request, if it was received. It is not safe to
-                assume that a body was received if the first item is `False`.
+            A bool indicating whether it is safe to continue. If this function
+            returns `False`, a 401 Unauthorized response code should be
+            retuned by the API.
         """
-        signature: Optional[bytes] = None
-        timestamp: Optional[bytes] = None
+        try:
+            self._verifier.verify(timestamp + body, signature=bytes.fromhex(signature))
+            return True
+        except BadSignatureError:
+            return False
 
-        for header, value in scope['headers']:
-            if header == b'content-type' and value != b'application/json':
-                # We can only handle application/json requests
-                return False, None
+    def parse_interaction(self, data: InteractionData, response: ResponseCallback) -> Interaction:
+        ...
 
-            if header == b'x-signature-timestamp':
-                timestamp = value
-            elif header == b'x-signature-ed25519':
-                signature = value
-
-        if signature is None or timestamp is None:
-            return False, None
-
-        body = bytearray()
-        # Initialize a fake request to make the while loop work
-        request: Dict[str, Any] = {'more_body': True}
-        while request['more_body']:
-            request = await receive()
-            body.extend(request['body'])
-
-        verified = self._verification.verify(signature.decode('utf-8'), timestamp, body)
-
-        return verified, body
-
-    async def _lifespan(
-        self,
-        scope: Dict[str, Any],
-        receive: Callable[[], Awaitable[Dict[str, Any]]],
-        send: Callable[[Dict[str, Any]], Awaitable[None]]
-    ) -> None:
-        event = await receive()
-        if event['type'] == 'lifespan.startup':
-            try:
-                await self._stack.enter_async_context(self.api)
-
-                if self.register_commands:
-                    await self.sync_commands()
-
-                if self._user_lifespan is not None:
-                    await self._stack.enter_async_context(self._user_lifespan(self))
-            except Exception as exc:
-                traceback.print_exception(type(exc), exc, exc.__traceback__)
-                await send({'type': 'lifespan.startup.failed'})
-                return
-
-            await send({'type': 'lifespan.startup.complete'})
-        else:
-            await self._stack.aclose()
-
-            await send({'type': 'lifespan.shutdown.complete'})
-
-    async def __call__(
-        self,
-        scope: Dict[str, Any],
-        receive: Callable[[], Awaitable[Dict[str, Any]]],
-        send: Callable[[Dict[str, Any]], Awaitable[None]]
-    ) -> None:
-        if scope['type'] == 'lifespan':
-            return await self._lifespan(scope, receive, send)
-
-        if await self._verify_request_target(scope, send):
-            return
-
-        verified, body = await self._authenticate_request(scope, receive)
-
-        # The latter is for static type checkers, even though there is no case
-        # were verified is True and body is None
-        if not verified or body is None:
-            await send({
-                'type': 'http.response.start', 'status': 401,
-                'headers': [(b'content-type', b'text/plain')]
-            })
-            await send({'type': 'http.response.body', 'body': b'Unauthorized'})
-            return
-
-        data = json.loads(body)
-
-        if data['type'] == 1:  # PING
-            await send({
-                'type': 'http.response.start', 'status': 200,
-                'headers': [(b'content-type', b'application/json')]
-            })
-            await send({'type': 'http.response.body', 'body': b'{"type": 1}'})
-            return
-
-        await self.handle_interaction(data, ASGIRequest(scope, receive, send))
-
-    async def handle_interaction(self, data: InteractionData, request: Request) -> None:
-        """Handle the interaction from the request by calling callbacks.
+    async def process_interaction(self, data: InteractionData, response: ResponseCallback) -> None:
+        """Process the interaction from the request by calling callbacks.
 
         This method returns once all callbacks have finished executing.
 
@@ -259,8 +135,7 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
             @bp.route('/interactions')
             async def interactions(request: Request):
-                await app,.
-                await app.handle_interaction(
+                await app.process_interaction(
                     request.json,
                     SanicRequest(request)
                 )
@@ -268,19 +143,156 @@ class InteractionApp(CommandRegistrar, ComponentHandler):
 
         Parameters:
             data: JSON serialized data received from the request.
-            request:
-                Class with a `respond()` method. There are two classes that
-                implement this - one for ASGI applications and one for Sanic
-                applications which are provided by the library.
+            response:
+                Response callback which will respond to the original request.
+                This can be a callable class or a closure which wraps the
+                original request since it is not kept around by the library.
         """
+        if data['type'] == 1:  # Ping
+            await response({'type': 1}, [])  # Pong
+
         if data['type'] == 2:
-            await self.invoke_command(
-                CommandInteraction.from_data(data, request)
+            await self.commands.invoke(
+                CommandInteraction.from_data(data, response)
             )
         elif data['type'] == 3:
-            await self.invoke_component(
-                ComponentInteraction.from_data(data, request),
+            await self.components.invoke(
+                ComponentInteraction.from_data(data, response),
             )
+
+    # Decorators for registering handlers
+
+    def group(
+        self,
+        name: str,
+        description: str
+    ) -> SubcommandGroup:
+        """Register and create a slash command group without a callback.
+
+        This is similar to `interactions.group()`, except that it automatically
+        registers the command at the same time.
+
+        Parameters:
+            name: The name of the command.
+            description: The description of the command.
+
+        Returns:
+            A registered subcommand group.
+        """
+        command = SubcommandGroup(name=name, description=description)
+        self.add_command(command)  # type: ignore
+        return command
+
+    @overload
+    def command(
+        self,
+        type: Callback[P, RT]
+    ) -> Command[P, RT]:
+        ...
+
+    @overload
+    def command(
+        self,
+        type: CommandType = CommandType.chat_input,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> Callable[[Callback[P, RT]], Command[P, RT]]:
+        ...
+
+    @overload
+    def command(
+        self,
+        type: Literal[CommandType.message],
+        *,
+        name: Optional[str] = None
+    ) -> Callable[[Callback[P, RT]], MessageCommand[P, RT]]:
+        ...
+
+    @overload
+    def command(
+        self,
+        type: Literal[CommandType.user],
+        *,
+        name: Optional[str] = None
+    ) -> Callable[[Callback[P, RT]], UserCommand[P, RT]]:
+        ...
+
+    def command(
+        self,
+        type: Union[CommandType, Callback[P, RT]] = CommandType.chat_input,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> Union[CommandUnion[P, RT], Callable[[Callback[P, RT]], CommandUnion[P, RT]]]:
+        """Register and create a new application command through a decorator.
+
+        This is similar to the `@interactions.command()` decorator, except that
+        it automatically registers the command at the same time.
+
+        Parameters:
+            type: The type of the command. Defaults to a slash command.
+            name: The name of the command.
+            description: The description of the command.
+
+        Returns:
+            A command or function that returns a command. Depending on whether
+            the decorator was used with or without parentheses.
+
+        Exceptions:
+            ValueError: The type wasn't a CommandType value
+        """
+        def decorator(func: Callback[P, RT]) -> CommandUnion[P, RT]:
+            if type is CommandType.chat_input:
+                command = Command(func, name=name, description=description)
+            elif type is CommandType.message:
+                command = MessageCommand(func, name=name)
+            elif type is CommandType.user:
+                command = UserCommand(func, name=name)
+            else:
+                raise ValueError("Unknown value of 'type':", type)
+
+            self.add_command(command)  # type: ignore
+            return command
+
+        if callable(type):
+            return decorator(type)
+
+        return decorator
+
+    def component(
+            self,
+            pattern: Union[str, 're.Pattern[str]']
+    ) -> Callable[[ComponentCallback], ComponentCallback]:
+        """Add a callback to be dispatched when the custom ID is matched.
+
+        Examples:
+
+            ```python
+            @app.component(r'upvote-(?P<message_id>)')
+            async def process_upvote(interaction: ComponentInteraction, match: re.Match):
+                message_id = match.group('message_id')
+                await interaction.reply(
+                    f'You upvoted message {message_id}',
+                    ephemeral=True
+                )
+            ```
+
+        Parameters:
+            pattern: The regex pattern to match custom IDs with.
+
+        Returns:
+            A decorator that adds the callback to the list of components.
+        """
+        def decorator(func: ComponentCallback) -> ComponentCallback:
+            nonlocal pattern
+
+            if isinstance(pattern, str):
+                pattern = re.compile(pattern)
+
+            self.components.add_component(pattern, func)
+            return func
+        return decorator
 
     async def sync_commands(self) -> None:
         """Synchronize the commands with Discord."""

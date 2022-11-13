@@ -163,12 +163,10 @@ class CommandRegistrar:
 
     _commands: Dict[str, 'CommandUnion[..., object]']
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
+    def __init__(self) -> None:
         self._commands = {}
 
-    async def invoke_command(self, interaction: CommandInteraction) -> None:
+    async def invoke(self, interaction: CommandInteraction) -> Optional[object]:
         """Handle the interaction and trigger appropriate callbacks.
 
         There is not much use of this method as a user unless this class
@@ -182,7 +180,7 @@ class CommandRegistrar:
         if command is None:
             return
 
-        await command.invoke(interaction, interaction.options)
+        return await command.invoke(interaction, interaction.options)
 
     def add_command(self, command: 'CommandUnion[..., object]') -> None:
         """Register a command to be added to the internal dictionary.
@@ -230,101 +228,3 @@ class CommandRegistrar:
             )
 
         del self._commands[command.name]
-
-    def group(
-        self,
-        name: str,
-        description: str
-    ) -> SubcommandGroup:
-        """Register and create a slash command group without a callback.
-
-        This is similar to `interactions.group()`, except that it automatically
-        registers the command at the same time.
-
-        Parameters:
-            name: The name of the command.
-            description: The description of the command.
-
-        Returns:
-            A registered subcommand group.
-        """
-        command = SubcommandGroup(name=name, description=description)
-        self.add_command(command)  # type: ignore
-        return command
-
-    @overload
-    def command(
-        self,
-        type: Callback[P, RT]
-    ) -> Command[P, RT]:
-        ...
-
-    @overload
-    def command(
-        self,
-        type: CommandType = CommandType.chat_input,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> Callable[[Callback[P, RT]], Command[P, RT]]:
-        ...
-
-    @overload
-    def command(
-        self,
-        type: Literal[CommandType.message],
-        *,
-        name: Optional[str] = None
-    ) -> Callable[[Callback[P, RT]], MessageCommand[P, RT]]:
-        ...
-
-    @overload
-    def command(
-        self,
-        type: Literal[CommandType.user],
-        *,
-        name: Optional[str] = None
-    ) -> Callable[[Callback[P, RT]], UserCommand[P, RT]]:
-        ...
-
-    def command(
-        self,
-        type: Union[CommandType, Callback[P, RT]] = CommandType.chat_input,
-        *,
-        name: Optional[str] = None,
-        description: Optional[str] = None
-    ) -> Union[CommandUnion[P, RT], Callable[[Callback[P, RT]], CommandUnion[P, RT]]]:
-        """Register and create a new application command through a decorator.
-
-        This is similar to the `@interactions.command()` decorator, except that
-        it automatically registers the command at the same time.
-
-        Parameters:
-            type: The type of the command. Defaults to a slash command.
-            name: The name of the command.
-            description: The description of the command.
-
-        Returns:
-            A command or function that returns a command. Depending on whether
-            the decorator was used with or without parentheses.
-
-        Exceptions:
-            ValueError: The type wasn't a CommandType value
-        """
-        def decorator(func: Callback[P, RT]) -> CommandUnion[P, RT]:
-            if type is CommandType.chat_input:
-                command = Command(func, name=name, description=description)
-            elif type is CommandType.message:
-                command = MessageCommand(func, name=name)
-            elif type is CommandType.user:
-                command = UserCommand(func, name=name)
-            else:
-                raise ValueError("Unknown value of 'type':", type)
-
-            self.add_command(command)  # type: ignore
-            return command
-
-        if callable(type):
-            return decorator(type)
-
-        return decorator

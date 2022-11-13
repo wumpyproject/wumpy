@@ -1,19 +1,12 @@
 from ._checks import (
-    MiddlewareDecorator,
+    middleware,
     CheckFailure,
     check,
-    BucketType,
-    max_concurrency,
-    cooldown,
 )
 from ._context import (
     ContextMenuCommand,
     MessageCommand,
     UserCommand,
-)
-from ._middleware import (
-    MiddlewareCallback,
-    CommandMiddlewareMixin,
 )
 from ._option import (
     CommandType,
@@ -33,17 +26,12 @@ from ._slash import (
 )
 
 __all__ = (
-    'MiddlewareDecorator',
+    'middleware',
     'CheckFailure',
     'check',
-    'BucketType',
-    'max_concurrency',
-    'cooldown',
     'ContextMenuCommand',
     'MessageCommand',
     'UserCommand',
-    'MiddlewareCallback',
-    'CommandMiddlewareMixin',
     'CommandType',
     'Option',
     'option',
