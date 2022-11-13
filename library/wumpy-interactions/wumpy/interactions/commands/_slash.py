@@ -13,7 +13,6 @@ from wumpy.models import ApplicationCommandOption, CommandInteractionOption
 from .._models import AutocompleteInteraction, CommandInteraction
 from . import _option
 from ._base import Callback, CommandCallback
-from ._middleware import CommandMiddlewareMixin
 
 __all__ = (
     'Command',
@@ -26,7 +25,7 @@ P = ParamSpec('P')
 RT = TypeVar('RT', covariant=True)
 
 
-class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
+class Command(CommandCallback[P, RT]):
     """Command with a callback for its handling.
 
     Commands function as subcommands and cannot have other subcommands nested
@@ -226,7 +225,7 @@ class Command(CommandMiddlewareMixin, CommandCallback[P, RT]):
         )
 
 
-class SubcommandGroup(CommandMiddlewareMixin):
+class SubcommandGroup:
     """Group of subcommands forwarding interactions.
 
     Subcommand groups has other subcommand under them but they cannot be called
