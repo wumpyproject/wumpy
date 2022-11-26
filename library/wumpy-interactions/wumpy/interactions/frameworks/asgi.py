@@ -4,10 +4,21 @@ import json
 from typing import AsyncContextManager, Dict, Any, Callable, Awaitable, Optional, Tuple, List, Union, IO
 from typing_extensions import Self
 
-from ._app import InteractionApp
+from .._app import InteractionApp
 
 
-class InteractionASGIApp:
+class ASGIInteractionApp:
+    """Compatability implementation for ASGI.
+
+    This class requires no other dependencies and can be used standalone or
+    in several other frameworks which allow submounting ASGI applications.
+
+    Examples:
+
+        ```python
+        ```
+    """
+
     _app: InteractionApp
 
     method: str
@@ -142,7 +153,10 @@ class InteractionASGIApp:
 
         _responded = False
 
-        async def respond_asgi(data: Dict[str, Any], files: List[Union[IO[bytes], bytes]]) -> None:
+        async def respond_asgi(
+                data: Dict[str, Any],
+                files: List[Union[IO[bytes], bytes]]
+        ) -> None:
             nonlocal _responded
 
             if _responded:

@@ -108,9 +108,6 @@ class InteractionApp:
         except BadSignatureError:
             return False
 
-    def parse_interaction(self, data: InteractionData, response: ResponseCallback) -> Interaction:
-        ...
-
     async def process_interaction(self, data: InteractionData, response: ResponseCallback) -> None:
         """Process the interaction from the request by calling callbacks.
 
