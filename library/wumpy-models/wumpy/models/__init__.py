@@ -97,6 +97,11 @@ from ._stateful import (
     User,
     BotUser,
 )
+from ._utils import (
+    Model,
+    Snowflake,
+)
+
 
 __all__ = (
     'PartialChannel',
@@ -194,4 +199,6 @@ __all__ = (
     'Sticker',
     'User',
     'BotUser',
+    'Model',
+    'Snowflake',
 )
