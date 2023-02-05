@@ -50,7 +50,7 @@ class IntegrationAccount:
         return cls(data['id'], data['name'])
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawIntegrationApplication(Model):
     """Information about a bot/OAuth2 application.
 
@@ -84,7 +84,7 @@ class RawIntegrationApplication(Model):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawBotIntegration(Model):
     """Representation of a bot integration in a guild.
 
@@ -120,7 +120,7 @@ class RawBotIntegration(Model):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawStreamIntegration(Model):
     """Representation of a guild integration for Twitch or YouTube.
 

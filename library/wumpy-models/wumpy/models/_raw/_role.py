@@ -45,7 +45,7 @@ class RoleTags:
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawRole(Model):
     """Representation of a Discord role with permissions.
 

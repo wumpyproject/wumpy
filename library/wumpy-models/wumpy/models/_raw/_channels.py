@@ -26,7 +26,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class PartialChannel(Model):
     """Channel with only a handful of fields.
 
@@ -57,7 +57,7 @@ class PartialChannel(Model):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class ChannelMention(PartialChannel):
     guild_id: Snowflake
 
@@ -71,7 +71,7 @@ class ChannelMention(PartialChannel):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class InteractionChannel(PartialChannel):
     """Channel with only a handful of fields.
 
@@ -94,7 +94,7 @@ class InteractionChannel(PartialChannel):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawDMChannel(Model):
 
     type: Literal[1]
@@ -119,7 +119,7 @@ class RawDMChannel(Model):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawTextChannel(PartialChannel):
 
     type: Literal[0, 5]
@@ -170,7 +170,7 @@ class RawTextChannel(PartialChannel):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawThreadMember:
     id: Optional[Snowflake]
     user_id: Optional[Snowflake]
@@ -187,7 +187,7 @@ class RawThreadMember:
         )
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawThread(PartialChannel):
 
     type: Literal[10, 11, 12]
@@ -246,7 +246,7 @@ class RawThread(PartialChannel):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawVoiceChannel(PartialChannel):
 
     type: Literal[2, 13]
@@ -283,7 +283,7 @@ class RawVoiceChannel(PartialChannel):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawCategory(PartialChannel):
 
     type: Literal[4]

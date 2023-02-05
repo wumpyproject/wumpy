@@ -22,7 +22,7 @@ __all__ = (
     'Category',
 )
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class DMChannel(RawDMChannel):
     recipients: Tuple[_user.User, ...]
 
@@ -76,7 +76,7 @@ class DMChannel(RawDMChannel):
         await get_api().unpin_message(self.id, message, reason=reason)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class TextChannel(RawTextChannel):
     ...
 
@@ -129,12 +129,12 @@ class TextChannel(RawTextChannel):
         return Thread.from_data(data)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class ThreadMember(RawThreadMember):
     ...
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Thread(RawThread):
     thread_member: Optional[ThreadMember] = None
 
@@ -197,7 +197,7 @@ class Thread(RawThread):
         await get_api().leave_thread(self.id)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class VoiceChannel(RawVoiceChannel):
     ...
 
@@ -211,6 +211,6 @@ class VoiceChannel(RawVoiceChannel):
         await get_api().trigger_typing(self.id)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Category(RawCategory):
     ...

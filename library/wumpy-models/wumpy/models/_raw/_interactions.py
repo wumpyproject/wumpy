@@ -163,7 +163,7 @@ class SelectInteractionValue:
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawInteraction(Model):
     application_id: Snowflake
     type: InteractionType
@@ -176,7 +176,7 @@ class RawInteraction(Model):
     app_permissions: Optional[Permissions] = None
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawAutocompleteInteraction(RawInteraction):
 
     name: str
@@ -211,7 +211,7 @@ class RawAutocompleteInteraction(RawInteraction):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawCommandInteraction(RawInteraction):
 
     name: str
@@ -275,7 +275,7 @@ class RawCommandInteraction(RawInteraction):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawComponentInteraction(RawInteraction):
 
     author: Union[RawUser, RawMember]

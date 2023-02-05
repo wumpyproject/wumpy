@@ -15,7 +15,7 @@ __all__ = (
 )
 
 
-@attrs.define()
+@attrs.define(eq=False, frozen=True)
 class Permissions(DiscordFlags):
     """A bitfield for wrapping Discord permissions."""
 
@@ -386,7 +386,7 @@ class PermissionTarget(Enum):
     member = 1
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class PermissionOverwrite(Model):
     """"Discord permission overwrite object.
 

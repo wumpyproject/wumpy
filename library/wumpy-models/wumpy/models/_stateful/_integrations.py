@@ -21,7 +21,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class IntegrationApplication(RawIntegrationApplication):
     user: Optional['_user.User']
 
@@ -41,7 +41,7 @@ class IntegrationApplication(RawIntegrationApplication):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class BotIntegration(RawBotIntegration):
     application: Optional[IntegrationApplication] = None
 
@@ -66,6 +66,6 @@ class BotIntegration(RawBotIntegration):
         )
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class StreamIntegration(RawStreamIntegration):
     ...

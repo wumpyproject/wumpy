@@ -9,11 +9,11 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Member(RawMember, User):
     ...
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class InteractionMember(RawInteractionMember, Member):
     ...

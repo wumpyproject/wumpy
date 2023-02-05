@@ -180,7 +180,7 @@ class AllowedMentions:
         return cls(everyone=True, users=True, roles=True, replied_user=True)
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawAttachment(Model):
     filename: str
 
@@ -267,7 +267,7 @@ class MessageType(Enum):
     thread_starter_message = 22
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawMessage(Model):
     type: Literal[
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,

@@ -14,7 +14,7 @@ __all__ = (
 )
 
 
-@attrs.define()
+@attrs.define(frozen=True, kw_only=True)
 class Invite(RawInvite):
     """Representation of a Discord invite."""
 

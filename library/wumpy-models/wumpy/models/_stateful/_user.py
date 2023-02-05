@@ -13,7 +13,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class User(RawUser):
     ...
 
@@ -30,7 +30,7 @@ class User(RawUser):
         return _channels.DMChannel.from_data(data)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class BotUser(RawBotUser):
     ...
 

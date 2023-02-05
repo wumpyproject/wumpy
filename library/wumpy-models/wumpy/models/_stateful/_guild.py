@@ -6,6 +6,6 @@ __all__ = (
     'Guild',
 )
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Guild(RawGuild):
     ...

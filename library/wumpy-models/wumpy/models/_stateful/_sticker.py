@@ -14,12 +14,12 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class StickerItem(RawStickerItem):
     ...
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class Sticker(RawSticker, StickerItem):
     type: StickerType
 

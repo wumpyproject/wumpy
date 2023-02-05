@@ -144,7 +144,7 @@ def flag(func: Callable[[], int]) -> BitMask:
     return BitMask(func())
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class ApplicationFlags(DiscordFlags):
     """Bitfield flags for a Discord application."""
 
@@ -189,7 +189,7 @@ class ApplicationFlags(DiscordFlags):
         return 1 << 17
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Intents(DiscordFlags):
     """Bitfield for Discord gateway intents.
 
@@ -378,7 +378,7 @@ class Intents(DiscordFlags):
         return cls(value)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class MessageFlags(DiscordFlags):
     """Flags for a message object sent by Discord."""
 
@@ -428,7 +428,7 @@ class MessageFlags(DiscordFlags):
         return 1 << 8
 
 
-@attrs.define()
+@attrs.define(eq=False, frozen=True)
 class UserFlags(DiscordFlags):
     """Bitfield flags for a Discord user object."""
 

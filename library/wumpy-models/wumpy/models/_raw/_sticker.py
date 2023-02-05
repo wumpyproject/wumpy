@@ -27,7 +27,7 @@ class StickerFormatType(Enum):
     lottie = 3
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawStickerItem(Model):
     name: str
     format_type: StickerFormatType
@@ -41,7 +41,7 @@ class RawStickerItem(Model):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawSticker(RawStickerItem):
     type: StickerType
 

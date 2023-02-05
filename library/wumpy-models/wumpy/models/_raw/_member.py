@@ -16,7 +16,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawMember(RawUser):
     joined_at: datetime
     roles: Tuple[Snowflake, ...]
@@ -74,7 +74,7 @@ class RawMember(RawUser):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawInteractionMember(RawMember):
     permissions: Permissions = Permissions(0)
 

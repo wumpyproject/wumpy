@@ -77,17 +77,17 @@ class ResolvedInteractionData:
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class Interaction(RawInteraction):
     author: Union['_user.User', '_member.Member', None]
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class AutocompleteInteraction(RawAutocompleteInteraction, Interaction):
     ...
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class CommandInteraction(RawCommandInteraction, Interaction):
     author: Union['_user.User', '_member.Member']
 
@@ -145,7 +145,7 @@ class CommandInteraction(RawCommandInteraction, Interaction):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class ComponentInteraction(RawComponentInteraction, Interaction):
 
     author: Union['_user.User', '_member.Member']

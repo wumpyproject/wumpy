@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional, Set, Union
+from typing import List, Optional, Set, Union
 
 import attrs
 from discord_typings import GuildCreateData, GuildData, GuildUpdateData
@@ -11,7 +11,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawGuild(Model):
     name: str
     owner_id: Snowflake

@@ -78,7 +78,7 @@ class Model:
         return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Snowflake(Model):
     """Standalone Discord snowflake.
 

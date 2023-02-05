@@ -11,7 +11,7 @@ __all__ = (
 )
 
 
-@attrs.define()
+@attrs.define(frozen=True)
 class Asset:
     url: str
 

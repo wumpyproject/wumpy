@@ -11,7 +11,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawUser(Model):
     name: str
     discriminator: int
@@ -39,7 +39,7 @@ class RawUser(Model):
         )
 
 
-@attrs.define(eq=False, kw_only=True)
+@attrs.define(eq=False, frozen=True, kw_only=True)
 class RawBotUser(RawUser):
     bot: bool = True  # Update default
 

@@ -15,7 +15,7 @@ __all__ = (
 )
 
 
-@attrs.define(eq=False)
+@attrs.define(eq=False, frozen=True)
 class Emoji(RawEmoji):
 
     user: Optional[_user.User]
@@ -38,7 +38,7 @@ class Emoji(RawEmoji):
         )
 
 
-@attrs.define()
+@attrs.define(frozen=True)
 class MessageReaction(RawMessageReaction):
     emoji: Emoji
 
