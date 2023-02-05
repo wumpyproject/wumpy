@@ -1,5 +1,4 @@
 from datetime import datetime
-from enum import Enum
 from typing import Optional
 
 import attrs
@@ -13,24 +12,11 @@ from .._utils import Model, Snowflake, _get_as_snowflake
 from ._user import RawUser
 
 __all__ = (
-    'IntegrationExpire',
-    'IntegrationType',
     'IntegrationAccount',
     'RawIntegrationApplication',
     'RawBotIntegration',
     'RawStreamIntegration',
 )
-
-
-class IntegrationExpire(Enum):
-    REMOVE_ROLE = 0
-    KICK = 1
-
-
-class IntegrationType(str, Enum):
-    twitch = 'twitch'
-    youtube = 'youtube'
-    discord = 'discord'
 
 
 @attrs.define(frozen=True)
@@ -93,7 +79,7 @@ class RawBotIntegration(Model):
     """
 
     name: str
-    type: IntegrationType
+    type: str
     enabled: bool
     account: IntegrationAccount
 
@@ -113,7 +99,7 @@ class RawBotIntegration(Model):
         return cls(
             id=int(data['id']),
             name=data['name'],
-            type=IntegrationType(data['type']),
+            type=data['type'],
             enabled=data['enabled'],
             account=IntegrationAccount.from_data(data['account']),
             application=application
@@ -139,14 +125,14 @@ class RawStreamIntegration(Model):
     """
 
     name: str
-    type: IntegrationType
+    type: str
     enabled: bool
     account: IntegrationAccount
 
     syncing: bool
     role_id: Optional[Snowflake]
     enable_emoticons: bool
-    expire_behavior: IntegrationExpire
+    expire_behavior: int
     expire_grace_period: int
     user: RawUser
     synced_at: datetime
@@ -158,13 +144,13 @@ class RawStreamIntegration(Model):
         return cls(
             id=int(data['id']),
             name=data['name'],
-            type=IntegrationType(data['type']),
+            type=data['type'],
             enabled=data['enabled'],
             account=IntegrationAccount.from_data(data['account']),
             syncing=data['syncing'],
             role_id=_get_as_snowflake(data, 'role_id'),
             enable_emoticons=data['enable_emoticons'],
-            expire_behavior=IntegrationExpire(data['expire_behavior']),
+            expire_behavior=data['expire_behavior'],
             expire_grace_period=data['expire_grace_period'],
             user=RawUser.from_data(data['user']),
             synced_at=datetime.fromisoformat(data['synced_at']),

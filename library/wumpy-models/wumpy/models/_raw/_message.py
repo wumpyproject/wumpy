@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Iterable, Optional, Sequence, SupportsInt, Tuple, Union
 
 import attrs
@@ -6,7 +5,7 @@ from discord_typings import (
     AllowedMentionsData, AttachmentData, MessageCreateData, MessageData,
     MessageUpdateData
 )
-from typing_extensions import Literal, Self
+from typing_extensions import Self
 
 from .._utils import Model, Snowflake, _get_as_snowflake
 from ._channels import ChannelMention
@@ -242,38 +241,9 @@ class RawMessageMentions:
         )
 
 
-class MessageType(Enum):
-    default = 0
-    recipient_add = 1
-    recipient_remove = 2
-    call = 3
-    channel_name_change = 4
-    channel_icon_change = 5
-    pins_add = 6
-    new_member = 7
-    premium_guild_subscription = 8
-    premium_guild_tier_1 = 9
-    premium_guild_tier_2 = 10
-    premium_guild_tier_3 = 11
-    channel_follow_add = 12
-    guild_discovery_disqualified = 14
-    guild_discovery_requalified = 15
-    guild_discovery_grace_period_initial_warning = 16
-    guild_discovery_grace_period_final_warning = 17
-    thread_created = 18
-    reply = 19
-    application_command = 20
-    guild_invite_reminder = 21
-    thread_starter_message = 22
-
-
 @attrs.define(eq=False, frozen=True, kw_only=True)
 class RawMessage(Model):
-    type: Literal[
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        11, 12, 14, 15, 16, 17, 18, 19, 20,
-        21, 22, 23,
-    ]
+    type: int
 
     author: Union[RawUser, RawMember]
 

@@ -19,9 +19,6 @@ from ._role import RawRole
 from ._user import RawUser
 
 __all__ = (
-    'InteractionType',
-    'ComponentType',
-    'ApplicationCommandOption',
     'RawResolvedInteractionData',
     'CommandInteractionOption',
     'RawInteraction',
@@ -30,32 +27,6 @@ __all__ = (
     'RawComponentInteraction',
     'SelectInteractionValue',
 )
-
-
-class InteractionType(enum.Enum):
-    ping = 1
-    application_command = 2
-    message_component = 3
-
-
-class ComponentType(enum.Enum):
-    action_row = 1
-    button = 2
-    select_menu = 3
-    text_input = 4
-
-
-class ApplicationCommandOption(enum.Enum):
-    subcommand = 1
-    subcommand_group = 2
-    string = 3
-    integer = 4
-    boolean = 5
-    user = 6
-    channel = 7
-    role = 8
-    mentionable = 9
-    number = 10  # Includes decimals
 
 
 def _proxy_field():
@@ -117,7 +88,7 @@ class CommandInteractionOption:
     """
 
     name: str
-    type: ApplicationCommandOption
+    type: int
 
     value: Optional[Any] = attrs.field(default=None, kw_only=True)
 
@@ -128,7 +99,7 @@ class CommandInteractionOption:
     def from_data(cls, data: ApplicationCommandOptionInteractionData) -> Self:
         return cls(
             name=data['name'],
-            type=ApplicationCommandOption(data['type']),
+            type=data['type'],
 
             value=data.get('value'),
             focused=data.get('focused', False),
@@ -166,7 +137,7 @@ class SelectInteractionValue:
 @attrs.define(eq=False, frozen=True, kw_only=True)
 class RawInteraction(Model):
     application_id: Snowflake
-    type: InteractionType
+    type: int
     token: str
     version: int = 1
 
@@ -181,7 +152,7 @@ class RawAutocompleteInteraction(RawInteraction):
 
     name: str
     invoked: Snowflake
-    invoked_type: ApplicationCommandOption
+    invoked_type: int
 
     author: None
     app_permissions: None
@@ -193,7 +164,7 @@ class RawAutocompleteInteraction(RawInteraction):
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
-            type=InteractionType(data['type']),
+            type=data['type'],
             token=data['token'],
             version=data['version'],
 
@@ -202,7 +173,7 @@ class RawAutocompleteInteraction(RawInteraction):
 
             name=data['data']['name'],
             invoked=Snowflake(int(data['data']['id'])),
-            invoked_type=ApplicationCommandOption(data['data']['type']),
+            invoked_type=data['data']['type'],
 
             options=[
                 CommandInteractionOption.from_data(option)
@@ -216,7 +187,7 @@ class RawCommandInteraction(RawInteraction):
 
     name: str
     invoked: Snowflake
-    invoked_type: ApplicationCommandOption
+    invoked_type: int
 
     author: Union[RawUser, RawMember]
 
@@ -252,7 +223,7 @@ class RawCommandInteraction(RawInteraction):
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
-            type=InteractionType(data['type']),
+            type=data['type'],
             app_permissions=app_permissions,
 
             channel_id=_get_as_snowflake(data, 'channel_id'),
@@ -263,7 +234,7 @@ class RawCommandInteraction(RawInteraction):
 
             name=data['data']['name'],
             invoked=Snowflake(int(data['data']['id'])),
-            invoked_type=ApplicationCommandOption(data['data']['type']),
+            invoked_type=data['data']['type'],
 
             resolved=RawResolvedInteractionData.from_data(data['data'].get('resolved', {})),
             target_id=target_id,
@@ -282,7 +253,7 @@ class RawComponentInteraction(RawInteraction):
     message: RawMessage
 
     custom_id: str
-    component_type: ComponentType
+    component_type: int
 
     values: List[SelectInteractionValue]
 
@@ -310,7 +281,7 @@ class RawComponentInteraction(RawInteraction):
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
-            type=InteractionType(data['type']),
+            type=data['type'],
             app_permissions=app_permissions,
 
             channel_id=_get_as_snowflake(data, 'channel_id'),
@@ -322,7 +293,7 @@ class RawComponentInteraction(RawInteraction):
             message=RawMessage.from_data(data['message']),
 
             custom_id=data['data']['custom_id'],
-            component_type=ComponentType(data['data']['component_type']),
+            component_type=data['data']['component_type'],
 
             values=[
                 SelectInteractionValue.from_data(value)

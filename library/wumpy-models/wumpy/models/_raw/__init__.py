@@ -42,17 +42,12 @@ from ._guild import (
     RawGuild,
 )
 from ._integrations import (
-    IntegrationExpire,
-    IntegrationType,
     IntegrationAccount,
     RawIntegrationApplication,
     RawBotIntegration,
     RawStreamIntegration,
 )
 from ._interactions import (
-    InteractionType,
-    ComponentType,
-    ApplicationCommandOption,
     RawResolvedInteractionData,
     CommandInteractionOption,
     RawInteraction,
@@ -72,12 +67,10 @@ from ._message import (
     AllowedMentions,
     RawAttachment,
     RawMessageMentions,
-    MessageType,
     RawMessage,
 )
 from ._permissions import (
     Permissions,
-    PermissionTarget,
     PermissionOverwrite,
 )
 from ._role import (
@@ -85,8 +78,6 @@ from ._role import (
     RawRole,
 )
 from ._sticker import (
-    StickerType,
-    StickerFormatType,
     RawStickerItem,
     RawSticker,
 )
@@ -127,15 +118,10 @@ __all__ = (
     'MessageFlags',
     'UserFlags',
     'RawGuild',
-    'IntegrationExpire',
-    'IntegrationType',
     'IntegrationAccount',
     'RawIntegrationApplication',
     'RawBotIntegration',
     'RawStreamIntegration',
-    'InteractionType',
-    'ComponentType',
-    'ApplicationCommandOption',
     'RawResolvedInteractionData',
     'CommandInteractionOption',
     'RawInteraction',
@@ -149,15 +135,11 @@ __all__ = (
     'AllowedMentions',
     'RawAttachment',
     'RawMessageMentions',
-    'MessageType',
     'RawMessage',
     'Permissions',
-    'PermissionTarget',
     'PermissionOverwrite',
     'RoleTags',
     'RawRole',
-    'StickerType',
-    'StickerFormatType',
     'RawStickerItem',
     'RawSticker',
     'RawUser',

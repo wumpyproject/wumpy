@@ -10,7 +10,6 @@ from ._flags import DiscordFlags, flag
 
 __all__ = (
     'Permissions',
-    'PermissionTarget',
     'PermissionOverwrite',
 )
 
@@ -381,11 +380,6 @@ def triflag(func: Callable[[], int]) -> TriBitMask:
     return TriBitMask(func())
 
 
-class PermissionTarget(Enum):
-    role = 0
-    member = 1
-
-
 @attrs.define(eq=False, frozen=True)
 class PermissionOverwrite(Model):
     """"Discord permission overwrite object.
@@ -397,7 +391,7 @@ class PermissionOverwrite(Model):
 
     allow: Permissions
     deny: Permissions
-    type: Optional[PermissionTarget] = None
+    type: Optional[int] = None
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
@@ -415,7 +409,7 @@ class PermissionOverwrite(Model):
     def from_data(cls, data: PermissionOverwriteData) -> Self:
         return cls(
             id=int(data['id']),
-            type=PermissionTarget(int(data['type'])),
+            type=int(data['type']),
             allow=Permissions(int(data['allow'])),
             deny=Permissions(int(data['deny'])),
         )
@@ -425,7 +419,7 @@ class PermissionOverwrite(Model):
     def build(  # type: ignore  # @overload *should* have multiple signatures
         cls,
         id: SupportsInt,
-        type: PermissionTarget,
+        type: int,
         *,
         # This is a copy of each permission of a permission overwrite, since
         # you can build a permission with any of those options.
@@ -474,7 +468,7 @@ class PermissionOverwrite(Model):
         ...
 
     @classmethod
-    def build(cls, id: SupportsInt, type: PermissionTarget, **kwargs: Optional[bool]) -> Self:
+    def build(cls, id: SupportsInt, type: int, **kwargs: Optional[bool]) -> Self:
         allow, deny = 0, 0
 
         for option, value in [(k, v) for (k, v) in kwargs.items() if isinstance(v, bool)]:

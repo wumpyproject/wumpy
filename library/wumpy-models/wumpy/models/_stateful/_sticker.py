@@ -4,7 +4,7 @@ import attrs
 from discord_typings import StickerData
 from typing_extensions import Self
 
-from .._raw import RawSticker, RawStickerItem, StickerFormatType, StickerType
+from .._raw import RawSticker, RawStickerItem
 from .._utils import _get_as_snowflake
 from . import _user
 
@@ -21,7 +21,6 @@ class StickerItem(RawStickerItem):
 
 @attrs.define(eq=False, frozen=True, kw_only=True)
 class Sticker(RawSticker, StickerItem):
-    type: StickerType
 
     user: Optional['_user.User']
 
@@ -41,8 +40,8 @@ class Sticker(RawSticker, StickerItem):
             sort_value=data.get('sort_value'),
 
             tags=data['tags'],
-            type=StickerType(data['type']),
-            format_type=StickerFormatType(data['format_type']),
+            type=data['type'],
+            format_type=data['format_type'],
 
             available=data.get('available', True),
             guild_id=_get_as_snowflake(data, 'guild_id'),

@@ -10,10 +10,9 @@ from discord_typings import (
 from typing_extensions import Self
 
 from .._raw import (
-    ApplicationCommandOption, ComponentType, InteractionChannel,
-    InteractionType, Permissions, RawAutocompleteInteraction,
-    RawCommandInteraction, RawComponentInteraction, RawInteraction,
-    SelectInteractionValue
+    InteractionChannel, CommandInteractionOption, Permissions,
+    RawAutocompleteInteraction, RawCommandInteraction, RawComponentInteraction,
+    RawInteraction, SelectInteractionValue
 )
 from .._utils import Snowflake, _get_as_snowflake
 from . import _member, _message, _role, _user
@@ -122,7 +121,7 @@ class CommandInteraction(RawCommandInteraction, Interaction):
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
-            type=InteractionType(data['type']),
+            type=data['type'],
             app_permissions=app_permissions,
 
             channel_id=_get_as_snowflake(data, 'channel_id'),
@@ -133,7 +132,7 @@ class CommandInteraction(RawCommandInteraction, Interaction):
 
             name=data['data']['name'],
             invoked=Snowflake(int(data['data']['id'])),
-            invoked_type=ApplicationCommandOption(data['data']['type']),
+            invoked_type=data['data']['type'],
 
             resolved=ResolvedInteractionData.from_data(data['data'].get('resolved', {})),
             target_id=target_id,
@@ -175,7 +174,7 @@ class ComponentInteraction(RawComponentInteraction, Interaction):
         return cls(
             id=int(data['id']),
             application_id=Snowflake(int(data['application_id'])),
-            type=InteractionType(data['type']),
+            type=data['type'],
             app_permissions=app_permissions,
 
             channel_id=_get_as_snowflake(data, 'channel_id'),
@@ -187,7 +186,7 @@ class ComponentInteraction(RawComponentInteraction, Interaction):
             message=_message.Message.from_data(data['message']),
 
             custom_id=data['data']['custom_id'],
-            component_type=ComponentType(data['data']['component_type']),
+            component_type=data['data']['component_type'],
 
             values=[
                 SelectInteractionValue.from_data(value)

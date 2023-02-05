@@ -2,16 +2,14 @@ from typing import Optional
 
 import attrs
 from discord_typings import (
-    DiscordIntegrationData, IntegrationAccountData, IntegrationApplicationData,
-    StreamingIntegrationData
+    DiscordIntegrationData, IntegrationApplicationData
 )
 from typing_extensions import Self
 
 from .._raw import (
-    Integration, IntegrationAccount, IntegrationType, RawBotIntegration,
+    IntegrationAccount, RawBotIntegration,
     RawIntegrationApplication, RawStreamIntegration
 )
-from .._utils import Model, Snowflake, _get_as_snowflake
 from . import _user
 
 __all__ = (
@@ -59,7 +57,7 @@ class BotIntegration(RawBotIntegration):
         return cls(
             id=int(data['id']),
             name=data['name'],
-            type=IntegrationType(data['type']),
+            type=data['type'],
             enabled=data['enabled'],
             account=IntegrationAccount.from_data(data['account']),
             application=application
