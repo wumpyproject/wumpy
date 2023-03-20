@@ -22,7 +22,7 @@ from discord_gateway import (
 from typing_extensions import Literal, Self
 
 from ._errors import ConnectionClosed
-from ._utils import DefaultGatewayLimiter, GatewayLimiter, race
+from ._utils import DefaultGatewayLimiter, GatewayLimiter
 
 __all__ = (
     'Shard',
@@ -573,7 +573,8 @@ class Shard:
 
             # Wait for the first one to complete - either the expected sleeping
             # or during shutdown the _closed event.
-            await race(partial(anyio.sleep, interval), self._closed.wait)
+            with anyio.move_on_after(interval):
+                await self._closed.wait()
 
             interval = self._conn.heartbeat_interval  # Reset value after sleep
 
